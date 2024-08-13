@@ -20,6 +20,9 @@ package io.entgra.device.mgt.core.apimgt.webapp.publisher;
 
 import com.google.gson.Gson;
 import io.entgra.device.mgt.core.apimgt.extension.rest.api.constants.Constants;
+import io.entgra.device.mgt.core.apimgt.webapp.publisher.dto.ApiScope;
+import io.entgra.device.mgt.core.apimgt.webapp.publisher.exception.APIManagerPublisherException;
+import io.entgra.device.mgt.core.apimgt.webapp.publisher.internal.APIPublisherDataHolder;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataKeyAlreadyExistsException;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.Metadata;
@@ -30,25 +33,25 @@ import io.entgra.device.mgt.core.device.mgt.core.config.permission.DefaultPermis
 import io.entgra.device.mgt.core.device.mgt.core.config.permission.DefaultPermissions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import io.entgra.device.mgt.core.apimgt.webapp.publisher.exception.APIManagerPublisherException;
-import io.entgra.device.mgt.core.apimgt.webapp.publisher.internal.APIPublisherDataHolder;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.core.ServerStartupObserver;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
 public class APIPublisherStartupHandler implements ServerStartupObserver {
 
     private static final Log log = LogFactory.getLog(APIPublisherStartupHandler.class);
-    private static int retryTime = 2000;
     private static final int CONNECTION_RETRY_FACTOR = 2;
     private static final int MAX_RETRY_COUNT = 5;
-    private static Stack<APIConfig> failedAPIsStack = new Stack<>();
-    private static Stack<APIConfig> currentAPIsStack;
     private static final Gson gson = new Gson();
-
+    private static final Stack<APIConfig> failedAPIsStack = new Stack<>();
+    private static int retryTime = 2000;
+    private static Stack<APIConfig> currentAPIsStack;
+    private final List<String> publishedAPIs = new ArrayList<>();
     private APIPublisherService publisher;
 
     @Override
@@ -72,14 +75,16 @@ public class APIPublisherStartupHandler implements ServerStartupObserver {
                 publisher = APIPublisherDataHolder.getInstance().getApiPublisherService();
                 int retryCount = 0;
                 while (retryCount < MAX_RETRY_COUNT && (!failedAPIsStack.isEmpty() || !currentAPIsStack.isEmpty())) {
-                    try {
-                        retryTime = retryTime * CONNECTION_RETRY_FACTOR;
-                        Thread.sleep(retryTime);
-                    } catch (InterruptedException te) {
-                        //do nothing.
+                    if (retryCount > 0) {
+                        try {
+                            retryTime = retryTime * CONNECTION_RETRY_FACTOR;
+                            Thread.sleep(retryTime);
+                        } catch (InterruptedException te) {
+                            //do nothing.
+                        }
                     }
                     Stack<APIConfig> failedApis;
-                    if (!APIPublisherDataHolder.getInstance().getUnpublishedApis().isEmpty()) {
+                    if (!currentAPIsStack.isEmpty()) {
                         publishAPIs(currentAPIsStack, failedAPIsStack);
                         failedApis = failedAPIsStack;
                     } else {
@@ -95,7 +100,7 @@ public class APIPublisherStartupHandler implements ServerStartupObserver {
                             error.append(api.getName() + ",");
                         }
                         error.append("']");
-                        log.error(error.toString());
+                        log.info(error.toString());
                     }
                 }
 
@@ -114,6 +119,11 @@ public class APIPublisherStartupHandler implements ServerStartupObserver {
                     PrivilegedCarbonContext.endTenantFlow();
                 }
 
+                log.info("Successfully published : [" + publishedAPIs + "]. " +
+                        "and failed : [" + failedAPIsStack + "] " +
+                        "Total successful count : [" + publishedAPIs.size() + "]. " +
+                        "Failed count : [" + failedAPIsStack.size() + "]");
+
                 // execute after api publishing
                 for (PostApiPublishingObsever observer : APIPublisherDataHolder.getInstance().getPostApiPublishingObseverList()) {
                     if (log.isDebugEnabled()) {
@@ -125,6 +135,7 @@ public class APIPublisherStartupHandler implements ServerStartupObserver {
             }
         });
         t.start();
+        log.info("Starting API publishing procedure");
     }
 
     private void publishAPIs(Stack<APIConfig> apis, Stack<APIConfig> failedStack) {
@@ -132,6 +143,11 @@ public class APIPublisherStartupHandler implements ServerStartupObserver {
             APIConfig api = apis.pop();
             try {
                 publisher.publishAPI(api);
+                for (ApiScope scope : api.getScopes()) {
+                    APIPublisherDataHolder.getInstance().getPermScopeMapping().putIfAbsent(scope.getPermissions(), scope.getKey());
+                }
+                publishedAPIs.add(api.getName());
+                log.info("Successfully published API [" + api.getName() + "]");
             } catch (APIManagerPublisherException e) {
                 log.error("failed to publish api.", e);
                 failedStack.push(api);
@@ -144,34 +160,42 @@ public class APIPublisherStartupHandler implements ServerStartupObserver {
      * will create that entry and update the value with default permissions.
      */
     private void updateScopeMetadataEntryWithDefaultScopes() {
+        Map<String, String> permScopeMap = APIPublisherDataHolder.getInstance().getPermScopeMapping();
+        Metadata permScopeMapping;
+
         MetadataManagementService metadataManagementService = APIPublisherDataHolder.getInstance().getMetadataManagementService();
+        DeviceManagementConfig deviceManagementConfig = DeviceConfigurationManager.getInstance().getDeviceManagementConfig();
+        DefaultPermissions defaultPermissions = deviceManagementConfig.getDefaultPermissions();
+
         try {
-            DeviceManagementConfig deviceManagementConfig = DeviceConfigurationManager.getInstance().getDeviceManagementConfig();
-            DefaultPermissions defaultPermissions = deviceManagementConfig.getDefaultPermissions();
-            Metadata permScopeMapping = metadataManagementService.retrieveMetadata(Constants.PERM_SCOPE_MAPPING_META_KEY);
-            Map<String, String> permScopeMap = (permScopeMapping != null) ? gson.fromJson(permScopeMapping.getMetaValue(), HashMap.class) :
-                    new HashMap<>();
-            for (DefaultPermission defaultPermission : defaultPermissions.getDefaultPermissions()) {
-                permScopeMap.putIfAbsent(defaultPermission.getName(),
-                        defaultPermission.getScopeMapping().getKey());
+            permScopeMapping = metadataManagementService.retrieveMetadata(Constants.PERM_SCOPE_MAPPING_META_KEY);
+            boolean entryAlreadyExists = permScopeMapping != null;
+            if (permScopeMap == null || permScopeMap.isEmpty()) {
+                permScopeMap = entryAlreadyExists ? gson.fromJson(permScopeMapping.getMetaValue(), HashMap.class) :
+                        new HashMap<>();
             }
 
-            APIPublisherDataHolder.getInstance().setPermScopeMapping(permScopeMap);
-            if (permScopeMapping != null) {
-                permScopeMapping.setMetaValue(gson.toJson(permScopeMap));
-                metadataManagementService.updateMetadata(permScopeMapping);
-                return;
+            for (DefaultPermission defaultPermission : defaultPermissions.getDefaultPermissions()) {
+                permScopeMap.putIfAbsent(defaultPermission.getName(), defaultPermission.getScopeMapping().getKey());
             }
+
 
             permScopeMapping = new Metadata();
             permScopeMapping.setMetaKey(Constants.PERM_SCOPE_MAPPING_META_KEY);
             permScopeMapping.setMetaValue(gson.toJson(permScopeMap));
-            metadataManagementService.createMetadata(permScopeMapping);
+
+            if (entryAlreadyExists) {
+                metadataManagementService.updateMetadata(permScopeMapping);
+            } else {
+                metadataManagementService.createMetadata(permScopeMapping);
+            }
+
+            APIPublisherDataHolder.getInstance().setPermScopeMapping(permScopeMap);
+            log.info(Constants.PERM_SCOPE_MAPPING_META_KEY + "entry updated successfully");
         } catch (MetadataManagementException e) {
             log.error("Error encountered while updating permission scope mapping metadata with default scopes");
         } catch (MetadataKeyAlreadyExistsException e) {
             log.error("Metadata entry already exists for " + Constants.PERM_SCOPE_MAPPING_META_KEY);
         }
     }
-
 }
