@@ -20,6 +20,7 @@ package io.entgra.device.mgt.core.certificate.mgt.core.impl;
 import io.entgra.device.mgt.core.certificate.mgt.core.util.CertificateManagementConstants;
 import io.entgra.device.mgt.core.certificate.mgt.core.util.CommonUtil;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -451,19 +452,34 @@ public class CertificateGenerator {
                         generateCertificate(byteArrayInputStream);
 
                 if (reqCert != null && reqCert.getSerialNumber() != null) {
-                    log.debug("looking up certificate for serial: " + reqCert.getSerialNumber().toString());
-                    CertificateResponse lookUpCertificate = keyStoreReader.getCertificateBySerial(
-                            reqCert.getSerialNumber().toString());
+                    if (log.isDebugEnabled()) {
+                        log.debug("looking up certificate for serial: " + reqCert.getSerialNumber().toString());
+                    }
+                    String orgUnit = CommonUtil.getSubjectDnAttribute(reqCert,
+                            CertificateManagementConstants.ORG_UNIT_ATTRIBUTE);
+                    CertificateResponse lookUpCertificate;
+                    if (StringUtils.isNotEmpty(orgUnit)) {
+                        int tenantId = Integer.parseInt(orgUnit.split(("_"))[1]);
+                        lookUpCertificate = keyStoreReader.getCertificateBySerial(reqCert.getSerialNumber().toString(),
+                                tenantId);
+                    } else {
+                        lookUpCertificate = keyStoreReader.getCertificateBySerial(
+                                reqCert.getSerialNumber().toString());
+                    }
                     if (lookUpCertificate != null && lookUpCertificate.getCertificate() != null) {
-                        log.debug("certificate found for serial: " + reqCert.getSerialNumber()
-                                .toString());
+                        if (log.isDebugEnabled()) {
+                            log.debug("certificate found for serial: " + reqCert.getSerialNumber()
+                                    .toString());
+                        }
                         Certificate certificate = (Certificate) Serializer.deserialize(lookUpCertificate.getCertificate());
                         if (certificate instanceof X509Certificate) {
                             return (X509Certificate) certificate;
                         }
                     } else {
-                        log.debug("certificate not found for serial: " + reqCert.getSerialNumber()
-                                .toString());
+                        if (log.isDebugEnabled()) {
+                            log.debug("certificate not found for serial: " + reqCert.getSerialNumber()
+                                    .toString());
+                        }
                     }
 
                 }
@@ -486,7 +502,6 @@ public class CertificateGenerator {
             log.error(errorMsg);
             throw new KeystoreException(errorMsg, e);
         }
-
         return null;
     }
 
