@@ -41,7 +41,7 @@ public class Operation implements Serializable {
     }
 
     private String code;
-    private Properties properties;
+    private transient Properties properties;
     private Type type;
     private int id;
     private Status status;
