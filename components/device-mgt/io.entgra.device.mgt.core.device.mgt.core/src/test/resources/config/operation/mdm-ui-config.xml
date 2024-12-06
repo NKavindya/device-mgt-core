@@ -231,6 +231,10 @@
         <Scope>am:pub:sp:connect</Scope>
         <Scope>am:pub:app:view</Scope>
         <Scope>am:pub:app:update</Scope>
+        <Scope>am:pub:ent-app:create</Scope>
+        <Scope>am:pub:web-app:create</Scope>
+        <Scope>am:pub:pub-app:create</Scope>
+        <Scope>am:pub:custom-app:create</Scope>
         <Scope>am:store:app:view</Scope>
         <Scope>am:store:app:modify</Scope>
         <Scope>am:store:app:sub:install</Scope>
