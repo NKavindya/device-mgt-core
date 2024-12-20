@@ -207,7 +207,8 @@
                             org.apache.commons.lang,
                             org.json,
                             io.entgra.device.mgt.core.device.mgt.common.permission.mgt,
-                            io.entgra.device.mgt.core.device.mgt.core.permission.mgt
+                            io.entgra.device.mgt.core.device.mgt.core.permission.mgt,
+                            io.entgra.device.mgt.core.device.mgt.core.permission.mgt,
                         </Import-Package>
                         <Embed-Dependency>
                             jsr311-api;scope=compile|runtime;inline=false
