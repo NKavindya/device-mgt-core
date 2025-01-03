@@ -26,6 +26,7 @@ public class DefaultPermission {
 
     private String name;
     private ScopeMapping scopeMapping;
+    private Boolean isAssignableToDefaultRoles;
 
     @XmlElement(name = "Name", required = true)
     public String getName() {
