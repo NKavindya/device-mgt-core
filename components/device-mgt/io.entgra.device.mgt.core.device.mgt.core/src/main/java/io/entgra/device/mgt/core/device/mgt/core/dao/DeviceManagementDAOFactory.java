@@ -31,6 +31,7 @@ import io.entgra.device.mgt.core.device.mgt.core.dao.impl.device.PostgreSQLDevic
 import io.entgra.device.mgt.core.device.mgt.core.dao.impl.device.SQLServerDeviceDAOImpl;
 import io.entgra.device.mgt.core.device.mgt.core.dao.impl.enrolment.GenericEnrollmentDAOImpl;
 import io.entgra.device.mgt.core.device.mgt.core.dao.impl.enrolment.SQLServerEnrollmentDAOImpl;
+import io.entgra.device.mgt.core.device.mgt.core.dao.impl.feature.GenericDeviceFeatureOperationDAOImpl;
 import io.entgra.device.mgt.core.device.mgt.core.dao.impl.tracker.TrackerDAOImpl;
 import io.entgra.device.mgt.core.device.mgt.core.dao.util.DeviceManagementDAOUtil;
 import io.entgra.device.mgt.core.device.mgt.core.device.details.mgt.dao.DeviceDetailsDAO;
