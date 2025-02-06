@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2018 - 2025, Entgra (Pvt) Ltd. (http://www.entgra.io) All Rights Reserved.
+ *
+ * Entgra (Pvt) Ltd. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package io.entgra.device.mgt.notification.mgt.core.internal;
 
 import org.apache.commons.logging.Log;
@@ -6,6 +23,7 @@ import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.*;
 import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
+import org.wso2.carbon.ntask.core.service.TaskService;
 
 
 @Component(
@@ -14,24 +32,22 @@ import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProvide
 public class NotificationManagementServiceComponent {
     private static Log log = LogFactory.getLog(NotificationManagementServiceComponent.class);
 
-    @SuppressWarnings("unused")
     @Activate
     protected void activate(ComponentContext componentContext) {
         BundleContext bundleContext = componentContext.getBundleContext();
         try {
+            // Notification Management related services
             log.info("NotificationManagement core bundle has been successfully initialized");
         } catch (Throwable e) {
-            log.error("Error occurred while initializing app management core bundle", e);
+            log.error("Error occurred while initializing notification management core bundle", e);
         }
     }
 
-    @SuppressWarnings("unused")
     @Deactivate
     protected void deactivate(ComponentContext componentContext) {
         // Do nothing
     }
 
-    @SuppressWarnings("unused")
     @Reference(
             name = "device.mgt.provider.service",
             service = io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService.class,
@@ -40,13 +56,35 @@ public class NotificationManagementServiceComponent {
             unbind = "unsetDeviceManagementService")
     protected void setDeviceManagementService(DeviceManagementProviderService deviceManagementProviderService) {
         if (log.isDebugEnabled()) {
-            log.debug("Setting ApplicationDTO Management OSGI Manager");
+            log.debug("Setting Device Management Service for Notification Management");
         }
+        DataHolder.getInstance().setDeviceManagementService(deviceManagementProviderService);
     }
 
     protected void unsetDeviceManagementService(DeviceManagementProviderService deviceManagementProviderService) {
         if (log.isDebugEnabled()) {
-            log.debug("Unsetting ApplicationDTO Management OSGI Manager");
+            log.debug("Removing Device Management Service from Notification Management");
         }
+        DataHolder.getInstance().setDeviceManagementService(null);
+    }
+
+    @Reference(
+            name = "task.service",
+            service = org.wso2.carbon.ntask.core.service.TaskService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetTaskService")
+    public void setTaskService(TaskService taskService) {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting Task Service for Notification Management");
+        }
+        DataHolder.getInstance().setTaskService(taskService);
+    }
+
+    protected void unsetTaskService(TaskService taskService) {
+        if (log.isDebugEnabled()) {
+            log.debug("Removing Task Service from Notification Management");
+        }
+        DataHolder.getInstance().setTaskService(null);
     }
 }
