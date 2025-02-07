@@ -1,4 +1,4 @@
-package io.entgra.device.mgt.notification.mgt.core.dao;
+package io.entgra.device.mgt.core.notification.mgt.core.dao;
 
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;

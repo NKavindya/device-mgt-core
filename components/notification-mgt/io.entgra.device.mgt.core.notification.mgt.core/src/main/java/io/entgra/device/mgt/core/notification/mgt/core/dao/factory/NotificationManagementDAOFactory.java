@@ -1,13 +1,13 @@
-package io.entgra.device.mgt.notification.mgt.core.dao.factory;
+package io.entgra.device.mgt.core.notification.mgt.core.dao.factory;
 
 import io.entgra.device.mgt.core.device.mgt.common.DeviceManagementConstants;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.IllegalTransactionStateException;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.UnsupportedDatabaseEngineException;
-import io.entgra.device.mgt.notification.mgt.core.config.datasource.JNDILookupDefinition;
-import io.entgra.device.mgt.notification.mgt.core.config.datasource.NotificationDatasourceConfiguration;
-import io.entgra.device.mgt.notification.mgt.core.dao.NotificationManagementDAO;
-import io.entgra.device.mgt.notification.mgt.core.dao.impl.GenericNotificationManagementDAO;
-import io.entgra.device.mgt.notification.mgt.core.exception.NotificationManagementDAOException;
+import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.JNDILookupDefinition;
+import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.NotificationDatasourceConfiguration;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.GenericNotificationManagementDAO;
+import io.entgra.device.mgt.core.notification.mgt.core.exception.NotificationManagementDAOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

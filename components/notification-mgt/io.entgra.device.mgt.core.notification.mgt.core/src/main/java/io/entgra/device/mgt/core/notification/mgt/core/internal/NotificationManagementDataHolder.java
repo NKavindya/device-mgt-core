@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package io.entgra.device.mgt.notification.mgt.core.internal;
+package io.entgra.device.mgt.core.notification.mgt.core.internal;
 
 import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
 import org.wso2.carbon.ntask.core.service.TaskService;
@@ -24,7 +24,7 @@ import org.wso2.carbon.user.core.service.RealmService;
 /**
  * DataHolder is responsible for holding the references to OSGI Services.
  */
-public class DataHolder {
+public class NotificationManagementDataHolder {
 
     private DeviceManagementProviderService deviceManagementService;
 
@@ -32,13 +32,13 @@ public class DataHolder {
 
     private TaskService taskService;
 
-    private static final DataHolder applicationMgtDataHolder = new DataHolder();
+    private static final NotificationManagementDataHolder applicationMgtDataHolder = new NotificationManagementDataHolder();
 
-    private DataHolder() {
+    private NotificationManagementDataHolder() {
 
     }
 
-    public static DataHolder getInstance() {
+    public static NotificationManagementDataHolder getInstance() {
         return applicationMgtDataHolder;
     }
 

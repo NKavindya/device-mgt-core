@@ -48,7 +48,7 @@ import javax.ws.rs.core.Response;
                 @Scope(
                         name = "View Notifications",
                         description = "Retrieve latest notifications",
-                        key = "dm:admin:notifications:view",
+                        key = "dm:notifications:view",
                         roles = {"Internal/devicemgt-admin"},
                         permissions = {"/device-mgt/admin/notifications/view"}
                 ),
@@ -67,7 +67,7 @@ public interface NotificationService {
             tags = {"notifications", "device_management"},
             extensions = {
                     @Extension(properties = {
-                            @ExtensionProperty(name = SCOPE, value = "dm:admin:notifications:view")
+                            @ExtensionProperty(name = SCOPE, value = "dm:notifications:view")
                     })
             }
     )

@@ -1,9 +1,9 @@
-package io.entgra.device.mgt.notification.mgt.core.dao.impl;
+package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
 
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
-import io.entgra.device.mgt.notification.mgt.core.dao.NotificationManagementDAO;
-import io.entgra.device.mgt.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

@@ -17,7 +17,7 @@
  *
  */
 
-package io.entgra.device.mgt.notification.mgt.core.config.datasource;
+package io.entgra.device.mgt.core.notification.mgt.core.config.datasource;
 
 import javax.xml.bind.annotation.*;
 import java.util.List;

@@ -1,9 +1,9 @@
-package io.entgra.device.mgt.notification.mgt.core.config;
+package io.entgra.device.mgt.core.notification.mgt.core.config;
 
-import io.entgra.device.mgt.notification.mgt.core.config.datasource.NotificationDeviceMgtConfiguration;
-import io.entgra.device.mgt.notification.mgt.core.config.datasource.NotificationManagementRepository;
-import io.entgra.device.mgt.notification.mgt.core.exception.NotificationConfigurationException;
-import io.entgra.device.mgt.notification.mgt.core.util.Constants;
+import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.NotificationDeviceMgtConfiguration;
+import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.NotificationManagementRepository;
+import io.entgra.device.mgt.core.notification.mgt.core.exception.NotificationConfigurationException;
+import io.entgra.device.mgt.core.notification.mgt.core.util.Constants;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.utils.CarbonUtils;

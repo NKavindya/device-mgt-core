@@ -1,4 +1,4 @@
-package io.entgra.device.mgt.notification.mgt.core.config;
+package io.entgra.device.mgt.core.notification.mgt.core.config;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;

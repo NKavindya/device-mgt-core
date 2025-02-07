@@ -17,7 +17,7 @@
  *
  */
 
-package io.entgra.device.mgt.notification.mgt.core.util;
+package io.entgra.device.mgt.core.notification.mgt.core.util;
 
 public class Constants {
     public static final String CDM_CONFIG_FILE_NAME = "cdm-config.xml";

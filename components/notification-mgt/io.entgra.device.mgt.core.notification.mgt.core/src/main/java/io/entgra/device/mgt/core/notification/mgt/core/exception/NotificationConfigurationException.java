@@ -1,4 +1,4 @@
-package io.entgra.device.mgt.notification.mgt.core.exception;
+package io.entgra.device.mgt.core.notification.mgt.core.exception;
 
 public class NotificationConfigurationException extends Exception {
     public NotificationConfigurationException(String message) {
