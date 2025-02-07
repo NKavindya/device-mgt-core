@@ -17,12 +17,21 @@
  */
 package io.entgra.device.mgt.notification.mgt.core.internal;
 
+import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
+import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
+import io.entgra.device.mgt.notification.mgt.core.config.NotificationConfigurationManager;
+import io.entgra.device.mgt.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
+import io.entgra.device.mgt.notification.mgt.core.impl.NotificationManagementServiceImpl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
-import org.osgi.service.component.annotations.*;
-import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.ntask.core.service.TaskService;
 
 
@@ -36,7 +45,11 @@ public class NotificationManagementServiceComponent {
     protected void activate(ComponentContext componentContext) {
         BundleContext bundleContext = componentContext.getBundleContext();
         try {
-            // Notification Management related services
+            NotificationConfigurationManager notificationConfigManager = NotificationConfigurationManager.getInstance();
+            NotificationManagementDAOFactory.init(notificationConfigManager.getNotificationManagementRepository().getDataSourceConfig());
+            NotificationManagementService notificationManagementService = new NotificationManagementServiceImpl();
+            bundleContext.registerService(NotificationManagementService.class.getName(),
+                    notificationManagementService, null);
             log.info("NotificationManagement core bundle has been successfully initialized");
         } catch (Throwable e) {
             log.error("Error occurred while initializing notification management core bundle", e);

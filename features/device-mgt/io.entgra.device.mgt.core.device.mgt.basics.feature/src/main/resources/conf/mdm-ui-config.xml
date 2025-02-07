@@ -468,6 +468,7 @@
         <Scope>am:admin:lc:app:block</Scope>
         <Scope>am:admin:lc:app:deprecate</Scope>
         <Scope>am:admin:lc:app:retire</Scope>
+        <Scope>dm:admin:notifications:view</Scope>
     </Scopes>
     <SSOConfiguration>
         <Issuer>device-mgt</Issuer>
