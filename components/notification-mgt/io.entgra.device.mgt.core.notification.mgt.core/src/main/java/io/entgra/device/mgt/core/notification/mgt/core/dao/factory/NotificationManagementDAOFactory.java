@@ -1,3 +1,22 @@
+/*
+ *  Copyright (c) 2018 - 2025, Entgra (Pvt) Ltd. (http://www.entgra.io) All Rights Reserved.
+ *
+ * Entgra (Pvt) Ltd. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
 package io.entgra.device.mgt.core.notification.mgt.core.dao.factory;
 
 import io.entgra.device.mgt.core.device.mgt.common.DeviceManagementConstants;
@@ -5,7 +24,9 @@ import io.entgra.device.mgt.core.device.mgt.common.exceptions.IllegalTransaction
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.UnsupportedDatabaseEngineException;
 import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.JNDILookupDefinition;
 import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.NotificationDatasourceConfiguration;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.DeviceFeatureOperationDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.GenericDeviceFeatureOperationDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.GenericNotificationManagementDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.exception.NotificationManagementDAOException;
 import org.apache.commons.logging.Log;
@@ -81,7 +102,6 @@ public class NotificationManagementDAOFactory {
         if (productName == null) {
             throw new IllegalStateException("Database is not initialized properly");
         }
-
         switch (productName) {
             case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MSSQL:
             case DeviceManagementConstants.DataBaseTypes.DB_TYPE_POSTGRESQL:
@@ -90,6 +110,23 @@ public class NotificationManagementDAOFactory {
             case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MYSQL:
             case DeviceManagementConstants.DataBaseTypes.DB_TYPE_DB2:
                 return new GenericNotificationManagementDAO();
+            default:
+                throw new UnsupportedDatabaseEngineException("Unsupported database product " + productName);
+        }
+    }
+
+    public static DeviceFeatureOperationDAO getDeviceFeatureOperationDAO() {
+        if (productName == null) {
+            throw new IllegalStateException("Database is not initialized properly");
+        }
+        switch (productName) {
+            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MSSQL:
+            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_POSTGRESQL:
+            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_H2:
+            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_ORACLE:
+            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MYSQL:
+            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_DB2:
+                return new GenericDeviceFeatureOperationDAO();
             default:
                 throw new UnsupportedDatabaseEngineException("Unsupported database product " + productName);
         }

@@ -23,21 +23,21 @@ import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationMan
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 
 public class NotificationManagementApiUtil {
-    private static volatile NotificationManagementService ceaManagementService;
+    private static volatile NotificationManagementService notificationManagementService;
 
     public static NotificationManagementService getNotificationManagementService() {
-        if (ceaManagementService == null) {
+        if (notificationManagementService == null) {
             synchronized (NotificationManagementApiUtil.class) {
-                if (ceaManagementService == null) {
+                if (notificationManagementService == null) {
                     PrivilegedCarbonContext ctx = PrivilegedCarbonContext.getThreadLocalCarbonContext();
-                    ceaManagementService = (NotificationManagementService)
+                    notificationManagementService = (NotificationManagementService)
                             ctx.getOSGiService(NotificationManagementService.class, null);
-                    if (ceaManagementService == null) {
+                    if (notificationManagementService == null) {
                         throw new IllegalStateException("Notification Management Service is not initialize");
                     }
                 }
             }
         }
-        return ceaManagementService;
+        return notificationManagementService;
     }
 }

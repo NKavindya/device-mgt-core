@@ -19,21 +19,17 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.dao;
 
-import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
-import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.DeviceFeatureInfo;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.DeviceFeatureOperationException;
 
 import java.util.List;
 
-/**
- * DAO class for Notification management
- */
-public interface NotificationManagementDAO {
+public interface DeviceFeatureOperationDAO {
     /**
-     * Retrieve the latest notifications for the tenant.
+     * Updates or inserts device feature details into the DM_OPERATION_DETAILS table.
      *
-     * @return {@link List<Notification>}
-     * @throws NotificationManagementException Throws when error occurred while retrieving notifications.
+     * @param deviceFeatureInfoList A list of {@link DeviceFeatureInfo} to be updated or inserted.
+     * @throws DeviceFeatureOperationException If any error occurs while processing the update.
      */
-    List<Notification> getLatestNotifications() throws NotificationManagementException;
-
+    void updateDeviceFeatureDetails(List<DeviceFeatureInfo> deviceFeatureInfoList) throws DeviceFeatureOperationException;
 }

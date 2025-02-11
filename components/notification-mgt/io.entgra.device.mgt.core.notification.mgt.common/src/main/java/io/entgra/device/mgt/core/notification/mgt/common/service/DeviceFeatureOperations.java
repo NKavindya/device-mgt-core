@@ -19,17 +19,23 @@
 
 package io.entgra.device.mgt.core.notification.mgt.common.service;
 
-import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
-import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.DeviceFeatureInfo;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.DeviceFeatureOperationException;
 
 import java.util.List;
 
-public interface NotificationManagementService {
+/**
+ * Interface representing operations for device features.
+ * This interface provides methods to retrieve device feature operations.
+ */
+public interface DeviceFeatureOperations {
+
     /**
-     * Retrieve the latest notifications for a tenant.
+     * Retrieves a list of device feature operations based on the device configuration.
      *
-     * @return {@link List<Notification>}
-     * @throws NotificationManagementException Throws when error occurred while retrieving notifications.
+     * @return A list of {@link DeviceFeatureInfo} objects representing device feature operations.
+     * @throws DeviceFeatureOperationException If there is an error while fetching device feature operations.
      */
-    List<Notification> getLatestNotifications() throws NotificationManagementException;
+    List<DeviceFeatureInfo> getDeviceFeatureOperations() throws DeviceFeatureOperationException;
 }
+

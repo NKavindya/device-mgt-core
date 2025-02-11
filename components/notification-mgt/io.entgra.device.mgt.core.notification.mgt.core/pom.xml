@@ -46,6 +46,10 @@
                         <Bundle-Description>Notification Management Core Bundle</Bundle-Description>
                         <Private-Package>io.entgra.device.mgt.core.notification.mgt.core.internal</Private-Package>
                         <Import-Package>
+                            io.entgra.device.mgt.core.device.mgt.common.*,
+                            io.entgra.device.mgt.core.device.mgt.core.*,
+                            io.entgra.device.mgt.core.device.mgt.extensions.*,
+                            io.entgra.device.mgt.core.notification.mgt.common.*,
                             org.apache.commons.logging.*,
                             org.osgi.framework.*;version="${imp.package.version.osgi.framework}",
                             org.osgi.service.*;version="${imp.package.version.osgi.service}",
@@ -92,28 +96,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.wso2.carbon</groupId>
-            <artifactId>org.wso2.carbon.utils</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.ops4j.pax.logging</groupId>
             <artifactId>pax-logging-api</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.entgra.device.mgt.core</groupId>
-            <artifactId>io.entgra.device.mgt.core.device.mgt.core</artifactId>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <artifactId>org.wso2.securevault</artifactId>
-                    <groupId>org.wso2.securevault</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>axis2-client</artifactId>
-                    <groupId>org.apache.axis2.wso2</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
@@ -121,11 +106,27 @@
         </dependency>
         <dependency>
             <groupId>io.entgra.device.mgt.core</groupId>
-            <artifactId>io.entgra.device.mgt.core.notification.mgt.common</artifactId>
+            <artifactId>io.entgra.device.mgt.core.device.mgt.common</artifactId>
         </dependency>
         <dependency>
             <groupId>io.entgra.device.mgt.core</groupId>
-            <artifactId>io.entgra.device.mgt.core.device.mgt.common</artifactId>
+            <artifactId>io.entgra.device.mgt.core.notification.mgt.common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon</groupId>
+            <artifactId>org.wso2.carbon.ndatasource.core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.commons</groupId>
+            <artifactId>org.wso2.carbon.ntask.core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.entgra.device.mgt.core</groupId>
+            <artifactId>io.entgra.device.mgt.core.device.mgt.core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.entgra.device.mgt.core</groupId>
+            <artifactId>io.entgra.device.mgt.core.device.mgt.extensions</artifactId>
         </dependency>
     </dependencies>
 </project>
