@@ -17,12 +17,13 @@
  *
  */
 
-package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
+package io.entgra.device.mgt.core.device.mgt.core.dao.impl.feature;
 
-import io.entgra.device.mgt.core.notification.mgt.common.dto.DeviceFeatureInfo;
-import io.entgra.device.mgt.core.notification.mgt.common.exception.DeviceFeatureOperationException;
-import io.entgra.device.mgt.core.notification.mgt.core.dao.DeviceFeatureOperationDAO;
-import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
+import io.entgra.device.mgt.core.device.mgt.common.dto.DeviceFeatureInfo;
+import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceManagementDAOException;
+import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceManagementDAOFactory;
+import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationDAO;
+import io.entgra.device.mgt.core.device.mgt.core.dao.util.DeviceManagementDAOUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -31,19 +32,20 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
-public class DeviceFeatureOperationDAOImpl implements DeviceFeatureOperationDAO {
-    private static final Log log = LogFactory.getLog(DeviceFeatureOperationDAOImpl.class);
+public class GenericDeviceFeatureOperationDAOImpl implements DeviceFeatureOperationDAO {
+    private static final Log log = LogFactory.getLog(GenericDeviceFeatureOperationDAOImpl.class);
 
-    @Override
-    public void updateDeviceFeatureDetails(List<DeviceFeatureInfo> featureList) throws DeviceFeatureOperationException {
+    public void updateDeviceFeatureDetails(List<DeviceFeatureInfo> featureList) throws DeviceManagementDAOException {
         String insertQuery = "INSERT INTO DM_OPERATION_DETAILS " +
                 "(OPERATION_CODE, OPERATION_NAME, OPERATION_DESCRIPTION, DEVICE_TYPE) " +
                 "VALUES (?, ?, ?, ?) " +
                 "ON DUPLICATE KEY UPDATE " +
                 "OPERATION_NAME = VALUES(OPERATION_NAME), " +
                 "OPERATION_DESCRIPTION = VALUES(OPERATION_DESCRIPTION)";
-        Connection connection = NotificationManagementDAOFactory.getConnection();
-        try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
+        PreparedStatement preparedStatement = null;
+        try {
+            Connection connection = DeviceManagementDAOFactory.getConnection();
+            preparedStatement = connection.prepareStatement(insertQuery);
             for (DeviceFeatureInfo featureInfo : featureList) {
                 preparedStatement.setString(1, featureInfo.getOperationCode());
                 preparedStatement.setString(2, featureInfo.getName());
@@ -55,7 +57,10 @@ public class DeviceFeatureOperationDAOImpl implements DeviceFeatureOperationDAO 
         } catch (SQLException e) {
             String msg = "Error occurred while updating device feature details.";
             log.error(msg, e);
-            throw new DeviceFeatureOperationException(msg, e);
+            throw new DeviceManagementDAOException(msg, e);
+        } finally {
+            DeviceManagementDAOUtil.cleanupResources(preparedStatement, null);
+            DeviceManagementDAOFactory.closeConnection();
         }
     }
 }

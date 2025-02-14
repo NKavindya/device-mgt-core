@@ -19,8 +19,6 @@
 package io.entgra.device.mgt.core.notification.mgt.core.internal;
 
 import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
-import io.entgra.device.mgt.core.notification.mgt.core.impl.DeviceFeatureOperationsImpl;
-import io.entgra.device.mgt.core.notification.mgt.common.service.DeviceFeatureOperations;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
 import io.entgra.device.mgt.core.notification.mgt.core.config.NotificationConfigurationManager;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
@@ -54,10 +52,6 @@ public class NotificationManagementServiceComponent {
             NotificationManagementService notificationManagementService = new NotificationManagementServiceImpl();
             bundleContext.registerService(NotificationManagementService.class.getName(),
                     notificationManagementService, null);
-            DeviceFeatureOperations deviceFeatureOperations = new DeviceFeatureOperationsImpl();
-            bundleContext.registerService(DeviceFeatureOperations.class.getName(),
-                    deviceFeatureOperations, null);
-            deviceFeatureOperations.getDeviceFeatureOperations();
             log.info("NotificationManagement core bundle has been successfully initialized");
         } catch (Throwable e) {
             log.error("Error occurred while initializing notification management core bundle", e);

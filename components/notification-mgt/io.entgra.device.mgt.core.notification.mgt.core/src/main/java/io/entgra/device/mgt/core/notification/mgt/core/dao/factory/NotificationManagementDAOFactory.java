@@ -24,9 +24,7 @@ import io.entgra.device.mgt.core.device.mgt.common.exceptions.IllegalTransaction
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.UnsupportedDatabaseEngineException;
 import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.JNDILookupDefinition;
 import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.NotificationDatasourceConfiguration;
-import io.entgra.device.mgt.core.notification.mgt.core.dao.DeviceFeatureOperationDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
-import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.GenericDeviceFeatureOperationDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.GenericNotificationManagementDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.exception.NotificationManagementDAOException;
 import org.apache.commons.logging.Log;
@@ -110,23 +108,6 @@ public class NotificationManagementDAOFactory {
             case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MYSQL:
             case DeviceManagementConstants.DataBaseTypes.DB_TYPE_DB2:
                 return new GenericNotificationManagementDAO();
-            default:
-                throw new UnsupportedDatabaseEngineException("Unsupported database product " + productName);
-        }
-    }
-
-    public static DeviceFeatureOperationDAO getDeviceFeatureOperationDAO() {
-        if (productName == null) {
-            throw new IllegalStateException("Database is not initialized properly");
-        }
-        switch (productName) {
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MSSQL:
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_POSTGRESQL:
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_H2:
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_ORACLE:
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MYSQL:
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_DB2:
-                return new GenericDeviceFeatureOperationDAO();
             default:
                 throw new UnsupportedDatabaseEngineException("Unsupported database product " + productName);
         }

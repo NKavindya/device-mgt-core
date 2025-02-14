@@ -17,25 +17,20 @@
  *
  */
 
-package io.entgra.device.mgt.core.notification.mgt.common.service;
+package io.entgra.device.mgt.core.device.mgt.core.service;
 
-import io.entgra.device.mgt.core.notification.mgt.common.dto.DeviceFeatureInfo;
-import io.entgra.device.mgt.core.notification.mgt.common.exception.DeviceFeatureOperationException;
+import io.entgra.device.mgt.core.device.mgt.common.dto.DeviceFeatureInfo;
+import io.entgra.device.mgt.core.device.mgt.common.exceptions.DeviceFeatureOperationException;
 
 import java.util.List;
 
-/**
- * Interface representing operations for device features.
- * This interface provides methods to retrieve device feature operations.
- */
 public interface DeviceFeatureOperations {
-
     /**
-     * Retrieves a list of device feature operations based on the device configuration.
-     *
-     * @return A list of {@link DeviceFeatureInfo} objects representing device feature operations.
-     * @throws DeviceFeatureOperationException If there is an error while fetching device feature operations.
+     * Retrieves a list of device feature operations available for different device types.
+     * @return A list of {@link DeviceFeatureInfo} containing details of available
+     *         device feature operations.
+     * @throws DeviceFeatureOperationException If an error occurs while retrieving
+     *         or processing device feature operations.
      */
     List<DeviceFeatureInfo> getDeviceFeatureOperations() throws DeviceFeatureOperationException;
 }
-

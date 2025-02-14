@@ -17,10 +17,9 @@
  *
  */
 
-package io.entgra.device.mgt.core.notification.mgt.core.dao;
+package io.entgra.device.mgt.core.device.mgt.core.dao;
 
-import io.entgra.device.mgt.core.notification.mgt.common.dto.DeviceFeatureInfo;
-import io.entgra.device.mgt.core.notification.mgt.common.exception.DeviceFeatureOperationException;
+import io.entgra.device.mgt.core.device.mgt.common.dto.DeviceFeatureInfo;
 
 import java.util.List;
 
@@ -29,7 +28,8 @@ public interface DeviceFeatureOperationDAO {
      * Updates or inserts device feature details into the DM_OPERATION_DETAILS table.
      *
      * @param deviceFeatureInfoList A list of {@link DeviceFeatureInfo} to be updated or inserted.
-     * @throws DeviceFeatureOperationException If any error occurs while processing the update.
+     * @throws DeviceManagementDAOException If any error occurs while processing the update.
      */
-    void updateDeviceFeatureDetails(List<DeviceFeatureInfo> deviceFeatureInfoList) throws DeviceFeatureOperationException;
+    void updateDeviceFeatureDetails(List<DeviceFeatureInfo> deviceFeatureInfoList)
+            throws DeviceManagementDAOException;
 }

@@ -31,6 +31,7 @@ import io.entgra.device.mgt.core.device.mgt.core.dao.impl.device.PostgreSQLDevic
 import io.entgra.device.mgt.core.device.mgt.core.dao.impl.device.SQLServerDeviceDAOImpl;
 import io.entgra.device.mgt.core.device.mgt.core.dao.impl.enrolment.GenericEnrollmentDAOImpl;
 import io.entgra.device.mgt.core.device.mgt.core.dao.impl.enrolment.SQLServerEnrollmentDAOImpl;
+import io.entgra.device.mgt.core.device.mgt.core.dao.impl.feature.GenericDeviceFeatureOperationDAOImpl;
 import io.entgra.device.mgt.core.device.mgt.core.dao.impl.tracker.TrackerDAOImpl;
 import io.entgra.device.mgt.core.device.mgt.core.dao.util.DeviceManagementDAOUtil;
 import io.entgra.device.mgt.core.device.mgt.core.device.details.mgt.dao.DeviceDetailsDAO;
@@ -199,6 +200,22 @@ public class DeviceManagementDAOFactory {
                 case DeviceManagementConstants.DataBaseTypes.DB_TYPE_H2:
                 case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MYSQL:
                     return new ApplicationDAOImpl();
+                default:
+                    throw new UnsupportedDatabaseEngineException("Unsupported database engine : " + databaseEngine);
+            }
+        }
+        throw new IllegalStateException("Database engine has not initialized properly.");
+    }
+
+    public static DeviceFeatureOperationDAO getDeviceFeatureOperationDAO() {
+        if (databaseEngine != null) {
+            switch (databaseEngine) {
+                case DeviceManagementConstants.DataBaseTypes.DB_TYPE_POSTGRESQL:
+                case DeviceManagementConstants.DataBaseTypes.DB_TYPE_ORACLE:
+                case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MSSQL:
+                case DeviceManagementConstants.DataBaseTypes.DB_TYPE_H2:
+                case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MYSQL:
+                    return new GenericDeviceFeatureOperationDAOImpl();
                 default:
                     throw new UnsupportedDatabaseEngineException("Unsupported database engine : " + databaseEngine);
             }

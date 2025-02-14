@@ -17,10 +17,16 @@
  *
  */
 
-package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
+package io.entgra.device.mgt.core.device.mgt.common.exceptions;
 
-public class GenericDeviceFeatureOperationDAO extends DeviceFeatureOperationDAOImpl {
-    public GenericDeviceFeatureOperationDAO() {
-        super();
+public class DeviceFeatureOperationException extends Exception {
+
+    public DeviceFeatureOperationException(String message) {
+        super(message);
+    }
+
+    public DeviceFeatureOperationException(String message, Throwable cause) {
+        super(message, cause);
     }
 }
+
