@@ -28,6 +28,7 @@ import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagem
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification;
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementService;
+import io.entgra.device.mgt.core.device.mgt.common.operation.mgt.Operation;
 import io.entgra.device.mgt.core.device.mgt.core.internal.DeviceManagementDataHolder;
 import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationDAO;
 import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationManagementDAOFactory;
@@ -36,10 +37,16 @@ import io.entgra.device.mgt.core.device.mgt.core.util.DeviceManagerUtil;
 import io.entgra.device.mgt.core.device.mgt.extensions.logger.spi.EntgraLogger;
 import io.entgra.device.mgt.core.notification.logger.DeviceLogContext;
 import io.entgra.device.mgt.core.notification.logger.impl.EntgraDeviceLoggerImpl;
+import io.entgra.device.mgt.core.device.mgt.common.dto.NotificationConfig;
+import org.json.JSONArray;
+import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.api.UserStoreManager;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class implements the NotificationManagementService.
@@ -249,4 +256,70 @@ public class NotificationManagementServiceImpl implements NotificationManagement
         }
     }
 
+    @Override
+    public void handleOperationNotificationIfApplicable(Operation operation, Map<Integer, Device> enrolments, int tenantId)
+            throws NotificationManagementException {
+        try {
+            NotificationConfig config = notificationDAO.getNotificationConfig(tenantId, operation.getCode());
+            if (config != null) {
+                String description = String.format("The operation %s (%s) for device %s of type %s is %s.",
+                        operation.getCode(), config.getId(),
+                        enrolments.values().iterator().next().getId(),
+                        enrolments.values().iterator().next().getType(),
+                        operation.getStatus().toString());
+                int notificationId = notificationDAO.insertNotification(
+                        tenantId, config.getId(), config.getPriority(), config.getType(), description);
+
+                List<String> usernames = extractUsernamesFromRecipients(config.getRecipients(), tenantId);
+                if (!usernames.isEmpty()) {
+                    notificationDAO.insertNotificationUserActions(notificationId, usernames);
+                }
+            }
+        } catch (NotificationManagementException e) {
+            log.error("Failed to handle notification for operation " + operation.getCode(), e);
+        } catch (UserStoreException e) {
+            throw new RuntimeException("Error retrieving users for role-based notification handling", e);
+        }
+    }
+
+    @Override
+    public void handleTaskNotificationIfApplicable(String taskCode, int tenantId, String message)
+            throws NotificationManagementException {
+        try {
+            NotificationConfig config = notificationDAO.getNotificationConfig(tenantId, taskCode);
+            if (config != null) {
+                String description = String.format(message);
+                int notificationId = notificationDAO.insertNotification(
+                        tenantId, config.getId(), config.getPriority(), config.getType(), description);
+                List<String> usernames = extractUsernamesFromRecipients(config.getRecipients(), tenantId);
+                if (!usernames.isEmpty()) {
+                    notificationDAO.insertNotificationUserActions(notificationId, usernames);
+                }
+            }
+        } catch (NotificationManagementException e) {
+            log.error("Failed to handle task notification for task " + taskCode, e);
+            throw e;
+        } catch (UserStoreException e) {
+            throw new RuntimeException("Error retrieving users for role-based task notification handling", e);
+        }
+    }
+
+    private List<String> extractUsernamesFromRecipients(List<String> recipients, int tenantId)
+            throws UserStoreException {
+        List<String> usernames = new ArrayList<>();
+        if (recipients != null && !recipients.isEmpty()) {
+            UserStoreManager userStoreManager = DeviceManagementDataHolder.getInstance()
+                    .getRealmService().getTenantUserRealm(tenantId).getUserStoreManager();
+            for (String recipient : recipients) {
+                if (recipient.startsWith("user:")) {
+                    usernames.add(recipient.substring("user:".length()));
+                } else if (recipient.startsWith("role:")) {
+                    String roleName = recipient.substring("role:".length());
+                    String[] usersWithRole = userStoreManager.getUserListOfRole(roleName);
+                    usernames.addAll(Arrays.asList(usersWithRole));
+                }
+            }
+        }
+        return usernames;
+    }
 }

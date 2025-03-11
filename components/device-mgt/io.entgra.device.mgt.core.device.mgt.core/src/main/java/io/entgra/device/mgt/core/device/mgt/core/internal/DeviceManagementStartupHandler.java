@@ -18,17 +18,23 @@
 package io.entgra.device.mgt.core.device.mgt.core.internal;
 
 import com.google.gson.Gson;
+import io.entgra.device.mgt.core.device.mgt.common.Device;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.Metadata;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
+import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
+import io.entgra.device.mgt.core.device.mgt.common.operation.mgt.Operation;
 import io.entgra.device.mgt.core.device.mgt.core.DeviceManagementConstants;
+import io.entgra.device.mgt.core.device.mgt.core.dto.operation.mgt.DeviceOperationDetails;
+import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.NotificationManagementServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.operation.change.status.task.dto.OperationConfig;
 import io.entgra.device.mgt.core.device.mgt.core.operation.mgt.dao.OperationDAO;
 import io.entgra.device.mgt.core.device.mgt.core.operation.mgt.dao.OperationManagementDAOException;
 import io.entgra.device.mgt.core.device.mgt.core.operation.mgt.dao.OperationManagementDAOFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.ServerStartupObserver;
 import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.Permission;
@@ -36,13 +42,17 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
-import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 public class DeviceManagementStartupHandler implements ServerStartupObserver {
     private static final Log log = LogFactory.getLog(DeviceManagementStartupHandler.class);
     private static final Gson gson = new Gson();
     private static final String OPERATION_CONFIG = "OPERATION_CONFIG";
     private static final String tenantDomain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+
+    private NotificationManagementServiceImpl notificationManagementService;
 
     @Override
     public void completingServerStartup() {
@@ -111,6 +121,7 @@ public class DeviceManagementStartupHandler implements ServerStartupObserver {
         OperationDAO operationDAO = OperationManagementDAOFactory.getOperationDAO();
         Metadata metadata;
         int numOfRecordsUpdated;
+        int tenantId = CarbonContext.getThreadLocalCarbonContext().getTenantId();
         try {
             metadata = metadataManagementService.retrieveMetadata(OPERATION_CONFIG);
             if (metadata != null) {
@@ -126,15 +137,32 @@ public class DeviceManagementStartupHandler implements ServerStartupObserver {
                             numOfRecordsUpdated = operationDAO.updateOperationByDeviceTypeAndInitialStatus(deviceType,
                                     initialOperationStatus, requiredStatusChange);
                             log.info(numOfRecordsUpdated + " operations updated successfully for the" + deviceType);
+                            List<DeviceOperationDetails> updatedOperations =
+                                    operationDAO.getUpdatedOperationsByDeviceTypeAndStatus(deviceType, requiredStatusChange);
+                            if (!updatedOperations.isEmpty()) {
+                                Map<Integer, Device> enrolments = new HashMap<>();
+                                for (DeviceOperationDetails details : updatedOperations) {
+                                    Device device = new Device(details.getDeviceId());
+                                    device.setType(details.getDeviceType());
+                                    enrolments.put(device.getId(), device);
+                                    Operation operation = new Operation();
+                                    operation.setCode(details.getOperationCode());
+                                    operation.setStatus(Operation.Status.valueOf(requiredStatusChange));
+                                    notificationManagementService.handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
+                                }
+                            }
                             OperationManagementDAOFactory.commitTransaction();
                         } catch (OperationManagementDAOException e) {
                             OperationManagementDAOFactory.rollbackTransaction();
                             String msg = "Error occurred while updating operation status. DeviceType : " + deviceType + ", " +
                                     "Initial operation status: " + initialOperationStatus + ", Required status:" + requiredStatusChange;
                             log.error(msg, e);
+                        } catch (NotificationManagementException e) {
+                            String msg = "Transactional error occurred while updating the operation status";
+                            log.error(msg, e);
                         }
                     } catch (TransactionManagementException e) {
-                        String msg = "Transactional error occurred while updating the operation status";
+                        String msg = "An Error occurred while updating handleOperationNotificationIfApplicable";
                         log.error(msg, e);
                     } finally {
                         OperationManagementDAOFactory.closeConnection();
