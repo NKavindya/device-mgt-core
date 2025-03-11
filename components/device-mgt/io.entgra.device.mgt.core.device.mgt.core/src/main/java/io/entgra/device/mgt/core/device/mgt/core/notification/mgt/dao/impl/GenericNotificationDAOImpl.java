@@ -23,11 +23,16 @@ import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationManagementDAOFactory;
 import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.util.NotificationDAOUtil;
+import io.entgra.device.mgt.core.device.mgt.common.dto.NotificationConfig;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -118,5 +123,109 @@ public class GenericNotificationDAOImpl extends AbstractNotificationDAOImpl {
             NotificationDAOUtil.cleanupResources(stmt, rs);
         }
         return notifications;
+    }
+
+    @Override
+    public NotificationConfig getNotificationConfig(int tenantId, String code)
+            throws NotificationManagementException {
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        NotificationConfig config = null;
+        String sql =
+                "SELECT METADATA_VALUE " +
+                        "FROM DM_METADATA " +
+                        "WHERE METADATA_KEY = ? " +
+                        "AND TENANT_ID = ?";
+        try {
+            Connection conn = NotificationManagementDAOFactory.getConnection();
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, "notificationConfig");
+            stmt.setInt(2, tenantId);
+            rs = stmt.executeQuery();
+            if (rs.next()) {
+                String metadataValue = rs.getString("METADATA_VALUE");
+                JSONArray jsonArray = new JSONArray(metadataValue);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonConfig = jsonArray.getJSONObject(i);
+                    if (jsonConfig.getString("code").equalsIgnoreCase(code)) {
+                        config = new NotificationConfig(
+                                jsonConfig.getString("id"),
+                                jsonConfig.getInt("priority"),
+                                jsonConfig.getString("type"),
+                                jsonConfig.optJSONObject("recipients")
+                        );
+                        break;
+                    }
+                }
+            }
+        } catch (SQLException | JSONException e) {
+            throw new NotificationManagementException("Error occurred while fetching notificationConfig for tenant ID "
+                    + tenantId, e);
+        } finally {
+            NotificationDAOUtil.cleanupResources(stmt, rs);
+        }
+        return config;
+    }
+
+    @Override
+    public int insertNotification(int tenantId, String notificationConfigId, int priority, String type, String description)
+            throws NotificationManagementException {
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        String sql =
+                "INSERT INTO DM_NOTIFICATION " +
+                        "(NOTIFICATION_CONFIG_ID, " +
+                        "TENANT_ID, " +
+                        "DESCRIPTION, " +
+                        "PRIORITY, " +
+                        "TYPE) " +
+                        "VALUES (?, ?, ?, ?, ?)";
+        int notificationId = -1;
+        try {
+            Connection conn = NotificationManagementDAOFactory.getConnection();
+            stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            stmt.setString(1, notificationConfigId);
+            stmt.setInt(2, tenantId);
+            stmt.setString(3, description);
+            stmt.setInt(4, priority);
+            stmt.setString(5, type);
+            stmt.executeUpdate();
+            rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                notificationId = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new NotificationManagementException("Error inserting notification", e);
+        } finally {
+            NotificationDAOUtil.cleanupResources(stmt, rs);
+        }
+        return notificationId;
+    }
+
+    @Override
+    public void insertNotificationUserActions(int notificationId, List<String> usernames)
+            throws NotificationManagementException {
+        PreparedStatement stmt = null;
+        String sql =
+                "INSERT INTO DM_NOTIFICATION_USER_ACTION " +
+                        "(NOTIFICATION_ID, " +
+                        "USERNAME, " +
+                        "ACTION_TYPE) " +
+                        "VALUES (?, ?, ?)";
+        try {
+            Connection conn = NotificationManagementDAOFactory.getConnection();
+            stmt = conn.prepareStatement(sql);
+            for (String username : usernames) {
+                stmt.setInt(1, notificationId);
+                stmt.setString(2, username);
+                stmt.setString(3, "UNREAD");
+                stmt.addBatch();
+            }
+            stmt.executeBatch();
+        } catch (SQLException e) {
+            throw new NotificationManagementException("Error inserting notification user actions", e);
+        } finally {
+            NotificationDAOUtil.cleanupResources(stmt, null);
+        }
     }
 }
