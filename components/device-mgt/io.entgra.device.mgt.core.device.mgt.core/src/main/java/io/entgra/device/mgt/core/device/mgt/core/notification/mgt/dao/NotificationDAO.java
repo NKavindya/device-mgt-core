@@ -21,6 +21,7 @@ package io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao;
 import io.entgra.device.mgt.core.device.mgt.common.PaginationRequest;
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification;
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
+import io.entgra.device.mgt.core.device.mgt.common.dto.NotificationConfig;
 
 import java.util.List;
 
@@ -100,4 +101,38 @@ public interface NotificationDAO {
 
 	List<Notification> getNotificationsByStatus(PaginationRequest request, Notification.Status status, int tenantId) throws
 			NotificationManagementException;
+
+	/**
+	 * Retrieves the notification configuration for a specific tenant and operation code.
+	 *
+	 * @param tenantId     The ID of the tenant for which the notification configuration is to be fetched.
+	 * @param operationCode The operation code for which the notification configuration is required.
+	 * @return A {@link NotificationConfig} object containing the configuration details.
+	 * @throws NotificationManagementException If an error occurs while retrieving the notification configuration.
+	 */
+	NotificationConfig getNotificationConfig(int tenantId, String operationCode) throws NotificationManagementException;
+
+	/**
+	 * Inserts a new notification entry into the notification database.
+	 *
+	 * @param tenantId         The ID of the tenant for whom the notification is being created.
+	 * @param notificationConfigId The ID of the notification configuration to associate with the notification.
+	 * @param priority         The priority of the notification.
+	 * @param type             The type of the notification.
+	 * @param description      A description providing details of the notification.
+	 * @return The ID of the newly inserted notification.
+	 * @throws NotificationManagementException If an error occurs while inserting the notification.
+	 */
+	int insertNotification(int tenantId, String notificationConfigId, int priority, String type, String description)
+			throws NotificationManagementException;
+
+	/**
+	 * Inserts user-specific actions related to a given notification.
+	 *
+	 * @param notificationId The ID of the notification for which user actions are being inserted.
+	 * @param usernames      A list of usernames to associate with the notification actions.
+	 * @throws NotificationManagementException If an error occurs while inserting the user actions.
+	 */
+	void insertNotificationUserActions(int notificationId, List<String> usernames) throws NotificationManagementException;
+
 }

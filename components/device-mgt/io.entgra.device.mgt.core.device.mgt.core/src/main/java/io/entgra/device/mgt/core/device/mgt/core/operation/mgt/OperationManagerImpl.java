@@ -18,12 +18,13 @@
 
 package io.entgra.device.mgt.core.device.mgt.core.operation.mgt;
 
-import com.google.gson.Gson;
+import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
+import io.entgra.device.mgt.core.device.mgt.core.dto.operation.mgt.DeviceOperationDetails;
+import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.NotificationManagementServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.permission.mgt.PermissionManagerServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.extensions.logger.spi.EntgraLogger;
 import io.entgra.device.mgt.core.notification.logger.DeviceConnectivityLogContext;
 import io.entgra.device.mgt.core.notification.logger.impl.EntgraDeviceConnectivityLoggerImpl;
-import io.entgra.device.mgt.core.notification.logger.impl.EntgraPolicyLoggerImpl;
 import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
@@ -52,8 +53,6 @@ import io.entgra.device.mgt.core.device.mgt.common.push.notification.Notificatio
 import io.entgra.device.mgt.core.device.mgt.common.push.notification.PushNotificationConfig;
 import io.entgra.device.mgt.core.device.mgt.common.push.notification.PushNotificationExecutionFailedException;
 import io.entgra.device.mgt.core.device.mgt.common.push.notification.PushNotificationProvider;
-import io.entgra.device.mgt.core.device.mgt.common.operation.mgt.*;
-import io.entgra.device.mgt.core.device.mgt.common.push.notification.*;
 import io.entgra.device.mgt.core.device.mgt.common.spi.DeviceManagementService;
 import io.entgra.device.mgt.core.device.mgt.core.DeviceManagementConstants;
 import io.entgra.device.mgt.core.device.mgt.core.cache.impl.DeviceCacheManagerImpl;
@@ -75,12 +74,6 @@ import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProvide
 import io.entgra.device.mgt.core.device.mgt.core.task.DeviceTaskManager;
 import io.entgra.device.mgt.core.device.mgt.core.task.impl.DeviceTaskManagerImpl;
 import io.entgra.device.mgt.core.device.mgt.core.util.DeviceManagerUtil;
-import io.entgra.device.mgt.core.device.mgt.extensions.logger.spi.EntgraLogger;
-import io.entgra.device.mgt.core.notification.logger.DeviceConnectivityLogContext;
-import io.entgra.device.mgt.core.notification.logger.impl.EntgraDeviceConnectivityLoggerImpl;
-import org.apache.commons.lang.StringUtils;
-import org.wso2.carbon.context.CarbonContext;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -123,6 +116,7 @@ public class OperationManagerImpl implements OperationManager {
     private final Map<Integer, NotificationStrategy> notificationStrategies;
     private final Map<Integer, Long> lastUpdatedTimeStamps;
     private final ConcurrentMap<Integer, String> operationsInitBy;
+    private NotificationManagementServiceImpl notificationManagementService;
 
     private final ThreadPoolExecutor notificationExecutor;
 
@@ -454,6 +448,12 @@ public class OperationManagerImpl implements OperationManager {
                     break;
                 }
             }
+        }
+        try {
+            notificationManagementService.handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
+        } catch (NotificationManagementException e) {
+            String msg = "An Error occurred while updating handleOperationNotificationIfApplicable";
+            log.error(msg, e);
         }
         if (!isScheduled && notificationStrategy != null) {
             for (Device device : enrolments.values()) {
@@ -907,6 +907,7 @@ public class OperationManagerImpl implements OperationManager {
             throws OperationManagementException {
         int operationId = operation.getId();
         boolean isOperationUpdated = false;
+        int tenantId = CarbonContext.getThreadLocalCarbonContext().getTenantId();
         try {
             OperationManagementDAOFactory.beginTransaction();
             if (operation.getStatus() != null) {
@@ -944,6 +945,17 @@ public class OperationManagerImpl implements OperationManager {
                         deviceManagementProviderService.removeDevice(deviceId);
                     }
                 }
+            }
+            DeviceOperationDetails previousDeviceOperationDetails =
+                    operationDAO.getDeviceOperationDetails(enrolmentId, operationId);
+            // handle notification if the operation was updated and the status has changed
+            if (isOperationUpdated && previousDeviceOperationDetails != null) {
+                // new Device object for the updated operation using the previous details
+                Device device = new Device(previousDeviceOperationDetails.getDeviceId());
+                device.setType(previousDeviceOperationDetails.getDeviceType());
+                Map<Integer, Device> enrolments = new HashMap<>();
+                enrolments.put(device.getId(), device);
+                notificationManagementService.handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
             }
             if (!isOperationUpdated) {
                 log.warn("Operation " + operationId + "'s status is not updated");
@@ -1047,6 +1059,12 @@ public class OperationManagerImpl implements OperationManager {
                     + deviceId.getId() + " of the device type - " + deviceId.getType();
             log.error(msg, e);
             throw new OperationManagementException(msg, e);
+        } catch (OperationManagementDAOException e) {
+            String msg = "An Error occurred while getting DeviceOperationDetails";
+            log.error(msg, e);
+        } catch (NotificationManagementException e) {
+            String msg = "An Error occurred while updating handleOperationNotificationIfApplicable";
+            log.error(msg, e);
         } finally {
             OperationManagementDAOFactory.closeConnection();
         }
