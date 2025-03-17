@@ -47,7 +47,11 @@
                             io.entgra.device.mgt.core.application.mgt.common.exception;version="${io.entgra.device.mgt.core.version.range}",
                             io.entgra.device.mgt.core.application.mgt.common.services;version="${io.entgra.device.mgt.core.version.range}",
                             io.entgra.device.mgt.core.application.mgt.core.config;version="${io.entgra.device.mgt.core.version.range}",
-                            io.entgra.device.mgt.core.apimgt.extension.rest.api.*;version="${io.entgra.device.mgt.core.version.range}",
+                            io.entgra.device.mgt.core.apimgt.extension.rest.api.APIApplicationServices;version="${io.entgra.device.mgt.core.version.range}",
+                            io.entgra.device.mgt.core.apimgt.extension.rest.api.PublisherRESTAPIServices;version="${io.entgra.device.mgt.core.version.range}",
+                            io.entgra.device.mgt.core.apimgt.extension.rest.api.constants;version="${io.entgra.device.mgt.core.version.range}",
+                            io.entgra.device.mgt.core.apimgt.extension.rest.api.dto;version="${io.entgra.device.mgt.core.version.range}",
+                            io.entgra.device.mgt.core.apimgt.extension.rest.api.exceptions;version="${io.entgra.device.mgt.core.version.range}"
                             io.entgra.device.mgt.core.device.mgt.common.exceptions;version="${io.entgra.device.mgt.core.version.range}",
                             io.entgra.device.mgt.core.device.mgt.common.metadata.mgt;version="${io.entgra.device.mgt.core.version.range}",
                             io.entgra.device.mgt.core.device.mgt.common.permission.mgt;version="${io.entgra.device.mgt.core.version.range}",

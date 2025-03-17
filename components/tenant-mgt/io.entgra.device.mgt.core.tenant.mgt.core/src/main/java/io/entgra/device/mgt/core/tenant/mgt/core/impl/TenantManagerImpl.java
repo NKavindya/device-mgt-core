@@ -47,9 +47,7 @@ import io.entgra.device.mgt.core.apimgt.extension.rest.api.dto.APIInfo.Scope;
 import io.entgra.device.mgt.core.apimgt.extension.rest.api.exceptions.APIServicesException;
 import io.entgra.device.mgt.core.apimgt.extension.rest.api.exceptions.BadRequestException;
 import io.entgra.device.mgt.core.apimgt.extension.rest.api.exceptions.UnexpectedResponseException;
-import io.entgra.device.mgt.core.apimgt.extension.rest.api.util.APIPublisherUtils;
 import io.entgra.device.mgt.core.device.mgt.core.DeviceManagementConstants;
-import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.util.ArrayList;
@@ -62,7 +60,6 @@ public class TenantManagerImpl implements TenantManager {
     private static final Log log = LogFactory.getLog(TenantManagerImpl.class);
     private static final String PERMISSION_ACTION = "ui.execute";
     TenantDAO tenantDao;
-    private String msg = null;
 
     public TenantManagerImpl() {
         this.tenantDao = DeviceManagementDAOFactory.getTenantDAO();
@@ -370,24 +367,23 @@ public class TenantManagerImpl implements TenantManager {
                         publishSharedScopes(Arrays.asList(superTenantScopes), publisherRESTAPIServices);
                     }
                 } else {
-                    msg = "Unable to publish scopes to sub tenants due to super tenant scopes list being empty.";
+                    String msg = "Unable to publish scopes to sub tenants due to super tenant scopes list being empty.";
                     log.error(msg);
                     throw new TenantMgtException(msg);
                 }
             } catch (BadRequestException e) {
-                msg = "Invalid request sent when publishing scopes to '" + tenantDomain + "' tenant space.";
+                String msg = "Invalid request sent when publishing scopes to '" + tenantDomain + "' tenant space.";
                 log.error(msg, e);
                 throw new TenantMgtException(msg, e);
             } catch (UnexpectedResponseException e) {
-                msg = "Unexpected response received when publishing scopes to '" + tenantDomain + "' tenant space.";
+                String msg = "Unexpected response received when publishing scopes to '" + tenantDomain + "' tenant space.";
                 log.error(msg, e);
                 throw new TenantMgtException(msg, e);
             } catch (APIServicesException e) {
-                msg = "Error occurred while publishing scopes to '" + tenantDomain + "' tenant space.";
+                String msg = "Error occurred while publishing scopes to '" + tenantDomain + "' tenant space.";
                 log.error(msg, e);
                 throw new TenantMgtException(msg, e);
             } finally {
-                APIPublisherUtils.removeScopePublishUserIfExists(tenantDomain);
                 PrivilegedCarbonContext.endTenantFlow();
             }
         }
@@ -411,7 +407,7 @@ public class TenantManagerImpl implements TenantManager {
             PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME, true);
             return publisherRESTAPIServices.getScopes();
         } catch (APIServicesException e) {
-            msg = "Error occurred while retrieving access token from super tenant";
+            String msg = "Error occurred while retrieving access token from super tenant";
             log.error(msg, e);
             throw new TenantMgtException(msg, e);
         } finally {
@@ -472,22 +468,14 @@ public class TenantManagerImpl implements TenantManager {
     @Override
     public String getTenantDomain(int tenantId) throws TenantMgtException {
         try {
-            PrivilegedCarbonContext.startTenantFlow();
-            RealmService realmService = TenantMgtDataHolder.getInstance().getRealmService();
-            if (realmService == null) {
-                String msg = "RealmService is not initialized";
-                log.error(msg);
-                throw new TenantMgtException(msg);
-            }
-
-            return realmService.getTenantManager().getDomain(tenantId);
-
+            return TenantMgtDataHolder.getInstance()
+                    .getRealmService()
+                    .getTenantManager()
+                    .getDomain(tenantId);
         } catch (UserStoreException e) {
             String msg = "User store not initialized";
             log.error(msg);
             throw new TenantMgtException(msg, e);
-        } finally {
-            PrivilegedCarbonContext.endTenantFlow();
         }
     }
 }
