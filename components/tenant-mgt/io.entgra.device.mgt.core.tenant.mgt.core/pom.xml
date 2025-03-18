@@ -54,6 +54,7 @@
                             io.entgra.device.mgt.core.application.mgt.common.*,
                             io.entgra.device.mgt.core.application.mgt.core.config,
                             io.entgra.device.mgt.core.device.mgt.core,
+                            io.entgra.device.mgt.core.apimgt.extension.rest.api.*,
                             org.wso2.carbon.user.api,
                             org.wso2.carbon.registry.core.exceptions,
                             io.entgra.device.mgt.core.tenant.mgt.common.*,
@@ -61,6 +62,7 @@
                             org.wso2.carbon.stratos.common.exception,
                             org.wso2.carbon.stratos.common.listeners,
                             org.wso2.carbon.tenant.mgt.services,
+                            org.wso2.carbon.tenant.mgt.exception,
                             io.entgra.device.mgt.core.device.mgt.common.metadata.mgt,
                             io.entgra.device.mgt.core.device.mgt.common.exceptions,
                             io.entgra.device.mgt.core.device.mgt.common.permission.mgt,
@@ -69,6 +71,7 @@
                             io.entgra.device.mgt.core.device.mgt.core.config,
                             io.entgra.device.mgt.core.device.mgt.core.dao.*,
                             org.wso2.carbon.user.core.service,
+                            org.wso2.carbon.user.core.tenant,
                             org.wso2.carbon.context
                         </Import-Package>
                         <Export-Package>
@@ -130,6 +133,14 @@
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.multitenancy</groupId>
+            <artifactId>org.wso2.carbon.tenant.mgt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.entgra.device.mgt.core</groupId>
+            <artifactId>io.entgra.device.mgt.core.apimgt.extension.rest.api</artifactId>
         </dependency>
     </dependencies>
 

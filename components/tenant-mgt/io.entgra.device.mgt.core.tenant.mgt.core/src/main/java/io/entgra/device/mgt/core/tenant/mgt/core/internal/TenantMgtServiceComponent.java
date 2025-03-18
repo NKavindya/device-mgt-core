@@ -17,6 +17,8 @@
  */
 package io.entgra.device.mgt.core.tenant.mgt.core.internal;
 
+import io.entgra.device.mgt.core.apimgt.extension.rest.api.APIApplicationServices;
+import io.entgra.device.mgt.core.apimgt.extension.rest.api.PublisherRESTAPIServices;
 import io.entgra.device.mgt.core.application.mgt.common.services.ApplicationManager;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.DeviceStatusManagementService;
 import io.entgra.device.mgt.core.device.mgt.core.metadata.mgt.DeviceStatusManagementServiceImpl;
@@ -49,12 +51,24 @@ import org.wso2.carbon.user.core.service.RealmService;
  * policy="dynamic"
  * bind="setRealmService"
  * unbind="unsetRealmService"
+ * @scr.reference name="APIM.application.service"
+ * interface="io.entgra.device.mgt.core.apimgt.extension.rest.api.APIApplicationServices"
+ * cardinality="1..1"
+ * policy="dynamic"
+ * bind="setAPIApplicationServices"
+ * unbind="unsetAPIApplicationServices"
+ * @scr.reference name="APIM.publisher.service"
+ * interface="io.entgra.device.mgt.core.apimgt.extension.rest.api.PublisherRESTAPIServices"
+ * cardinality="1..1"
+ * policy="dynamic"
+ * bind="setPublisherRESTAPIServices"
+ * unbind="unsetPublisherRESTAPIServices"
  */
 
 @SuppressWarnings("unused")
 public class TenantMgtServiceComponent {
 
-    private static final Log log = LogFactory.getLog(TenantManagerService.class);
+    private static final Log log = LogFactory.getLog(TenantMgtServiceComponent.class);
 
     @SuppressWarnings("unused")
     protected void activate(ComponentContext componentContext) {
@@ -121,5 +135,33 @@ public class TenantMgtServiceComponent {
             log.info("Realm Service service is unbinding");
         }
         TenantMgtDataHolder.getInstance().setRealmService(null);
+    }
+
+    protected void setAPIApplicationServices(APIApplicationServices apiApplicationServices) {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting DCR REST API Service");
+        }
+        TenantMgtDataHolder.getInstance().setApiApplicationServices(apiApplicationServices);
+    }
+
+    protected void unsetAPIApplicationServices(APIApplicationServices apiApplicationServices) {
+        if (log.isDebugEnabled()) {
+            log.debug("Unsetting DCR REST API Service");
+        }
+        TenantMgtDataHolder.getInstance().setApiApplicationServices(null);
+    }
+
+    protected void setPublisherRESTAPIServices(PublisherRESTAPIServices publisherRESTAPIServices) {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting APIM Publisher REST API Service");
+        }
+        TenantMgtDataHolder.getInstance().setPublisherRESTAPIServices(publisherRESTAPIServices);
+    }
+
+    protected void unsetPublisherRESTAPIServices(PublisherRESTAPIServices publisherRESTAPIServices) {
+        if (log.isDebugEnabled()) {
+            log.debug("Unsetting APIM Publisher REST API Service");
+        }
+        TenantMgtDataHolder.getInstance().setPublisherRESTAPIServices(null);
     }
 }
