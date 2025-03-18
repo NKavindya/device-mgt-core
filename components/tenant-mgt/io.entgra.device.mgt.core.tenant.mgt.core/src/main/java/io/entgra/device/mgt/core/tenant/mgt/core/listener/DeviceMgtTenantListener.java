@@ -68,8 +68,7 @@ public class DeviceMgtTenantListener implements TenantMgtListener {
             tenantDomain = tenantManager.getTenantDomain(tenantId);
             tenantManager.publishScopesToTenant(tenantDomain);
         } catch (TenantMgtException e) {
-            String msg = "Error occurred while executing tenant initial activation flow";
-            log.error(msg, e);
+            log.error("Error occurred while executing tenant initial activation flow", e);
         }
     }
 
