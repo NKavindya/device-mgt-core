@@ -430,12 +430,6 @@
         <Scope>dm:admin:cea:sync</Scope>
         <Scope>am:pub:app:upload</Scope>
         <Scope>dm:devices:ops:status:update</Scope>
-        <Scope>tm:tags:view</Scope>
-        <Scope>tm:tags:create</Scope>
-        <Scope>tm:tags:update</Scope>
-        <Scope>tm:tags:delete</Scope>
-        <Scope>tm:tags:mapping:create</Scope>
-        <Scope>tm:tags:mapping:delete</Scope>
         <Scope>dm:devices:any:permitted</Scope>
         <Scope>dm:device:api:subscribe</Scope>
         <Scope>dm:hide:unauthorized:functions</Scope>
@@ -453,6 +447,7 @@
         <Scope>dm:hide:config:certificates</Scope>
         <Scope>dm:hide:config:platform:config</Scope>
         <Scope>dm:hide:device:tracker</Scope>
+        <Scope>dm:hide:analytics</Scope>
         <Scope>dm:hide:endpoint:mgt</Scope>
         <Scope>dm:hide:app:publisher</Scope>
         <Scope>dm:hide:app:store</Scope>
