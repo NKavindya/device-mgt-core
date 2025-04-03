@@ -53,7 +53,7 @@
         <module>components/tenant-mgt</module>
         <module>components/operation-template-mgt</module>
         <module>components/cea-mgt</module>
-        <module>components/notification-mgt</module>
+        <module>components/dynamic-task-mgt</module>
         <module>features/device-mgt</module>
         <module>features/apimgt-extensions</module>
         <module>features/application-mgt</module>
@@ -72,7 +72,7 @@
         <module>features/tenant-mgt</module>
         <module>features/operation-template-mgt-plugin-feature</module>
         <module>features/cea-mgt-feature</module>
-        <module>features/notification-mgt-feature</module>
+        <module>features/dynamic-task-mgt-feature</module>
     </modules>
 
     <dependencyManagement>
@@ -403,20 +403,6 @@
                 <version>${io.entgra.device.mgt.core.version}</version>
             </dependency>
             <!-- End of Conditional Email Access dependencies -->
-
-
-            <!-- Notification Management dependencies -->
-            <dependency>
-                <groupId>io.entgra.device.mgt.core</groupId>
-                <artifactId>io.entgra.device.mgt.core.notification.mgt.common</artifactId>
-                <version>${io.entgra.device.mgt.core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.entgra.device.mgt.core</groupId>
-                <artifactId>io.entgra.device.mgt.core.notification.mgt.core</artifactId>
-                <version>${io.entgra.device.mgt.core.version}</version>
-            </dependency>
-            <!-- End of Notification Management dependencies -->
 
             <!-- Governance dependencies -->
             <dependency>
@@ -1645,6 +1631,16 @@
             <dependency>
                 <groupId>io.entgra.device.mgt.core</groupId>
                 <artifactId>io.entgra.device.mgt.core.device.mgt.extensions.device.organization.api</artifactId>
+                <version>${io.entgra.device.mgt.core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.entgra.device.mgt.core</groupId>
+                <artifactId>io.entgra.device.mgt.core.dynamic.task.mgt.common</artifactId>
+                <version>${io.entgra.device.mgt.core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.entgra.device.mgt.core</groupId>
+                <artifactId>io.entgra.device.mgt.core.dynamic.task.mgt.core</artifactId>
                 <version>${io.entgra.device.mgt.core.version}</version>
             </dependency>
             <dependency>
