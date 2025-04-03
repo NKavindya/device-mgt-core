@@ -425,7 +425,7 @@ public abstract class AbstractEnrollmentDAOImpl implements EnrollmentDAO {
         try {
             conn = this.getConnection();
             String sql = "SELECT ID, DEVICE_ID, OWNER, OWNERSHIP, STATUS, IS_TRANSFERRED, DATE_OF_ENROLMENT, " +
-                    "DATE_OF_LAST_UPDATE, TENANT_ID FROM YDM_ENROLMENT WHERE DEVICE_ID = ? AND OWNER = ? AND TENANT_ID = ?";
+                    "DATE_OF_LAST_UPDATE, TENANT_ID FROM DM_ENROLMENT WHERE DEVICE_ID = ? AND OWNER = ? AND TENANT_ID = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, deviceId);
             stmt.setString(2, currentOwner);
