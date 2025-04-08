@@ -26,7 +26,6 @@ import io.entgra.device.mgt.core.notification.mgt.core.config.NotificationConfig
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
 import io.entgra.device.mgt.core.notification.mgt.core.impl.NotificationConfigServiceImpl;
 import io.entgra.device.mgt.core.notification.mgt.core.impl.NotificationManagementServiceImpl;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.framework.BundleContext;
@@ -48,17 +47,11 @@ public class NotificationManagementServiceComponent {
     @SuppressWarnings("unused")
     @Activate
     protected void activate(ComponentContext componentContext) {
-        if (log.isDebugEnabled()) {
-            log.debug("Initializing Notification management core bundle");
-        }
         BundleContext bundleContext = componentContext.getBundleContext();
-        if (log.isDebugEnabled()) {
-            log.debug("Initializing Notification management core bundle");
-        }
         try {
             NotificationConfigurationManager notificationConfigManager = NotificationConfigurationManager.getInstance();
-            NotificationManagementDAOFactory.init(notificationConfigManager.getNotificationManagementRepository().getDataSourceConfig());
-
+            NotificationManagementDAOFactory.init(notificationConfigManager
+                    .getNotificationManagementRepository().getDataSourceConfig());
             NotificationManagementService notificationManagementService = new NotificationManagementServiceImpl();
             bundleContext.registerService(NotificationManagementService.class.getName(),
                     notificationManagementService, null);
@@ -66,20 +59,6 @@ public class NotificationManagementServiceComponent {
             String msg = "Error occurred while activating Notification Configuration Service";
             log.error(msg, t);
         }
-
-//        try {
-//            MetadataManagementService metaDataManagementService = new MetadataManagementServiceImpl();
-//            NotificationManagementDataHolder.getInstance().setMetaDataManagementService(metaDataManagementService);
-//            bundleContext.registerService(MetadataManagementService.class.getName(),
-//                    metaDataManagementService, null);
-//        } catch (Throwable t) {
-//            String msg = "Error occurred while activating Meta Data Management Service " ;
-//            log.error(msg, t);
-//        }
-
-
-        /* Registering Notification Configuration  Service */
-
         try {
             NotificationConfigService notificationConfigurationService = new NotificationConfigServiceImpl();
             bundleContext.registerService(NotificationConfigService.class.getName(),
@@ -104,8 +83,8 @@ public class NotificationManagementServiceComponent {
             policy = ReferencePolicy.DYNAMIC,
             unbind = "unsetDeviceManagementProviderService")
     protected void setDeviceManagementProviderService(DeviceManagementProviderService deviceManagementProviderService) {
-        NotificationManagementDataHolder.getInstance().setDeviceManagementProviderService(deviceManagementProviderService);
-
+        NotificationManagementDataHolder.getInstance()
+                .setDeviceManagementProviderService(deviceManagementProviderService);
     }
 
     @Reference(
@@ -126,6 +105,7 @@ public class NotificationManagementServiceComponent {
             DeviceManagementProviderService deviceManagementProviderService) {
         NotificationManagementDataHolder.getInstance().setDeviceManagementProviderService(null);
     }
+
     protected void unsetMetadataManagementService(MetadataManagementService metaDataManagementService) {
         NotificationManagementDataHolder.getInstance().setMetaDataManagementService(null);
         if (log.isDebugEnabled()) {
