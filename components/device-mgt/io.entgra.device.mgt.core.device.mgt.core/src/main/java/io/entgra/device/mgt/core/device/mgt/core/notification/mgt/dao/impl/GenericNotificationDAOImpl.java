@@ -23,7 +23,6 @@ import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationManagementDAOFactory;
 import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.util.NotificationDAOUtil;
-import io.entgra.device.mgt.core.device.mgt.common.dto.NotificationConfig;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -126,65 +125,7 @@ public class GenericNotificationDAOImpl extends AbstractNotificationDAOImpl {
     }
 
     @Override
-    public NotificationConfig getNotificationConfig(int tenantId, String code)
-            throws NotificationManagementException {
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        NotificationConfig config = null;
-        String sql =
-                "SELECT METADATA_VALUE " +
-                        "FROM DM_METADATA " +
-                        "WHERE METADATA_KEY = ? " +
-                        "AND TENANT_ID = ?";
-        try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
-            stmt = conn.prepareStatement(sql);
-            stmt.setString(1, "notificationConfig");
-            stmt.setInt(2, tenantId);
-            rs = stmt.executeQuery();
-            if (rs.next()) {
-                String metadataValue = rs.getString("METADATA_VALUE");
-                JSONArray jsonArray = new JSONArray(metadataValue);
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject jsonConfig = jsonArray.getJSONObject(i);
-                    if (jsonConfig.getString("code").equalsIgnoreCase(code)) {
-                        JSONObject recipientsObj = jsonConfig.optJSONObject("recipients");
-                        List<String> recipients = new ArrayList<>();
-                        if (recipientsObj != null) {
-                            if (recipientsObj.has("users")) {
-                                JSONArray users = recipientsObj.getJSONArray("users");
-                                for (int j = 0; j < users.length(); j++) {
-                                    recipients.add("user:" + users.getString(j));
-                                }
-                            }
-                            if (recipientsObj.has("roles")) {
-                                JSONArray roles = recipientsObj.getJSONArray("roles");
-                                for (int j = 0; j < roles.length(); j++) {
-                                    recipients.add("role:" + roles.getString(j));
-                                }
-                            }
-                        }
-                        config = new NotificationConfig(
-                                jsonConfig.getString("id"),
-                                jsonConfig.getInt("priority"),
-                                jsonConfig.getString("type"),
-                                recipients
-                        );
-                        break;
-                    }
-                }
-            }
-        } catch (SQLException | JSONException e) {
-            throw new NotificationManagementException("Error occurred while fetching notificationConfig for tenant ID "
-                    + tenantId, e);
-        } finally {
-            NotificationDAOUtil.cleanupResources(stmt, rs);
-        }
-        return config;
-    }
-
-    @Override
-    public int insertNotification(int tenantId, String notificationConfigId, int priority, String type, String description)
+    public int insertNotification(int tenantId, int notificationConfigId, String type, String description)
             throws NotificationManagementException {
         PreparedStatement stmt = null;
         ResultSet rs = null;
@@ -194,16 +135,15 @@ public class GenericNotificationDAOImpl extends AbstractNotificationDAOImpl {
                         "TENANT_ID, " +
                         "DESCRIPTION, " +
                         "TYPE) " +
-                        "VALUES (?, ?, ?, ?, ?)";
+                        "VALUES (?, ?, ?, ?)";
         int notificationId = -1;
         try {
             Connection conn = NotificationManagementDAOFactory.getConnection();
             stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            stmt.setString(1, notificationConfigId);
+            stmt.setInt(1, notificationConfigId);
             stmt.setInt(2, tenantId);
             stmt.setString(3, description);
-            stmt.setInt(4, priority);
-            stmt.setString(5, type);
+            stmt.setString(4, type);
             stmt.executeUpdate();
             rs = stmt.getGeneratedKeys();
             if (rs.next()) {
