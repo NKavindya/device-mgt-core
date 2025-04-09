@@ -52,8 +52,6 @@ public class DeviceManagementStartupHandler implements ServerStartupObserver {
     private static final String OPERATION_CONFIG = "OPERATION_CONFIG";
     private static final String tenantDomain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
 
-    private NotificationManagementServiceImpl notificationManagementService;
-
     @Override
     public void completingServerStartup() {
 
@@ -148,7 +146,8 @@ public class DeviceManagementStartupHandler implements ServerStartupObserver {
                                     Operation operation = new Operation();
                                     operation.setCode(details.getOperationCode());
                                     operation.setStatus(Operation.Status.valueOf(requiredStatusChange));
-                                    notificationManagementService.handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
+                                    DeviceManagementDataHolder.getInstance().getNotificationManagementService()
+                                            .handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
                                 }
                             }
                             OperationManagementDAOFactory.commitTransaction();
