@@ -116,7 +116,6 @@ public class OperationManagerImpl implements OperationManager {
     private final Map<Integer, NotificationStrategy> notificationStrategies;
     private final Map<Integer, Long> lastUpdatedTimeStamps;
     private final ConcurrentMap<Integer, String> operationsInitBy;
-    private NotificationManagementServiceImpl notificationManagementService;
 
     private final ThreadPoolExecutor notificationExecutor;
 
@@ -450,7 +449,8 @@ public class OperationManagerImpl implements OperationManager {
             }
         }
         try {
-            notificationManagementService.handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
+            DeviceManagementDataHolder.getInstance().getNotificationManagementService()
+                    .handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
         } catch (NotificationManagementException e) {
             String msg = "An Error occurred while updating handleOperationNotificationIfApplicable";
             log.error(msg, e);
@@ -955,7 +955,8 @@ public class OperationManagerImpl implements OperationManager {
                 device.setType(previousDeviceOperationDetails.getDeviceType());
                 Map<Integer, Device> enrolments = new HashMap<>();
                 enrolments.put(device.getId(), device);
-                notificationManagementService.handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
+                DeviceManagementDataHolder.getInstance().getNotificationManagementService()
+                        .handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
             }
             if (!isOperationUpdated) {
                 log.warn("Operation " + operationId + "'s status is not updated");
