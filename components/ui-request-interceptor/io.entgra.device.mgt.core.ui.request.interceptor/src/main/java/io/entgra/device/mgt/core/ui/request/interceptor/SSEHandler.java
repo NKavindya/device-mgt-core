@@ -23,92 +23,99 @@ import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import javax.servlet.*;
+import javax.servlet.AsyncContext;
+import javax.servlet.AsyncEvent;
+import javax.servlet.AsyncListener;
+import javax.servlet.ServletConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 @WebServlet(urlPatterns = {"/mySSE"}, asyncSupported = true)
 public class SSEHandler extends HttpServlet implements NotificationListener {
 
-    public static final Queue<AsyncContext> ongoingRequests = new ConcurrentLinkedQueue<>();
-    public static final Queue<String> pendingMessages = new ConcurrentLinkedQueue<>();
-    private ScheduledExecutorService service;
+    // map to store list of AsyncContexts per user
+    private static final Map<String, List<AsyncContext>> userStreams = new ConcurrentHashMap<>();
 
     @Override
     public void init(ServletConfig config) {
-        // register as listener
+        // register as a notification listener
         NotificationEventBroker.registerListener(this);
-        final Runnable notifier = () -> {
-            List<String> messagesToSend = new ArrayList<>();
-            while (!pendingMessages.isEmpty()) {
-                String msg = pendingMessages.poll();
-                if (msg != null) {
-                    messagesToSend.add(msg);
-                }
-            }
-            if (messagesToSend.isEmpty()) {
-                return;
-            }
-            Iterator<AsyncContext> iterator = ongoingRequests.iterator();
-            while (iterator.hasNext()) {
-                AsyncContext ac = iterator.next();
-                try {
-                    PrintWriter out = ac.getResponse().getWriter();
-                    for (String message : messagesToSend) {
+    }
+
+    // called by NotificationEventBroker when a message should be delivered
+    @Override
+    public void onMessage(String message, List<String> usernames) {
+        for (String username : usernames) {
+            List<AsyncContext> contexts = userStreams.get(username);
+            if (contexts != null) {
+                Iterator<AsyncContext> iterator = contexts.iterator();
+                while (iterator.hasNext()) {
+                    AsyncContext ac = iterator.next();
+                    try {
+                        PrintWriter out = ac.getResponse().getWriter();
                         out.write("data: " + message + "\n\n");
-                    }
-                    out.flush();
-                    if (out.checkError()) {
+                        out.flush();
+                        if (out.checkError()) {
+                            iterator.remove();
+                        }
+                    } catch (IOException e) {
                         iterator.remove();
+                        e.printStackTrace();
                     }
-                } catch (IOException e) {
-                    iterator.remove();
-                    e.printStackTrace();
                 }
             }
-        };
-        service = Executors.newScheduledThreadPool(1);
-        service.scheduleAtFixedRate(notifier, 1, 1, TimeUnit.SECONDS);
-    }
-
-    // receive messages from the broker
-    @Override
-    public void onMessage(String message) {
-        pendingMessages.add(message);
+        }
     }
 
     @Override
-    public void doGet(HttpServletRequest req, HttpServletResponse res) {
+    protected void doGet(HttpServletRequest req, HttpServletResponse res) {
         req.setAttribute("org.apache.catalina.ASYNC_SUPPORTED", true);
         res.setContentType("text/event-stream");
         res.setCharacterEncoding("UTF-8");
         final AsyncContext ac = req.startAsync();
         ac.setTimeout(0);
+        String username = req.getParameter("user");
+        if (username != null) {
+            userStreams.computeIfAbsent(username, k -> new CopyOnWriteArrayList<>()).add(ac);
+        }
         ac.addListener(new AsyncListener() {
-            @Override public void onComplete(AsyncEvent event) { ongoingRequests.remove(ac); }
-            @Override public void onTimeout(AsyncEvent event) { ongoingRequests.remove(ac); }
-            @Override public void onError(AsyncEvent event) { ongoingRequests.remove(ac); }
-            @Override public void onStartAsync(AsyncEvent event) {}
+            @Override
+            public void onComplete(AsyncEvent event) {
+                removeContext(ac);
+            }
+            @Override
+            public void onTimeout(AsyncEvent event) {
+                removeContext(ac);
+            }
+            @Override
+            public void onError(AsyncEvent event) {
+                removeContext(ac);
+            }
+            @Override
+            public void onStartAsync(AsyncEvent event) {
+            }
         });
-        ongoingRequests.add(ac);
         try {
             PrintWriter out = ac.getResponse().getWriter();
             out.write("data: Connected to SSE\n\n");
             out.flush();
         } catch (IOException e) {
-            ongoingRequests.remove(ac);
+            removeContext(ac);
             e.printStackTrace();
+        }
+    }
+
+    private void removeContext(AsyncContext ac) {
+        for (List<AsyncContext> contextList : userStreams.values()) {
+            contextList.remove(ac);
         }
     }
 }

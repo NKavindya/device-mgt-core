@@ -29,9 +29,9 @@ public class NotificationEventBroker {
         listeners.add(listener);
     }
 
-    public static void pushMessage(String message) {
+    public static void pushMessage(String message, List<String> usernames) {
         for (NotificationListener listener : listeners) {
-            listener.onMessage(message);
+            listener.onMessage(message, usernames);
         }
     }
 }

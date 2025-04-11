@@ -19,6 +19,8 @@
 
 package io.entgra.device.mgt.core.device.mgt.common.notification.mgt;
 
+import java.util.List;
+
 public interface NotificationListener {
-    void onMessage(String message);
+    void onMessage(String message, List<String> usernames);
 }
