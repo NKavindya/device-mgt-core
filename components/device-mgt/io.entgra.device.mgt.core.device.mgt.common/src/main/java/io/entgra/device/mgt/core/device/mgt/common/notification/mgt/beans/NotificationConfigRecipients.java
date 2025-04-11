@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package io.entgra.device.mgt.core.device.mgt.core.notification.mgt.beans;
+package io.entgra.device.mgt.core.device.mgt.common.notification.mgt.beans;
 
 import java.util.ArrayList;
 import java.util.List;
