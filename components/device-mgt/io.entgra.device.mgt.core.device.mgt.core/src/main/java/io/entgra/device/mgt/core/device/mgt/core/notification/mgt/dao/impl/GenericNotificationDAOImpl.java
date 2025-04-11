@@ -23,9 +23,6 @@ import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationManagementDAOFactory;
 import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.util.NotificationDAOUtil;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
