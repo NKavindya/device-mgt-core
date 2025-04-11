@@ -275,7 +275,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                     notificationDAO.insertNotificationUserActions(notificationId, usernames);
                 }
                 NotificationManagementDAOFactory.commitTransaction();
-                NotificationEventBroker.pushMessage(description);
+                NotificationEventBroker.pushMessage(description, usernames);
             }
         } catch (NotificationManagementException e) {
             log.error("Failed to handle notification for operation " + operation.getCode(), e);
@@ -304,7 +304,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                     notificationDAO.insertNotificationUserActions(notificationId, usernames);
                 }
                 NotificationManagementDAOFactory.commitTransaction();
-                NotificationEventBroker.pushMessage(description);
+                NotificationEventBroker.pushMessage(description, usernames);
             }
         } catch (NotificationManagementException e) {
             log.error("Failed to handle task notification for task " + taskCode, e);
