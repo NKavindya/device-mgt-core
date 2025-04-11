@@ -20,7 +20,6 @@ package io.entgra.device.mgt.core.device.mgt.core.operation.mgt;
 
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.dto.operation.mgt.DeviceOperationDetails;
-import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.NotificationManagementServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.permission.mgt.PermissionManagerServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.extensions.logger.spi.EntgraLogger;
 import io.entgra.device.mgt.core.notification.logger.DeviceConnectivityLogContext;

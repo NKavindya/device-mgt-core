@@ -27,7 +27,6 @@ import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification
 import io.entgra.device.mgt.core.device.mgt.common.operation.mgt.Operation;
 import io.entgra.device.mgt.core.device.mgt.core.DeviceManagementConstants;
 import io.entgra.device.mgt.core.device.mgt.core.dto.operation.mgt.DeviceOperationDetails;
-import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.NotificationManagementServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.operation.change.status.task.dto.OperationConfig;
 import io.entgra.device.mgt.core.device.mgt.core.operation.mgt.dao.OperationDAO;
 import io.entgra.device.mgt.core.device.mgt.core.operation.mgt.dao.OperationManagementDAOException;
