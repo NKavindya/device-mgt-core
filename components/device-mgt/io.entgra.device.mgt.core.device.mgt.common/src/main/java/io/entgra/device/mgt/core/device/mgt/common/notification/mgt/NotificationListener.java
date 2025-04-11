@@ -15,32 +15,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package io.entgra.device.mgt.core.device.mgt.core.notification.mgt.beans;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.List;
+package io.entgra.device.mgt.core.device.mgt.common.notification.mgt;
 
-public class NotificationConfigCriticalCriteria {
-    @JsonProperty("status")
-    private boolean status;
-
-    @JsonProperty("criticalCriteria")
-    private List<String> criticalCriteria;
-
-    public boolean isStatus() {
-        return status;
-    }
-
-    public void setStatus(boolean status) {
-        this.status = status;
-    }
-
-    public List<String> getCriticalCriteria() {
-        return criticalCriteria;
-    }
-
-    public void setCriticalCriteria(List<String> criticalCriteria) {
-        this.criticalCriteria = criticalCriteria;
-    }
+public interface NotificationListener {
+    void onMessage(String message);
 }

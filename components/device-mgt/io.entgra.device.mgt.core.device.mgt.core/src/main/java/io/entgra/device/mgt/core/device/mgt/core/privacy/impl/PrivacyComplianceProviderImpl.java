@@ -27,7 +27,6 @@ import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagem
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceManagementDAOFactory;
 import io.entgra.device.mgt.core.device.mgt.core.internal.DeviceManagementDataHolder;
-import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.NotificationManagementServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.privacy.PrivacyComplianceProvider;
 import io.entgra.device.mgt.core.device.mgt.core.privacy.dao.PrivacyComplianceDAO;
 import io.entgra.device.mgt.core.device.mgt.core.privacy.dao.PrivacyComplianceDAOException;
@@ -45,8 +44,6 @@ public class PrivacyComplianceProviderImpl implements PrivacyComplianceProvider 
     private static final Log log = LogFactory.getLog(PrivacyComplianceProviderImpl.class);
 
     PrivacyComplianceDAO complianceDAO;
-
-    private NotificationManagementServiceImpl notificationManagementService;
 
     public PrivacyComplianceProviderImpl() {
         complianceDAO = DeviceManagementDAOFactory.getPrivacyComplianceDAO();
