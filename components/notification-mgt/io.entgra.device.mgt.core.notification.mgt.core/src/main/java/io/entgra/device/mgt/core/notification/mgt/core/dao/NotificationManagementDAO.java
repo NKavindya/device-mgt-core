@@ -20,6 +20,7 @@
 package io.entgra.device.mgt.core.notification.mgt.core.dao;
 
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 
 import java.util.List;
@@ -36,4 +37,58 @@ public interface NotificationManagementDAO {
      */
     List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementException;
 
+    /**
+     * Retrieves a paginated list of notifications from the database based on a given list of notification IDs.
+     * The results are filtered by the current tenant ID and ordered by creation timestamp in descending order
+     * (i.e., most recent first). Only selected fields — notification ID, description, and type — are returned.
+     *
+     * @param notificationIds List of notification IDs to filter the query. Must not be null or empty.
+     * @return A list of {@link Notification} objects containing ID, description, and type for each matched record.
+     * @throws NotificationManagementException If any SQL or connection error occurs during query execution.
+     */
+    List<Notification> getNotificationsByIds(List<Integer> notificationIds)
+            throws NotificationManagementException;
+
+    /**
+     * Retrieves a paginated list of NotificationAction records for the specified user.
+     *
+     * @param username the user to filter actions for
+     * @param offset pagination offset
+     * @param limit pagination limit
+     * @return list of NotificationAction entries for the user
+     * @throws NotificationManagementException if a DB error occurs
+     */
+    List<UserNotificationAction> getNotificationActionsByUser(String username, int limit, int offset, String status)
+            throws NotificationManagementException;
+
+    /**
+     * Retrieves a list of notification IDs and their action types for the specified username.
+     *
+     * @param username the username whose notification actions are to be fetched
+     * @return a list of pairs containing notification ID and action type
+     * @throws NotificationManagementException if a database access error occurs
+     */
+    void markNotificationAsRead(int notificationId, String username) throws NotificationManagementException;
+
+    /**
+     * Retrieves all notification actions performed by all users.
+     *
+     * @return a list of {@link UserNotificationAction} objects representing actions taken by users
+     *         on notifications (e.g., READ, DISMISSED).
+     * @throws NotificationManagementException if an error occurs while retrieving the data from the database.
+     */
+    List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementException;
+
+    /**
+     * Retrieves the total number of notification actions for a specific user, optionally filtered by action status.
+     *
+     * @param username the username whose notification action count is to be retrieved.
+     * @param status   (optional) the action status to filter by (e.g., "READ", "UNREAD").
+     *                 If null or empty, all actions are counted regardless of status.
+     * @return the count of matching notification actions for the given user.
+     * @throws NotificationManagementException if an error occurs while querying the database.
+     */
+    int getNotificationActionsCountByUser(String username, String status) throws NotificationManagementException;
+
+    int getUnreadNotificationCountForUser(String username) throws NotificationManagementException;
 }

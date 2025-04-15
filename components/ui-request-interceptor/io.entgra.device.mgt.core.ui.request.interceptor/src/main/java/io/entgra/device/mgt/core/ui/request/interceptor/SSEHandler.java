@@ -20,10 +20,16 @@ package io.entgra.device.mgt.core.ui.request.interceptor;
 
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationEventBroker;
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationListener;
+import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
+import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationDAO;
+import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationManagementDAOFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Iterator;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
@@ -38,11 +44,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-@WebServlet(urlPatterns = {"/mySSE"}, asyncSupported = true)
+@WebServlet(urlPatterns = {"/ConnectSSE"}, asyncSupported = true)
 public class SSEHandler extends HttpServlet implements NotificationListener {
-
+    private static final Log log = LogFactory.getLog(SSEHandler.class);
     // map to store list of AsyncContexts per user
     private static final Map<String, List<AsyncContext>> userStreams = new ConcurrentHashMap<>();
+    private final NotificationDAO notificationDAO = NotificationManagementDAOFactory.getNotificationDAO();
 
     @Override
     public void init(ServletConfig config) {
@@ -56,18 +63,16 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
         for (String username : usernames) {
             List<AsyncContext> contexts = userStreams.get(username);
             if (contexts != null) {
-                Iterator<AsyncContext> iterator = contexts.iterator();
-                while (iterator.hasNext()) {
-                    AsyncContext ac = iterator.next();
+                for (AsyncContext ac : new ArrayList<>(contexts)) {
                     try {
                         PrintWriter out = ac.getResponse().getWriter();
                         out.write("data: " + message + "\n\n");
                         out.flush();
                         if (out.checkError()) {
-                            iterator.remove();
+                            contexts.remove(ac);
                         }
                     } catch (IOException e) {
-                        iterator.remove();
+                        contexts.remove(ac);
                         e.printStackTrace();
                     }
                 }
@@ -105,7 +110,27 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
         });
         try {
             PrintWriter out = ac.getResponse().getWriter();
-            out.write("data: Connected to SSE\n\n");
+            if (username != null) {
+                try {
+                    NotificationManagementDAOFactory.openConnection();
+                    int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                    String initialPayload = String.format
+                            ("{\"message\":\"Connected to notification service.\",\"unreadCount\":%d}", count);
+                    out.write("data: " + initialPayload + "\n\n");
+                } catch (NotificationManagementException e) {
+                    String msg = "Error fetching unread notification count for user: " + username;
+                    log.error(msg, e);
+                    throw new RuntimeException(msg, e);
+                } catch (SQLException e) {
+                    String msg = "Error retrieving unread notification count for user: " + username;
+                    log.error(msg, e);
+                    throw new RuntimeException(msg, e);
+                } finally {
+                    NotificationManagementDAOFactory.closeConnection();
+                }
+            } else {
+                out.write("data: {\"message\":\"No username specified\",\"unreadCount\":0}\n\n");
+            }
             out.flush();
         } catch (IOException e) {
             removeContext(ac);

@@ -67,7 +67,7 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
     }
 
     private boolean configIDIsInvalid(NotificationConfig config) {
-        return config.getConfigId() <= 0;
+        return config.getId() <= 0;
     }
 
     @GET
@@ -124,7 +124,7 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
             List<String> invalidConfigs = new ArrayList<>();
             for (NotificationConfig config : configurations.getNotificationConfigurations()) {
                 if (!configurationIsValid(config)) {
-                    invalidConfigs.add("Config ID " + config.getConfigId() + ": missing required fields");
+                    invalidConfigs.add("Config ID " + config.getId() + ": missing required fields");
                     continue;
                 }
                 validConfigurations.add(config);
@@ -162,8 +162,8 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
                 log.error(msg);
                 return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
             }
-            if (configId != config.getConfigId()) {
-                String msg = "Path ID " + configId + " does not match configuration ID " + config.getConfigId();
+            if (configId != config.getId()) {
+                String msg = "Path ID " + configId + " does not match configuration ID " + config.getId();
                 log.error(msg);
                 return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
             }

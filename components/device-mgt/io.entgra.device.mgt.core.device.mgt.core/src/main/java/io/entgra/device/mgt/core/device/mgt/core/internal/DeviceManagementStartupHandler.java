@@ -146,7 +146,8 @@ public class DeviceManagementStartupHandler implements ServerStartupObserver {
                                     operation.setCode(details.getOperationCode());
                                     operation.setStatus(Operation.Status.valueOf(requiredStatusChange));
                                     DeviceManagementDataHolder.getInstance().getNotificationManagementService()
-                                            .handleOperationNotificationIfApplicable(operation, enrolments, tenantId);
+                                            .handleOperationNotificationIfApplicable(operation, enrolments, tenantId,
+                                                    "postSync");
                                 }
                             }
                             OperationManagementDAOFactory.commitTransaction();
