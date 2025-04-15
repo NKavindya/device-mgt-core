@@ -19,6 +19,8 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.impl;
 
+import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
@@ -28,7 +30,10 @@ import io.entgra.device.mgt.core.notification.mgt.core.exception.NotificationMan
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class NotificationManagementServiceImpl implements NotificationManagementService {
     private static final Log log = LogFactory.getLog(NotificationManagementServiceImpl.class);
@@ -45,6 +50,62 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             return notificationDAO.getLatestNotifications(offset, limit);
         } catch (NotificationManagementDAOException e) {
             String msg = "Error occurred while initiating transaction";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        } finally {
+            NotificationManagementDAOFactory.closeConnection();
+        }
+    }
+
+    @Override
+    public List<UserNotificationPayload> getUserNotificationsWithStatus(String username, int limit, int offset)
+            throws NotificationManagementException {
+        List<UserNotificationPayload> result = new ArrayList<>();
+        try {
+            NotificationManagementDAOFactory.openConnection();
+            List<UserNotificationAction> userActions =
+                    notificationDAO.getNotificationActionsByUser(username, limit, offset);
+            if (userActions.isEmpty()) {
+                return result;
+            }
+            // extract notification IDs
+            List<Integer> notificationIds = userActions.stream()
+                    .map(UserNotificationAction::getNotificationId)
+                    .collect(Collectors.toList());
+            List<Notification> notifications =
+                    notificationDAO.getNotificationsByIds(notificationIds, limit, offset);
+            // map actions to notifications
+            Map<Integer, String> actionTypeMap = userActions.stream()
+                    .collect(Collectors.toMap(UserNotificationAction::getNotificationId,
+                            UserNotificationAction::getActionType));
+            for (Notification notification : notifications) {
+                String actionType = actionTypeMap.get(notification.getNotificationId());
+                result.add(new UserNotificationPayload(
+                        notification.getNotificationId(),
+                        notification.getDescription(),
+                        notification.getType(),
+                        actionType,
+                        username
+                ));
+            }
+        } catch (NotificationManagementDAOException e) {
+            String msg = "Error occurred while retrieving user notifications with status";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        } finally {
+            NotificationManagementDAOFactory.closeConnection();
+        }
+        return result;
+    }
+
+    @Override
+    public void markNotificationAsReadForUser(int notificationId, String username)
+            throws NotificationManagementException {
+        try {
+            NotificationManagementDAOFactory.openConnection();
+            notificationDAO.markNotificationAsRead(notificationId, username);
+        } catch (NotificationManagementDAOException e) {
+            String msg = "Error occurred while marking notification as read for user: " + username;
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         } finally {
