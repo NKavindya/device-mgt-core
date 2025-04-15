@@ -22,6 +22,7 @@ package io.entgra.device.mgt.core.notification.mgt.api.impl;
 import io.entgra.device.mgt.core.notification.mgt.api.service.NotificationService;
 import io.entgra.device.mgt.core.notification.mgt.api.util.NotificationManagementApiUtil;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
 import org.apache.commons.httpclient.HttpStatus;
@@ -31,6 +32,7 @@ import org.apache.commons.logging.LogFactory;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -61,4 +63,42 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
+    @GET
+    @Path("/user")
+    public Response getUserNotificationsWithStatus(@QueryParam("username") String username,
+                                                   @QueryParam("limit") int limit,
+                                                   @QueryParam("offset") int offset) {
+        NotificationManagementService notificationService =
+                NotificationManagementApiUtil.getNotificationManagementService();
+        try {
+            List<UserNotificationPayload> payloads =
+                    notificationService.getUserNotificationsWithStatus(username, limit, offset);
+            if (payloads == null || payloads.isEmpty()) {
+                return Response.status(HttpStatus.SC_NOT_FOUND)
+                        .entity("No user notifications found for user: " + username)
+                        .build();
+            }
+            return Response.status(HttpStatus.SC_OK).entity(payloads).build();
+        } catch (NotificationManagementException e) {
+            String msg = "Failed to retrieve user notifications with status for user: " + username;
+            log.error(msg, e);
+            return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
+        }
+    }
+
+    @PUT
+    @Path("/mark-read")
+    public Response markNotificationAsRead(@QueryParam("notificationId") int notificationId,
+                                           @QueryParam("username") String username) {
+        NotificationManagementService notificationService =
+                NotificationManagementApiUtil.getNotificationManagementService();
+        try {
+            notificationService.markNotificationAsReadForUser(notificationId, username);
+            return Response.status(HttpStatus.SC_OK).entity("Notification marked as read").build();
+        } catch (NotificationManagementException e) {
+            String msg = "Failed to mark notification as read for user: " + username;
+            log.error(msg, e);
+            return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
+        }
+    }
 }

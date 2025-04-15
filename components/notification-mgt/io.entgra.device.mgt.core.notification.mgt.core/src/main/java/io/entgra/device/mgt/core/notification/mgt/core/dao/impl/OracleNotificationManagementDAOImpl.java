@@ -20,11 +20,13 @@
 package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
 
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -69,5 +71,111 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
             throw new NotificationManagementException(msg, e);
         }
         return notifications;
+    }
+
+    @Override
+    public List<Notification> getNotificationsByIds(List<Integer> notificationIds, int limit, int offset)
+            throws NotificationManagementException {
+        List<Notification> notifications = new ArrayList<>();
+        if (notificationIds == null || notificationIds.isEmpty()) {
+            return notifications;
+        }
+        StringBuilder inClause = new StringBuilder();
+        for (int i = 0; i < notificationIds.size(); i++) {
+            inClause.append("?");
+            if (i < notificationIds.size() - 1) {
+                inClause.append(",");
+            }
+        }
+        String query =
+                "SELECT * " +
+                        "FROM (SELECT a.*, ROWNUM rnum " +
+                        "FROM (SELECT NOTIFICATION_ID, " +
+                        "DESCRIPTION, TYPE " +
+                        "FROM DM_NOTIFICATION " +
+                "WHERE TENANT_ID = ? " +
+                        "AND NOTIFICATION_ID " +
+                        "IN (" + inClause +
+                ") ORDER BY CREATED_TIMESTAMP DESC) a " +
+                        "WHERE ROWNUM <= ?) " +
+                        "WHERE rnum > ?";
+        try (Connection connection = NotificationManagementDAOFactory.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            int tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
+            int paramIndex = 1;
+            preparedStatement.setInt(paramIndex++, tenantId);
+            for (Integer id : notificationIds) {
+                preparedStatement.setInt(paramIndex++, id);
+            }
+            preparedStatement.setInt(paramIndex++, offset + limit);
+            preparedStatement.setInt(paramIndex, offset);
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                while (rs.next()) {
+                    Notification notification = new Notification();
+                    notification.setNotificationId(rs.getInt("NOTIFICATION_ID"));
+                    notification.setDescription(rs.getString("DESCRIPTION"));
+                    notification.setType(rs.getString("TYPE"));
+                    notifications.add(notification);
+                }
+            }
+        } catch (SQLException e) {
+            String msg = "Error occurred while retrieving notifications by IDs from Oracle DB";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        }
+        return notifications;
+    }
+
+    @Override
+    public List<UserNotificationAction> getNotificationActionsByUser(String username, int limit, int offset)
+            throws NotificationManagementException {
+        List<UserNotificationAction> userActions = new ArrayList<>();
+        String query =
+                "SELECT * " +
+                        "FROM (SELECT a.*, ROWNUM rnum " +
+                        "FROM (SELECT NOTIFICATION_ID, " +
+                        "ACTION_TYPE " +
+                        "FROM DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ?) a " +
+                        "WHERE ROWNUM <= ?) " +
+                        "WHERE rnum > ?";
+        try (Connection connection = NotificationManagementDAOFactory.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            preparedStatement.setString(1, username);
+            preparedStatement.setInt(2, offset + limit);
+            preparedStatement.setInt(3, offset);
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                while (rs.next()) {
+                    userActions.add(new UserNotificationAction(rs.getInt("NOTIFICATION_ID"),
+                            rs.getString("ACTION_TYPE")));
+                }
+            }
+        } catch (SQLException e) {
+            String msg = "Error retrieving user actions from Oracle DB";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        }
+        return userActions;
+    }
+
+    @Override
+    public void markNotificationAsRead(int notificationId, String username)
+            throws NotificationManagementException {
+        String query =
+                "UPDATE DM_NOTIFICATION_USER_ACTION " +
+                        "SET ACTION_TYPE = 'READ' " +
+                "WHERE NOTIFICATION_ID = ? " +
+                        "AND USERNAME = ? " +
+                        "AND ACTION_TYPE = 'UNREAD'";
+        try (Connection connection = NotificationManagementDAOFactory.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            preparedStatement.setInt(1, notificationId);
+            preparedStatement.setString(2, username);
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            String msg = "Error updating notification to READ in Oracle DB";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        }
     }
 }

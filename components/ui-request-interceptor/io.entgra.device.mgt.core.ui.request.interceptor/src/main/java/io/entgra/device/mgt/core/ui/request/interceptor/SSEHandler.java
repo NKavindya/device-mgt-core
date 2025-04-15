@@ -23,7 +23,7 @@ import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-@WebServlet(urlPatterns = {"/mySSE"}, asyncSupported = true)
+@WebServlet(urlPatterns = {"/ConnectSSE"}, asyncSupported = true)
 public class SSEHandler extends HttpServlet implements NotificationListener {
 
     // map to store list of AsyncContexts per user
@@ -56,18 +56,16 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
         for (String username : usernames) {
             List<AsyncContext> contexts = userStreams.get(username);
             if (contexts != null) {
-                Iterator<AsyncContext> iterator = contexts.iterator();
-                while (iterator.hasNext()) {
-                    AsyncContext ac = iterator.next();
+                for (AsyncContext ac : new ArrayList<>(contexts)) {
                     try {
                         PrintWriter out = ac.getResponse().getWriter();
                         out.write("data: " + message + "\n\n");
                         out.flush();
                         if (out.checkError()) {
-                            iterator.remove();
+                            contexts.remove(ac);
                         }
                     } catch (IOException e) {
-                        iterator.remove();
+                        contexts.remove(ac);
                         e.printStackTrace();
                     }
                 }
@@ -105,7 +103,7 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
         });
         try {
             PrintWriter out = ac.getResponse().getWriter();
-            out.write("data: Connected to SSE\n\n");
+            out.write("data: You’re now connected to the real-time notification service.\n\n");
             out.flush();
         } catch (IOException e) {
             removeContext(ac);

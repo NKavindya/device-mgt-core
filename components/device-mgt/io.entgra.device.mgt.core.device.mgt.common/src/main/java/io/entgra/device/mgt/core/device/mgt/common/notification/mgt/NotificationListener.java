@@ -21,6 +21,20 @@ package io.entgra.device.mgt.core.device.mgt.common.notification.mgt;
 
 import java.util.List;
 
+/**
+ * A listener interface for receiving notification messages.
+ * Implementations of this interface can be registered to receive
+ * notifications targeted at specific users.
+ * When a message is published via the notification system,
+ * the {@code onMessage} method will be called with the message content
+ * and a list of usernames to whom the message is intended.
+ */
 public interface NotificationListener {
+
+
+    /**
+     * @param message   the notification message content
+     * @param usernames a list of usernames the message is intended for
+     */
     void onMessage(String message, List<String> usernames);
 }
