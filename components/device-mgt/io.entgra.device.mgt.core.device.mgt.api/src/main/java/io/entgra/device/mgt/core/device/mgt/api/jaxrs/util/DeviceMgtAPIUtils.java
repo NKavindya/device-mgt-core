@@ -35,6 +35,30 @@ import io.entgra.device.mgt.core.device.mgt.common.DeviceIdentifier;
 import io.entgra.device.mgt.core.device.mgt.common.EnrolmentInfo;
 import io.entgra.device.mgt.core.device.mgt.common.MonitoringOperation;
 import io.entgra.device.mgt.core.device.mgt.common.OperationMonitoringTaskConfig;
+import io.entgra.device.mgt.core.device.mgt.common.authorization.GroupAccessAuthorizationService;
+import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.DeviceStatusManagementService;
+import io.entgra.device.mgt.core.device.mgt.core.permission.mgt.PermissionManagerServiceImpl;
+import io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperations;
+import io.entgra.device.mgt.core.device.mgt.core.service.TagManagementProviderService;
+import io.entgra.device.mgt.core.tenant.mgt.common.spi.TenantManagerAdminService;
+import org.apache.axis2.AxisFault;
+import org.apache.axis2.client.Options;
+import org.apache.axis2.java.security.SSLProtocolSocketFactory;
+import org.apache.axis2.transport.http.HTTPConstants;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.protocol.Protocol;
+import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.analytics.api.AnalyticsDataAPI;
+import org.wso2.carbon.analytics.stream.persistence.stub.EventStreamPersistenceAdminServiceStub;
+import org.wso2.carbon.base.ServerConfiguration;
+import org.wso2.carbon.context.CarbonContext;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.core.util.Utils;
+import io.entgra.device.mgt.core.device.mgt.common.*;
 import io.entgra.device.mgt.core.device.mgt.common.authorization.DeviceAccessAuthorizationException;
 import io.entgra.device.mgt.core.device.mgt.common.authorization.DeviceAccessAuthorizationService;
 import io.entgra.device.mgt.core.device.mgt.common.authorization.GroupAccessAuthorizationService;
@@ -183,6 +207,7 @@ public class DeviceMgtAPIUtils {
     private static volatile TenantManagerAdminService tenantManagerAdminService;
     private static volatile TagManagementProviderService tagManagementService;
     private static volatile DeviceTypeEventManagementProviderService deviceTypeEventManagementProviderService;
+    private static volatile DeviceFeatureOperations deviceFeatureOperations;
 
     static {
         String keyStorePassword = ServerConfiguration.getInstance().getFirstProperty("Security.KeyStore.Password");
@@ -1389,5 +1414,27 @@ public class DeviceMgtAPIUtils {
             }
         }
         return tenantManagerAdminService;
+    }
+
+    /**
+     * Initializing and accessing method for DeviceFeatureOperations.
+     *
+     * @return DeviceFeatureOperations instance
+     * @throws IllegalStateException if DeviceFeatureOperations cannot be initialized
+     */
+    public static DeviceFeatureOperations getDeviceFeatureOperations() {
+        if (deviceFeatureOperations == null) {
+            synchronized (DeviceMgtAPIUtils.class) {
+                if (deviceFeatureOperations == null) {
+                    PrivilegedCarbonContext ctx = PrivilegedCarbonContext.getThreadLocalCarbonContext();
+                    deviceFeatureOperations = (DeviceFeatureOperations) ctx.getOSGiService(
+                            DeviceFeatureOperations.class, null);
+                    if (deviceFeatureOperations == null) {
+                        throw new IllegalStateException("DeviceStatusManagementService Management service not initialized.");
+                    }
+                }
+            }
+        }
+        return deviceFeatureOperations;
     }
 }

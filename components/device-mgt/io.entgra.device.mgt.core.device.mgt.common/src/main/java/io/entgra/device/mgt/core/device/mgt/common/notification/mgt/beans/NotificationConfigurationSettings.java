@@ -20,6 +20,7 @@ package io.entgra.device.mgt.core.device.mgt.common.notification.mgt.beans;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Duration;
+import java.util.List;
 
 public class NotificationConfigurationSettings {
     @JsonProperty("criticalCriteriaOnly")
@@ -36,6 +37,12 @@ public class NotificationConfigurationSettings {
 
     @JsonProperty("archiveAfter")
     private String archiveAfter;
+
+    @JsonProperty("deviceTypes")
+    private List<String> deviceTypes;
+
+    @JsonProperty("notificationTriggerPoints")
+    private List<String> notificationTriggerPoints;
 
     public NotificationConfigCriticalCriteria getCriticalCriteriaOnly() {
         return criticalCriteriaOnly;
@@ -75,5 +82,21 @@ public class NotificationConfigurationSettings {
 
     public void setArchiveAfter(String archiveAfter) {
         this.archiveAfter = archiveAfter;
+    }
+
+    public List<String> getDeviceTypes() {
+        return deviceTypes;
+    }
+
+    public void setDeviceTypes(List<String> deviceTypes) {
+        this.deviceTypes = deviceTypes;
+    }
+
+    public List<String> getNotificationTriggerPoints() {
+        return notificationTriggerPoints;
+    }
+
+    public void setNotificationTriggerPoints(List<String> notificationTriggerPoints) {
+        this.notificationTriggerPoints = notificationTriggerPoints;
     }
 }

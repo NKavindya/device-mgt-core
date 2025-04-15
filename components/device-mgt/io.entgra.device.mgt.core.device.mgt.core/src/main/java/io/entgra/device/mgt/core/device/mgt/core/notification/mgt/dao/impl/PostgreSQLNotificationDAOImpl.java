@@ -170,4 +170,32 @@ public class PostgreSQLNotificationDAOImpl extends AbstractNotificationDAOImpl {
             throw new NotificationManagementException("Error inserting notification user actions", e);
         }
     }
+
+    @Override
+    public int getUnreadNotificationCountForUser(String username) throws NotificationManagementException {
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        int count = 0;
+        String sql =
+                "SELECT COUNT(*) " +
+                        "AS UNREAD_COUNT " +
+                        "FROM DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ? " +
+                        "AND ACTION_TYPE = 'UNREAD'";
+        try {
+            Connection conn = NotificationManagementDAOFactory.getConnection();
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, username);
+            rs = stmt.executeQuery();
+            if (rs.next()) {
+                count = rs.getInt("UNREAD_COUNT");
+            }
+        } catch (SQLException e) {
+            throw new NotificationManagementException("PostgreSQL DAO: Error retrieving unread notification count for user: "
+                    + username, e);
+        } finally {
+            NotificationDAOUtil.cleanupResources(stmt, rs);
+        }
+        return count;
+    }
 }

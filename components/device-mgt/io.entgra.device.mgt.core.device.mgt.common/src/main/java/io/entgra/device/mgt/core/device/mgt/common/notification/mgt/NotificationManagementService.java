@@ -114,9 +114,11 @@ public interface NotificationManagementService {
      * @param operation  The operation for which the notification needs to be handled.
      * @param enrolments A map of enrolment IDs to devices involved in the operation.
      * @param tenantId   The tenant ID for which the notification is being processed.
+     * @param notificationTriggerPoint Determines when the notification should be triggered. Either: immediately after
+     *  the operation is triggered or after syncing with the device to determine success/failure
      */
-    void handleOperationNotificationIfApplicable(Operation operation, Map<Integer, Device> enrolments, int tenantId)
-            throws NotificationManagementException;
+    void handleOperationNotificationIfApplicable(Operation operation, Map<Integer, Device> enrolments, int tenantId,
+                                                 String notificationTriggerPoint) throws NotificationManagementException;
 
     /**
      * Handles task-based notifications if a notification configuration exists for the given task code.

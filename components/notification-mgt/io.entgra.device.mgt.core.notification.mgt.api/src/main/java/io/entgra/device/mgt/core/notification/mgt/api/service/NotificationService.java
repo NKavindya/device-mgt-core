@@ -26,6 +26,7 @@ import io.swagger.annotations.*;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -129,26 +130,109 @@ public interface NotificationService {
             @QueryParam("limit")
             int limit);
 
-//    @POST
-//    @Path("/create")
-//    @ApiOperation(
-//            produces = MediaType.APPLICATION_JSON,
-//            httpMethod = HttpMethod.POST,
-//            value = "Create a new notification",
-//            notes = "Creates and stores a new notification in the system",
-//            tags = {"notifications", "device_management"},
-//            extensions = {
-//                    @Extension(properties = {
-//                            @ExtensionProperty(name = SCOPE, value = "dm:notifications:create")
-//                    })
-//            }
-//    )
-//    @ApiResponses(
-//            value = {
-//                    @ApiResponse(code = 201, message = "Created. Successfully created notification", response = Notification.class),
-//                    @ApiResponse(code = 500, message = "Internal Server Error. Error occurred while creating notification", response = Response.class)
-//            }
-//    )
-//    Response createNotification(Notification notification);
+    @GET
+    @Path("/user")
+    @ApiOperation(
+            produces = MediaType.APPLICATION_JSON,
+            httpMethod = "GET",
+            value = "Get Notifications With User Read/Unread Status",
+            notes = "Retrieve notifications for a specific user with their read/unread status.",
+            tags = "Notification Management",
+            extensions = {
+                    @Extension(properties = {
+                            @ExtensionProperty(name = SCOPE, value = "dm:notifications:view")
+                    })
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            code = 200,
+                            message = "OK. Successfully retrieved notifications with status.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 400,
+                            message = "Bad Request. Invalid request or missing parameters.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 404,
+                            message = "Not Found. No notifications found for the user.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 500,
+                            message = "Internal Server Error. An error occurred while retrieving notifications.",
+                            response = Response.class)
+            }
+    )
+    Response getUserNotificationsWithStatus(
+            @ApiParam(
+                    name = "username",
+                    value = "Username to retrieve notifications for",
+                    required = true)
+            @QueryParam("username")
+            String username,
+            @ApiParam(
+                    name = "status",
+                    value = "Notification status to filter by (e.g., UNREAD, READ)",
+                    required = false)
+            @QueryParam("status")
+            String status,
+            @ApiParam(
+                    name = "limit",
+                    value = "Maximum number of results to return",
+                    required = false,
+                    defaultValue = "10")
+            @QueryParam("limit")
+            int limit,
+            @ApiParam(
+                    name = "offset",
+                    value = "Starting index for result pagination",
+                    required = false,
+                    defaultValue = "0")
+            @QueryParam("offset")
+            int offset);
 
+    @PUT
+    @Path("/mark-read")
+    @ApiOperation(
+            produces = MediaType.APPLICATION_JSON,
+            httpMethod = "PUT",
+            value = "Mark Notification as Read",
+            notes = "Mark a specific notification as read for a given user.",
+            tags = "Notification Management",
+            extensions = {
+                    @Extension(properties = {
+                            @ExtensionProperty(name = SCOPE, value = "dm:notif:mark-checked")
+                    })
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            code = 200,
+                            message = "OK. Successfully marked notification as read.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 400,
+                            message = "Bad Request. Missing or invalid parameters.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 500,
+                            message = "Internal Server Error. Failed to mark notification as read.",
+                            response = Response.class)
+            }
+    )
+    Response markNotificationAsRead(
+            @ApiParam(
+                    name = "notificationId",
+                    value = "Notification ID to mark as read",
+                    required = true)
+            @QueryParam("notificationId")
+            int notificationId,
+            @ApiParam(
+                    name = "username",
+                    value = "Username for whom the notification should be marked as read",
+                    required = true)
+            @QueryParam("username")
+            String username);
 }

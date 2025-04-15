@@ -21,14 +21,23 @@ package io.entgra.device.mgt.core.notification.mgt.common.dto;
 
 import java.sql.Timestamp;
 
-public class Notification {
+public class UserNotificationPayload {
     private int notificationId;
-    private int notificationConfigId;
-    private int tenantId;
     private String description;
     private String type;
-    private int priority;
+    private String actionType;
+    private String username;
     private Timestamp createdTimestamp;
+
+    public UserNotificationPayload(int notificationId, String description, String type,
+                                   String actionType, String username, Timestamp createdTimestamp ) {
+        this.notificationId = notificationId;
+        this.description = description;
+        this.type = type;
+        this.actionType = actionType;
+        this.username = username;
+        this.createdTimestamp = createdTimestamp;
+    }
 
     public int getNotificationId() {
         return notificationId;
@@ -36,22 +45,6 @@ public class Notification {
 
     public void setNotificationId(int notificationId) {
         this.notificationId = notificationId;
-    }
-
-    public int getNotificationConfigId() {
-        return notificationConfigId;
-    }
-
-    public void setNotificationConfigId(int notificationConfigId) {
-        this.notificationConfigId = notificationConfigId;
-    }
-
-    public int getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(int tenantId) {
-        this.tenantId = tenantId;
     }
 
     public String getDescription() {
@@ -62,12 +55,28 @@ public class Notification {
         this.description = description;
     }
 
-    public int getPriority() {
-        return priority;
+    public String getType() {
+        return type;
     }
 
-    public void setPriority(int priority) {
-        this.priority = priority;
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getActionType() {
+        return actionType;
+    }
+
+    public void setActionType(String actionType) {
+        this.actionType = actionType;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public Timestamp getCreatedTimestamp() {
@@ -77,13 +86,4 @@ public class Notification {
     public void setCreatedTimestamp(Timestamp createdTimestamp) {
         this.createdTimestamp = createdTimestamp;
     }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
 }
-

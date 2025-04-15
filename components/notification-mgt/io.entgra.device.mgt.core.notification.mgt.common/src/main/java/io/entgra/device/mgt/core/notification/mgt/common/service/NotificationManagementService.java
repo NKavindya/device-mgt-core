@@ -20,6 +20,7 @@
 package io.entgra.device.mgt.core.notification.mgt.common.service;
 
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 
 import java.util.List;
@@ -32,4 +33,43 @@ public interface NotificationManagementService {
      * @throws NotificationManagementException Throws when error occurred while retrieving notifications.
      */
     List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementException;
+
+    /**
+     * Retrieves a list of notifications for a given user along with their read/unread status.
+     * This method performs the following steps:
+     *   Fetches the user's notification actions (e.g., READ, UNREAD) with pagination support.
+     *   Retrieves the corresponding notification details (ID, description, type) using the notification IDs.
+     *   Combines both into a list of {@link UserNotificationPayload} objects.
+     * @param username The username of the user whose notifications are to be retrieved.
+     * @param limit    The maximum number of notifications to return.
+     * @param offset   The offset from which to start retrieving notifications (for pagination).
+     * @return A list of {@link UserNotificationPayload} objects containing notification metadata and action status.
+     * @throws NotificationManagementException If an error occurs while accessing the data store.
+     */
+    List<UserNotificationPayload> getUserNotificationsWithStatus(String username, int limit, int offset, String status)
+            throws NotificationManagementException;
+
+    /**
+     * Marks a specific notification as READ for the given user.
+     * This method updates the user’s notification action in the database from 'UNREAD' to 'READ' for
+     * the specified notification ID. If the notification has already been marked as READ,
+     * the method will have no effect.
+     * @param notificationId The ID of the notification to mark as read.
+     * @param username       The username of the user marking the notification as read.
+     * @throws NotificationManagementException If there is an error while updating the database.
+     */
+    void markNotificationAsReadForUser(int notificationId, String username)
+            throws NotificationManagementException;
+
+    /**
+     * Retrieves the total number of user notification actions for a specific user,
+     * optionally filtered by notification status.
+     *
+     * @param username the username to filter notification actions by (e.g., "admin").
+     * @param status   (optional) the status of the notification action to filter by
+     *                 (e.g., "READ", "UNREAD"). If null or empty, all statuses are counted.
+     * @return the total count of notification actions for the given user and status.
+     * @throws NotificationManagementException if an error occurs while accessing the database.
+     */
+    int getUserNotificationCount(String username, String status) throws NotificationManagementException;
 }
