@@ -78,11 +78,10 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
         if (notificationIds == null || notificationIds.isEmpty()) {
             return notifications;
         }
-        StringBuilder query = new StringBuilder
-                ("SELECT NOTIFICATION_ID," +
-                        " DESCRIPTION, TYPE " +
-                "FROM DM_NOTIFICATION " +
-                "WHERE TENANT_ID = ? " +
+        StringBuilder query = new StringBuilder(
+                "SELECT NOTIFICATION_ID, DESCRIPTION, TYPE " +
+                        "FROM DM_NOTIFICATION " +
+                        "WHERE TENANT_ID = ? " +
                         "AND NOTIFICATION_ID IN (");
         for (int i = 0; i < notificationIds.size(); i++) {
             query.append("?");
@@ -90,7 +89,13 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
                 query.append(",");
             }
         }
-        query.append(") ORDER BY CREATED_TIMESTAMP DESC LIMIT ? OFFSET ?");
+        query.append(") ORDER BY CREATED_TIMESTAMP DESC ");
+        if (limit > 0) {
+            query.append("LIMIT ? ");
+        }
+        if (offset > 0) {
+            query.append("OFFSET ? ");
+        }
         try {
             Connection connection = NotificationManagementDAOFactory.getConnection();
             try (PreparedStatement preparedStatement = connection.prepareStatement(query.toString())) {
@@ -100,8 +105,12 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
                 for (Integer id : notificationIds) {
                     preparedStatement.setInt(paramIndex++, id);
                 }
-                preparedStatement.setInt(paramIndex++, limit);
-                preparedStatement.setInt(paramIndex, offset);
+                if (limit > 0) {
+                    preparedStatement.setInt(paramIndex++, limit);
+                }
+                if (offset > 0) {
+                    preparedStatement.setInt(paramIndex++, offset);
+                }
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
                     while (resultSet.next()) {
                         Notification notification = new Notification();
@@ -121,33 +130,76 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
     }
 
     @Override
-    public List<UserNotificationAction> getNotificationActionsByUser(String username, int limit, int offset)
-            throws NotificationManagementException {
-        List<UserNotificationAction> userActions = new ArrayList<>();
-        String query = "SELECT NOTIFICATION_ID, ACTION_TYPE " +
+    public List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementException {
+        List<UserNotificationAction> userNotificationActions = new ArrayList<>();
+        String query = "SELECT NOTIFICATION_ID, ACTION_ID, ACTION_TYPE, USERNAME, ACTION_TIMESTAMP " +
                 "FROM DM_NOTIFICATION_USER_ACTION " +
-                "WHERE USERNAME = ? " +
-                "LIMIT ? OFFSET ?";
+                "ORDER BY ACTION_TIMESTAMP DESC";
         try {
             Connection connection = NotificationManagementDAOFactory.getConnection();
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                preparedStatement.setString(1, username);
-                preparedStatement.setInt(2, limit);
-                preparedStatement.setInt(3, offset);
-                try (ResultSet rs = preparedStatement.executeQuery()) {
-                    while (rs.next()) {
-                        int notificationId = rs.getInt("NOTIFICATION_ID");
-                        String actionType = rs.getString("ACTION_TYPE");
-                        userActions.add(new UserNotificationAction(notificationId, actionType));
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        UserNotificationAction userNotificationAction = new UserNotificationAction();
+                        userNotificationAction.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
+                        userNotificationAction.setActionId(resultSet.getInt("ACTION_ID"));
+                        userNotificationAction.setActionType(resultSet.getString("ACTION_TYPE"));
+                        userNotificationAction.setUsername(resultSet.getString("USERNAME"));
+                        userNotificationAction.setActionTimestamp(resultSet.getTimestamp("ACTION_TIMESTAMP"));
+                        userNotificationActions.add(userNotificationAction);
                     }
                 }
             }
         } catch (SQLException e) {
-            String msg = "Error occurred while retrieving user actions for username: " + username;
+            String msg = "Error occurred while retrieving all notification user actions.";
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         }
-        return userActions;
+        return userNotificationActions;
+    }
+
+    @Override
+    public List<UserNotificationAction> getNotificationActionsByUser(String username, int limit, int offset)
+            throws NotificationManagementException {
+        List<UserNotificationAction> userNotificationActions = new ArrayList<>();
+        StringBuilder queryBuilder = new StringBuilder(
+                "SELECT NOTIFICATION_ID, ACTION_ID, ACTION_TYPE " +
+                        "FROM DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ? " +
+                        "ORDER BY ACTION_TIMESTAMP DESC ");
+        if (limit > 0) {
+            queryBuilder.append("LIMIT ?");
+        }
+        if (offset > 0) {
+            queryBuilder.append("OFFSET ?");
+        }
+        try {
+            Connection connection = NotificationManagementDAOFactory.getConnection();
+            try (PreparedStatement preparedStatement = connection.prepareStatement(queryBuilder.toString())) {
+                int paramIndex = 1;
+                preparedStatement.setString(paramIndex++, username);
+                if (limit > 0) {
+                    preparedStatement.setInt(paramIndex++, limit);
+                }
+                if (offset > 0) {
+                    preparedStatement.setInt(paramIndex++, offset);
+                }
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        UserNotificationAction userNotificationAction = new UserNotificationAction();
+                        userNotificationAction.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
+                        userNotificationAction.setActionId(resultSet.getInt("ACTION_ID"));
+                        userNotificationAction.setActionType(resultSet.getString("ACTION_TYPE"));
+                        userNotificationActions.add(userNotificationAction);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            String msg = "Error occurred while retrieving notification actions for user: " + username;
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        }
+        return userNotificationActions;
     }
 
     @Override

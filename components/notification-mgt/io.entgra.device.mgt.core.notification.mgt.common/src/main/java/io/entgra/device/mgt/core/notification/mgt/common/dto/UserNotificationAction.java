@@ -19,20 +19,52 @@
 
 package io.entgra.device.mgt.core.notification.mgt.common.dto;
 
+import java.sql.Timestamp;
+
 public class UserNotificationAction {
     private int notificationId;
     private String actionType;
-
-    public UserNotificationAction(int notificationId, String actionType) {
-        this.notificationId = notificationId;
-        this.actionType = actionType;
-    }
+    private int actionId;
+    private String username;
+    private Timestamp actionTimestamp;
 
     public int getNotificationId() {
         return notificationId;
     }
 
+    public void setNotificationId(int notificationId) {
+        this.notificationId = notificationId;
+    }
+
     public String getActionType() {
         return actionType;
+    }
+
+    public void setActionType(String actionType) {
+        this.actionType = actionType;
+    }
+
+    public int getActionId() {
+        return actionId;
+    }
+
+    public void setActionId(int actionId) {
+        this.actionId = actionId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public Timestamp getActionTimestamp() {
+        return actionTimestamp;
+    }
+
+    public void setActionTimestamp(Timestamp actionTimestamp) {
+        this.actionTimestamp = actionTimestamp;
     }
 }
