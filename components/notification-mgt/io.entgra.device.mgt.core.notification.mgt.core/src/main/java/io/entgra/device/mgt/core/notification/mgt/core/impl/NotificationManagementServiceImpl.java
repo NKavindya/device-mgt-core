@@ -19,6 +19,7 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.impl;
 
+import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
@@ -26,10 +27,10 @@ import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
-import io.entgra.device.mgt.core.notification.mgt.core.exception.NotificationManagementDAOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
         try {
             NotificationManagementDAOFactory.openConnection();
             return notificationDAO.getLatestNotifications(offset, limit);
-        } catch (NotificationManagementDAOException e) {
+        } catch (SQLException e) {
             String msg = "Error occurred while initiating transaction";
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
@@ -77,7 +78,9 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             // map actions to notifications
             Map<Integer, String> actionTypeMap = userActions.stream()
                     .collect(Collectors.toMap(UserNotificationAction::getNotificationId,
-                            UserNotificationAction::getActionType));
+                            UserNotificationAction::getActionType,
+                            (existing, replacement) -> existing
+                    ));
             for (Notification notification : notifications) {
                 String actionType = actionTypeMap.get(notification.getNotificationId());
                 result.add(new UserNotificationPayload(
@@ -88,7 +91,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                         username
                 ));
             }
-        } catch (NotificationManagementDAOException e) {
+        } catch (SQLException e) {
             String msg = "Error occurred while retrieving user notifications with status";
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
@@ -102,9 +105,10 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     public void markNotificationAsReadForUser(int notificationId, String username)
             throws NotificationManagementException {
         try {
-            NotificationManagementDAOFactory.openConnection();
+            NotificationManagementDAOFactory.beginTransaction();
             notificationDAO.markNotificationAsRead(notificationId, username);
-        } catch (NotificationManagementDAOException e) {
+            NotificationManagementDAOFactory.commitTransaction();
+        } catch (TransactionManagementException e) {
             String msg = "Error occurred while marking notification as read for user: " + username;
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);

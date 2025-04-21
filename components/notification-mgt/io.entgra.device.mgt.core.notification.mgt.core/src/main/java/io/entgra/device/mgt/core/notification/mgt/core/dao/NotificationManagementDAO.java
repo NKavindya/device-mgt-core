@@ -37,6 +37,7 @@ public interface NotificationManagementDAO {
      */
     List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementException;
 
+    List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementException;
     /**
      * Retrieves a paginated list of notifications from the database based on a given list of notification IDs.
      * The results are filtered by the current tenant ID and ordered by creation timestamp in descending order

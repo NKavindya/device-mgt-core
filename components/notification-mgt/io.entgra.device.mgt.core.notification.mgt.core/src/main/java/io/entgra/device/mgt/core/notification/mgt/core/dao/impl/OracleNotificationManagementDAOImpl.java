@@ -129,33 +129,37 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
     @Override
     public List<UserNotificationAction> getNotificationActionsByUser(String username, int limit, int offset)
             throws NotificationManagementException {
-        List<UserNotificationAction> userActions = new ArrayList<>();
-        String query =
-                "SELECT * " +
-                        "FROM (SELECT a.*, ROWNUM rnum " +
-                        "FROM (SELECT NOTIFICATION_ID, " +
-                        "ACTION_TYPE " +
-                        "FROM DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE USERNAME = ?) a " +
-                        "WHERE ROWNUM <= ?) " +
-                        "WHERE rnum > ?";
-        try (Connection connection = NotificationManagementDAOFactory.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-            preparedStatement.setString(1, username);
-            preparedStatement.setInt(2, offset + limit);
-            preparedStatement.setInt(3, offset);
-            try (ResultSet rs = preparedStatement.executeQuery()) {
-                while (rs.next()) {
-                    userActions.add(new UserNotificationAction(rs.getInt("NOTIFICATION_ID"),
-                            rs.getString("ACTION_TYPE")));
+        List<UserNotificationAction> actions = new ArrayList<>();
+        String query = "SELECT * FROM (" +
+                "    SELECT a.*, ROWNUM rnum FROM (" +
+                "        SELECT NOTIFICATION_ID, ACTION_ID, ACTION_TYPE " +
+                "        FROM DM_NOTIFICATION_USER_ACTION " +
+                "        WHERE USERNAME = ? " +
+                "        ORDER BY ACTION_TIMESTAMP DESC" +
+                "    ) a WHERE ROWNUM <= ?" +
+                ") WHERE rnum > ?";
+        try {
+            Connection connection = NotificationManagementDAOFactory.getConnection();
+            try (PreparedStatement ps = connection.prepareStatement(query)) {
+                ps.setString(1, username);
+                ps.setInt(2, offset + limit);
+                ps.setInt(3, offset);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        UserNotificationAction action = new UserNotificationAction();
+                        action.setNotificationId(rs.getInt("NOTIFICATION_ID"));
+                        action.setActionId(rs.getInt("ACTION_ID"));
+                        action.setActionType(rs.getString("ACTION_TYPE"));
+                        actions.add(action);
+                    }
                 }
             }
         } catch (SQLException e) {
-            String msg = "Error retrieving user actions from Oracle DB";
+            String msg = "Error fetching user actions from Oracle DB for user: " + username;
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         }
-        return userActions;
+        return actions;
     }
 
     @Override
@@ -177,5 +181,34 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         }
+    }
+
+    @Override
+    public List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementException {
+        List<UserNotificationAction> userNotificationActions = new ArrayList<>();
+        String query = "SELECT NOTIFICATION_ID, ACTION_ID, ACTION_TYPE, USERNAME, ACTION_TIMESTAMP " +
+                "FROM DM_NOTIFICATION_USER_ACTION " +
+                "ORDER BY ACTION_TIMESTAMP DESC";
+        try {
+            Connection connection = NotificationManagementDAOFactory.getConnection();
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        UserNotificationAction userNotificationAction = new UserNotificationAction();
+                        userNotificationAction.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
+                        userNotificationAction.setActionId(resultSet.getInt("ACTION_ID"));
+                        userNotificationAction.setActionType(resultSet.getString("ACTION_TYPE"));
+                        userNotificationAction.setUsername(resultSet.getString("USERNAME"));
+                        userNotificationAction.setActionTimestamp(resultSet.getTimestamp("ACTION_TIMESTAMP"));
+                        userNotificationActions.add(userNotificationAction);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            String msg = "Error occurred while retrieving all notification user actions.";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        }
+        return userNotificationActions;
     }
 }
