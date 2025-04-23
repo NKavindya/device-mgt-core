@@ -18,11 +18,16 @@
 
 package io.entgra.device.mgt.core.ui.request.interceptor;
 
+import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationEventBroker;
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationListener;
+import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
+import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationDAO;
+import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationManagementDAOFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.AsyncContext;
@@ -43,6 +48,7 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
 
     // map to store list of AsyncContexts per user
     private static final Map<String, List<AsyncContext>> userStreams = new ConcurrentHashMap<>();
+    private final NotificationDAO notificationDAO = NotificationManagementDAOFactory.getNotificationDAO();
 
     @Override
     public void init(ServletConfig config) {
@@ -103,7 +109,24 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
         });
         try {
             PrintWriter out = ac.getResponse().getWriter();
-            out.write("data: You’re now connected to the real-time notification service.\n\n");
+            if (username != null) {
+                try {
+                    NotificationManagementDAOFactory.openConnection();
+                    int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                    String initialPayload = String.format
+                            ("{\"message\":\"Connected to notification service.\",\"unreadCount\":%d}", count);
+                    out.write("data: " + initialPayload + "\n\n");
+                } catch (NotificationManagementException e) {
+                    e.printStackTrace();
+                    out.write("data: {\"message\":\"Error fetching unread count\",\"unreadCount\":0}\n\n");
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    NotificationManagementDAOFactory.closeConnection();
+                }
+            } else {
+                out.write("data: {\"message\":\"No username specified\",\"unreadCount\":0}\n\n");
+            }
             out.flush();
         } catch (IOException e) {
             removeContext(ac);

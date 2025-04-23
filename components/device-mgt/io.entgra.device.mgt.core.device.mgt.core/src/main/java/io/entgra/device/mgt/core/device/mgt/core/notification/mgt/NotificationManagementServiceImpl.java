@@ -43,6 +43,7 @@ import org.wso2.carbon.user.api.UserStoreException;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -273,9 +274,13 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                 List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(config.getRecipients(), tenantId);
                 if (!usernames.isEmpty()) {
                     notificationDAO.insertNotificationUserActions(notificationId, usernames);
+                    for (String username : usernames) {
+                        int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                        String payload = String.format("{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
+                        NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+                    }
                 }
                 NotificationManagementDAOFactory.commitTransaction();
-                NotificationEventBroker.pushMessage(description, usernames);
             }
         } catch (NotificationManagementException e) {
             log.error("Failed to handle notification for operation " + operation.getCode(), e);
@@ -302,9 +307,13 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                 List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(config.getRecipients(), tenantId);
                 if (!usernames.isEmpty()) {
                     notificationDAO.insertNotificationUserActions(notificationId, usernames);
+                    for (String username : usernames) {
+                        int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                        String payload = String.format("{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
+                        NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+                    }
                 }
                 NotificationManagementDAOFactory.commitTransaction();
-                NotificationEventBroker.pushMessage(description, usernames);
             }
         } catch (NotificationManagementException e) {
             log.error("Failed to handle task notification for task " + taskCode, e);

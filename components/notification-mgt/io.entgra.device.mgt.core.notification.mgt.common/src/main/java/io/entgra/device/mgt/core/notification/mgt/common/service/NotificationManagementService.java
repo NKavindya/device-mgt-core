@@ -46,7 +46,7 @@ public interface NotificationManagementService {
      * @return A list of {@link UserNotificationPayload} objects containing notification metadata and action status.
      * @throws NotificationManagementException If an error occurs while accessing the data store.
      */
-    List<UserNotificationPayload> getUserNotificationsWithStatus(String username, int limit, int offset)
+    List<UserNotificationPayload> getUserNotificationsWithStatus(String username, int limit, int offset, String status)
             throws NotificationManagementException;
 
     /**

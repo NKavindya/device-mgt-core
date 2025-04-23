@@ -66,13 +66,14 @@ public class NotificationServiceImpl implements NotificationService {
     @GET
     @Path("/user")
     public Response getUserNotificationsWithStatus(@QueryParam("username") String username,
+                                                   @QueryParam("status") String status,
                                                    @QueryParam("limit") int limit,
                                                    @QueryParam("offset") int offset) {
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
             List<UserNotificationPayload> payloads =
-                    notificationService.getUserNotificationsWithStatus(username, limit, offset);
+                    notificationService.getUserNotificationsWithStatus(username, limit, offset, status);
             if (payloads == null || payloads.isEmpty()) {
                 return Response.status(HttpStatus.SC_NOT_FOUND)
                         .entity("No user notifications found for user: " + username)

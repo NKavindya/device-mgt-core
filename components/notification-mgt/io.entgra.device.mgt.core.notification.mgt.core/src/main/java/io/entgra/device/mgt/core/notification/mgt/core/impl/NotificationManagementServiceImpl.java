@@ -59,13 +59,13 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
-    public List<UserNotificationPayload> getUserNotificationsWithStatus(String username, int limit, int offset)
-            throws NotificationManagementException {
+    public List<UserNotificationPayload> getUserNotificationsWithStatus(
+            String username, int limit, int offset, String status) throws NotificationManagementException {
         List<UserNotificationPayload> result = new ArrayList<>();
         try {
             NotificationManagementDAOFactory.openConnection();
             List<UserNotificationAction> userActions =
-                    notificationDAO.getNotificationActionsByUser(username, limit, offset);
+                    notificationDAO.getNotificationActionsByUser(username, limit, offset, status);
             if (userActions.isEmpty()) {
                 return result;
             }
