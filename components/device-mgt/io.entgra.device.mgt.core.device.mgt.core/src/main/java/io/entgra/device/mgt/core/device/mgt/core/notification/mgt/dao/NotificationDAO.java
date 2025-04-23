@@ -123,4 +123,13 @@ public interface NotificationDAO {
 	 */
 	void insertNotificationUserActions(int notificationId, List<String> usernames) throws NotificationManagementException;
 
+	/**
+	 * Retrieves the count of unread notifications for a specific user.
+	 *
+	 * @param username The username for which to retrieve the count of unread notifications.
+	 * @return The number of unread notifications for the given user.
+	 * @throws NotificationManagementException if a database access error occurs
+	 *         or the query execution fails.
+	 */
+	int getUnreadNotificationCountForUser(String username) throws NotificationManagementException;
 }

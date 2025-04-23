@@ -119,20 +119,34 @@ public class SQLServerNotificationManagementDAOImpl implements NotificationManag
     }
 
     @Override
-    public List<UserNotificationAction> getNotificationActionsByUser(String username, int limit, int offset)
-            throws NotificationManagementException {
+    public List<UserNotificationAction> getNotificationActionsByUser(
+            String username, int limit, int offset, String status) throws NotificationManagementException {
         List<UserNotificationAction> actions = new ArrayList<>();
-        String query = "SELECT NOTIFICATION_ID, ACTION_ID, ACTION_TYPE " +
-                "FROM DM_NOTIFICATION_USER_ACTION " +
-                "WHERE USERNAME = ? " +
-                "ORDER BY ACTION_TIMESTAMP DESC " +
-                "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        StringBuilder query = new StringBuilder(
+                "SELECT NOTIFICATION_ID, " +
+                        "ACTION_ID, " +
+                        "ACTION_TYPE " +
+                        "FROM DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ? ");
+        if (status != null && !status.isEmpty()) {
+            query.append("AND ACTION_TYPE = ? ");
+        }
+        query.append("ORDER BY ACTION_TIMESTAMP DESC ");
+        if (limit > 0) {
+            query.append("OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        }
         try {
             Connection connection = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement ps = connection.prepareStatement(query)) {
-                ps.setString(1, username);
-                ps.setInt(2, offset);
-                ps.setInt(3, limit);
+            try (PreparedStatement ps = connection.prepareStatement(query.toString())) {
+                int index = 1;
+                ps.setString(index++, username);
+                if (status != null && !status.isEmpty()) {
+                    ps.setString(index++, status.toUpperCase());
+                }
+                if (limit > 0) {
+                    ps.setInt(index++, offset);
+                    ps.setInt(index++, limit);
+                }
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         UserNotificationAction action = new UserNotificationAction();

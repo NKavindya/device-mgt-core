@@ -37,7 +37,6 @@ public interface NotificationManagementDAO {
      */
     List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementException;
 
-    List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementException;
     /**
      * Retrieves a paginated list of notifications from the database based on a given list of notification IDs.
      * The results are filtered by the current tenant ID and ordered by creation timestamp in descending order
@@ -61,7 +60,7 @@ public interface NotificationManagementDAO {
      * @return list of NotificationAction entries for the user
      * @throws NotificationManagementException if a DB error occurs
      */
-    List<UserNotificationAction> getNotificationActionsByUser(String username, int limit, int offset)
+    List<UserNotificationAction> getNotificationActionsByUser(String username, int limit, int offset, String status)
             throws NotificationManagementException;
 
     /**
@@ -71,5 +70,7 @@ public interface NotificationManagementDAO {
      * @return a list of pairs containing notification ID and action type
      * @throws NotificationManagementException if a database access error occurs
      */
-    public void markNotificationAsRead(int notificationId, String username) throws NotificationManagementException;
+    void markNotificationAsRead(int notificationId, String username) throws NotificationManagementException;
+
+    List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementException;
 }

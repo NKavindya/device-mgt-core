@@ -172,6 +172,12 @@ public interface NotificationService {
             @QueryParam("username")
             String username,
             @ApiParam(
+                    name = "status",
+                    value = "Notification status to filter by (e.g., UNREAD, READ)",
+                    required = false)
+            @QueryParam("status")
+            String status,
+            @ApiParam(
                     name = "limit",
                     value = "Maximum number of results to return",
                     required = false,
