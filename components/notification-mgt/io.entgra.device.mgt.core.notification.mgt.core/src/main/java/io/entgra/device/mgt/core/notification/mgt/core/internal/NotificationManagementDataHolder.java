@@ -18,7 +18,6 @@
 package io.entgra.device.mgt.core.notification.mgt.core.internal;
 
 import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
-import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationConfigService;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
 
 import org.wso2.carbon.user.core.tenant.TenantManager;

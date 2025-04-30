@@ -19,20 +19,24 @@
 
 package io.entgra.device.mgt.core.notification.mgt.common.dto;
 
+import java.sql.Timestamp;
+
 public class UserNotificationPayload {
     private int notificationId;
     private String description;
     private String type;
     private String actionType;
     private String username;
+    private Timestamp createdTimestamp;
 
     public UserNotificationPayload(int notificationId, String description, String type,
-                                   String actionType, String username) {
+                                   String actionType, String username, Timestamp createdTimestamp ) {
         this.notificationId = notificationId;
         this.description = description;
         this.type = type;
         this.actionType = actionType;
         this.username = username;
+        this.createdTimestamp = createdTimestamp;
     }
 
     public int getNotificationId() {
@@ -73,5 +77,13 @@ public class UserNotificationPayload {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public Timestamp getCreatedTimestamp() {
+        return createdTimestamp;
+    }
+
+    public void setCreatedTimestamp(Timestamp createdTimestamp) {
+        this.createdTimestamp = createdTimestamp;
     }
 }

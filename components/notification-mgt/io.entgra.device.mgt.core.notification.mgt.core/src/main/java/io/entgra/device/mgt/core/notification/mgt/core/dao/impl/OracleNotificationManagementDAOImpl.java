@@ -91,7 +91,7 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
                 "SELECT * " +
                         "FROM (SELECT a.*, ROWNUM rnum " +
                         "FROM (SELECT NOTIFICATION_ID, " +
-                        "DESCRIPTION, TYPE " +
+                        "DESCRIPTION, TYPE, CREATED_TIMESTAMP " +
                         "FROM DM_NOTIFICATION " +
                 "WHERE TENANT_ID = ? " +
                         "AND NOTIFICATION_ID " +
@@ -115,6 +115,7 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
                     notification.setNotificationId(rs.getInt("NOTIFICATION_ID"));
                     notification.setDescription(rs.getString("DESCRIPTION"));
                     notification.setType(rs.getString("TYPE"));
+                    notification.setCreatedTimestamp(rs.getTimestamp("CREATED_TIMESTAMP"));
                     notifications.add(notification);
                 }
             }
