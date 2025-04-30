@@ -28,11 +28,11 @@ public class NotificationConfig {
 
     @ApiModelProperty(name = "configId", value = "The unique ID of the notification configuration.",
             required = true)
-    private int configId;
+    private int id;
 
     @ApiModelProperty(name = "configName", value = "The name of the notification configuration.",
             required = true)
-    private String configName;
+    private String name;
 
     @ApiModelProperty(name = "description", value = "The description of the notification configuration.",
             required = true)
@@ -58,20 +58,20 @@ public class NotificationConfig {
             required = true)
     private NotificationConfigurationSettings notificationSettings;
 
-    public int getConfigId() {
-        return configId;
+    public int getId() {
+        return id;
     }
 
-    public void setConfigId(int configId) {
-        this.configId = configId;
+    public void setId(int id) {
+        this.id = id;
     }
 
-    public String getConfigName() {
-        return configName;
+    public String getName() {
+        return name;
     }
 
-    public void setConfigName(String configName) {
-        this.configName = configName;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getDescription() {

@@ -80,7 +80,9 @@ public class H2NotificationManagementDAOImpl implements NotificationManagementDA
         }
         StringBuilder query = new StringBuilder(
                 "SELECT NOTIFICATION_ID, " +
-                        "DESCRIPTION, TYPE " +
+                        "DESCRIPTION, " +
+                        "TYPE , " +
+                        "CREATED_TIMESTAMP" +
                         "FROM DM_NOTIFICATION " +
                         "WHERE TENANT_ID = ? " +
                         "AND NOTIFICATION_ID IN (");
@@ -107,6 +109,7 @@ public class H2NotificationManagementDAOImpl implements NotificationManagementDA
                     notification.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
                     notification.setDescription(resultSet.getString("DESCRIPTION"));
                     notification.setType(resultSet.getString("TYPE"));
+                    notification.setCreatedTimestamp(resultSet.getTimestamp("CREATED_TIMESTAMP"));
                     notifications.add(notification);
                 }
             }

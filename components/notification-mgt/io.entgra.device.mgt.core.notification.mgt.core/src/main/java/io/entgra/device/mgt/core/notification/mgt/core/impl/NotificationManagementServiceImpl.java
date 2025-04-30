@@ -88,7 +88,8 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                         notification.getDescription(),
                         notification.getType(),
                         actionType,
-                        username
+                        username,
+                        notification.getCreatedTimestamp()
                 ));
             }
         } catch (SQLException e) {

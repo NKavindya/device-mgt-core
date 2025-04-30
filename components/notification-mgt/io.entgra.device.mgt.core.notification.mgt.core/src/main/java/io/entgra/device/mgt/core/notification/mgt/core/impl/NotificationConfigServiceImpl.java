@@ -72,13 +72,13 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             for (NotificationConfig newConfig : newConfigurations.getNotificationConfigurations()) {
                 boolean isDuplicate = false;
                 for (NotificationConfig existingConfig : configurations.getNotificationConfigurations()) {
-                    if (existingConfig.getConfigId() == newConfig.getConfigId()) {
+                    if (existingConfig.getId() == newConfig.getId()) {
                         isDuplicate = true;
                         break;
                     }
                 }
                 if (isDuplicate) {
-                    log.warn("Configuration with ID " + newConfig.getConfigId() + " already exists, skipping");
+                    log.warn("Configuration with ID " + newConfig.getId() + " already exists, skipping");
                 } else {
                     configurations.add(newConfig);
                 }
@@ -119,7 +119,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             }.getType();
             NotificationConfigurationList configurations = gson.fromJson(metaValue, listType);
             boolean isRemoved = configurations.getNotificationConfigurations()
-                    .removeIf(config -> config.getConfigId() == configID);
+                    .removeIf(config -> config.getId() == configID);
             if (!isRemoved) {
                 String message = "No configuration found with config ID: " + configID;
                 log.error(message);
@@ -157,7 +157,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
         if (updatedConfig == null) {
             throw new NotificationConfigurationServiceException("Cannot update null configuration");
         }
-        if (updatedConfig.getConfigId() <= 0) {
+        if (updatedConfig.getId() <= 0) {
             throw new NotificationConfigurationServiceException("Configuration ID must be positive");
         }
         try {
@@ -180,7 +180,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             }
             boolean found = false;
             for (int i = 0; i < configurations.size(); i++) {
-                if (configurations.get(i).getConfigId() == updatedConfig.getConfigId()) {
+                if (configurations.get(i).getId() == updatedConfig.getId()) {
                     configurations.set(i, updatedConfig);
                     found = true;
                     break;
@@ -188,7 +188,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             }
             if (!found) {
                 throw new NotificationConfigurationServiceException(
-                        "Configuration with ID " + updatedConfig.getConfigId() + " not found");
+                        "Configuration with ID " + updatedConfig.getId() + " not found");
             }
             existingMetadata.setMetaValue(gson.toJson(configurations));
             metaDataService.updateMetadata(existingMetadata);
@@ -292,7 +292,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             NotificationConfigurationList configurations = gson.fromJson(metaValue, listType);
             if (configurations != null) {
                 for (NotificationConfig config : configurations.getNotificationConfigurations()) {
-                    if (config.getConfigId() == configID) {
+                    if (config.getId() == configID) {
                         return config;
                     }
                 }

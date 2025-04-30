@@ -263,14 +263,14 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                 String status = (operation.getStatus() != null) ?
                         operation.getStatus().toString() :
                         Operation.Status.PENDING.toString();
-                String description = String.format("The operation %s (%s) for device %s of type %s is %s.",
-                        operation.getCode(), config.getConfigId(),
+                String description = String.format("The operation %s (%s) for device with id %s of type %s is %s.",
+                        operation.getCode(), config.getDescription(),
                         enrolments.values().iterator().next().getId(),
                         enrolments.values().iterator().next().getType(),
                         status);
                 NotificationManagementDAOFactory.beginTransaction();
                 int notificationId = notificationDAO.insertNotification(
-                        tenantId, config.getConfigId(), config.getType(), description);
+                        tenantId, config.getId(), config.getType(), description);
                 List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(config.getRecipients(), tenantId);
                 if (!usernames.isEmpty()) {
                     notificationDAO.insertNotificationUserActions(notificationId, usernames);
@@ -289,8 +289,6 @@ public class NotificationManagementServiceImpl implements NotificationManagement
         } catch (TransactionManagementException e) {
             NotificationManagementDAOFactory.rollbackTransaction();
             throw new NotificationManagementException("Error occurred while adding notification", e);
-        } finally {
-            NotificationManagementDAOFactory.closeConnection();
         }
     }
 
@@ -303,7 +301,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                 String description = String.format(message);
                 NotificationManagementDAOFactory.beginTransaction();
                 int notificationId = notificationDAO.insertNotification(
-                        tenantId, config.getConfigId(), config.getType(), description);
+                        tenantId, config.getId(), config.getType(), description);
                 List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(config.getRecipients(), tenantId);
                 if (!usernames.isEmpty()) {
                     notificationDAO.insertNotificationUserActions(notificationId, usernames);
@@ -323,8 +321,6 @@ public class NotificationManagementServiceImpl implements NotificationManagement
         } catch (TransactionManagementException e) {
             NotificationManagementDAOFactory.rollbackTransaction();
             throw new NotificationManagementException("Error occurred while adding notification", e);
-        } finally {
-            NotificationManagementDAOFactory.closeConnection();
         }
     }
 }
