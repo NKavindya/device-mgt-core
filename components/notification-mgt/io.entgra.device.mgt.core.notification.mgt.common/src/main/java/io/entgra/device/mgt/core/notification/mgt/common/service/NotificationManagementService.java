@@ -60,4 +60,16 @@ public interface NotificationManagementService {
      */
     void markNotificationAsReadForUser(int notificationId, String username)
             throws NotificationManagementException;
+
+    /**
+     * Retrieves the total number of user notification actions for a specific user,
+     * optionally filtered by notification status.
+     *
+     * @param username the username to filter notification actions by (e.g., "admin").
+     * @param status   (optional) the status of the notification action to filter by
+     *                 (e.g., "READ", "UNREAD"). If null or empty, all statuses are counted.
+     * @return the total count of notification actions for the given user and status.
+     * @throws NotificationManagementException if an error occurs while accessing the database.
+     */
+    int getUserNotificationCount(String username, String status) throws NotificationManagementException;
 }

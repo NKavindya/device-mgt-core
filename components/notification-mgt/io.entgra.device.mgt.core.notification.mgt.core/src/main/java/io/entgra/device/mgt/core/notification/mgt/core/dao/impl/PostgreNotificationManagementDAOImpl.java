@@ -19,6 +19,7 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
 
+import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.util.NotificationDAOUtil;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
@@ -72,25 +73,23 @@ public class PostgreNotificationManagementDAOImpl implements NotificationManagem
     }
 
     @Override
-    public List<Notification> getNotificationsByIds(List<Integer> notificationIds, int limit, int offset)
+    public List<Notification> getNotificationsByIds(List<Integer> notificationIds)
             throws NotificationManagementException {
         List<Notification> notifications = new ArrayList<>();
         if (notificationIds == null || notificationIds.isEmpty()) {
             return notifications;
         }
         StringBuilder query = new StringBuilder(
-                "SELECT NOTIFICATION_ID, " +
-                        "DESCRIPTION, TYPE, CREATED_TIMESTAMP " +
+                "SELECT NOTIFICATION_ID, DESCRIPTION, TYPE, CREATED_TIMESTAMP " +
                         "FROM DM_NOTIFICATION " +
-                        "WHERE TENANT_ID = ? " +
-                        "AND NOTIFICATION_ID IN (");
+                        "WHERE TENANT_ID = ? AND NOTIFICATION_ID IN (");
         for (int i = 0; i < notificationIds.size(); i++) {
             query.append("?");
             if (i < notificationIds.size() - 1) {
                 query.append(",");
             }
         }
-        query.append(") ORDER BY CREATED_TIMESTAMP DESC LIMIT ? OFFSET ?");
+        query.append(") ORDER BY CREATED_TIMESTAMP DESC");
         try (Connection connection = NotificationManagementDAOFactory.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(query.toString())) {
             int tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
@@ -99,20 +98,18 @@ public class PostgreNotificationManagementDAOImpl implements NotificationManagem
             for (Integer id : notificationIds) {
                 preparedStatement.setInt(paramIndex++, id);
             }
-            preparedStatement.setInt(paramIndex++, limit);
-            preparedStatement.setInt(paramIndex, offset);
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                while (resultSet.next()) {
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                while (rs.next()) {
                     Notification notification = new Notification();
-                    notification.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
-                    notification.setDescription(resultSet.getString("DESCRIPTION"));
-                    notification.setType(resultSet.getString("TYPE"));
-                    notification.setCreatedTimestamp(resultSet.getTimestamp("CREATED_TIMESTAMP"));
+                    notification.setNotificationId(rs.getInt("NOTIFICATION_ID"));
+                    notification.setDescription(rs.getString("DESCRIPTION"));
+                    notification.setType(rs.getString("TYPE"));
+                    notification.setCreatedTimestamp(rs.getTimestamp("CREATED_TIMESTAMP"));
                     notifications.add(notification);
                 }
             }
         } catch (SQLException e) {
-            String msg = "Error occurred while retrieving notifications by IDs from H2 DB";
+            String msg = "Error occurred while retrieving notifications by IDs from PostgreSQL DB";
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         }
@@ -211,5 +208,59 @@ public class PostgreNotificationManagementDAOImpl implements NotificationManagem
             throw new NotificationManagementException(msg, e);
         }
         return userNotificationActions;
+    }
+
+    @Override
+    public int getNotificationActionsCountByUser(String username, String status)
+            throws NotificationManagementException {
+        StringBuilder query = new StringBuilder(
+                "SELECT COUNT(*) FROM DM_NOTIFICATION_USER_ACTION WHERE USERNAME = ?");
+        if (status != null && !status.isEmpty()) {
+            query.append(" AND ACTION_TYPE = ?");
+        }
+        try (Connection connection = NotificationManagementDAOFactory.getConnection();
+             PreparedStatement ps = connection.prepareStatement(query.toString())) {
+            int paramIndex = 1;
+            ps.setString(paramIndex++, username);
+            if (status != null && !status.isEmpty()) {
+                ps.setString(paramIndex++, status.toUpperCase());
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            throw new NotificationManagementException("PostgreSQL DB error counting user notifications", e);
+        }
+        return 0;
+    }
+
+    @Override
+    public int getUnreadNotificationCountForUser(String username) throws NotificationManagementException {
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        int count = 0;
+        String sql =
+                "SELECT COUNT(*) " +
+                        "AS UNREAD_COUNT " +
+                        "FROM DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ? " +
+                        "AND ACTION_TYPE = 'UNREAD'";
+        try {
+            Connection conn = NotificationManagementDAOFactory.getConnection();
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, username);
+            rs = stmt.executeQuery();
+            if (rs.next()) {
+                count = rs.getInt("UNREAD_COUNT");
+            }
+        } catch (SQLException e) {
+            throw new NotificationManagementException("PostgreSQL DAO: Error retrieving unread notification count for user: "
+                    + username, e);
+        } finally {
+            NotificationDAOUtil.cleanupResources(stmt, rs);
+        }
+        return count;
     }
 }

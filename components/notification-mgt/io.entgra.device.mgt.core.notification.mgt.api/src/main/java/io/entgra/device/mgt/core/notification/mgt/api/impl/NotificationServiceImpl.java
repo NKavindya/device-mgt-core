@@ -22,6 +22,7 @@ package io.entgra.device.mgt.core.notification.mgt.api.impl;
 import io.entgra.device.mgt.core.notification.mgt.api.service.NotificationService;
 import io.entgra.device.mgt.core.notification.mgt.api.util.NotificationManagementApiUtil;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.PaginatedUserNotificationResponse;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
@@ -74,12 +75,15 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             List<UserNotificationPayload> payloads =
                     notificationService.getUserNotificationsWithStatus(username, limit, offset, status);
+            int totalCount = notificationService.getUserNotificationCount(username, status);
             if (payloads == null || payloads.isEmpty()) {
                 return Response.status(HttpStatus.SC_NOT_FOUND)
                         .entity("No user notifications found for user: " + username)
                         .build();
             }
-            return Response.status(HttpStatus.SC_OK).entity(payloads).build();
+            PaginatedUserNotificationResponse response =
+                    new PaginatedUserNotificationResponse(payloads, totalCount);
+            return Response.status(HttpStatus.SC_OK).entity(response).build();
         } catch (NotificationManagementException e) {
             String msg = "Failed to retrieve user notifications with status for user: " + username;
             log.error(msg, e);

@@ -23,12 +23,22 @@ import io.entgra.device.mgt.core.apimgt.annotations.Scope;
 import io.entgra.device.mgt.core.apimgt.annotations.Scopes;
 import io.entgra.device.mgt.core.device.mgt.api.jaxrs.beans.ErrorResponse;
 import io.entgra.device.mgt.core.device.mgt.api.jaxrs.util.Constants;
-import io.entgra.device.mgt.core.device.mgt.common.Feature;
 import io.entgra.device.mgt.core.device.mgt.common.dto.DeviceFeatureInfo;
-import io.swagger.annotations.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Extension;
+import io.swagger.annotations.ExtensionProperty;
+import io.swagger.annotations.Info;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
 
-import javax.validation.constraints.Size;
-import javax.ws.rs.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -42,7 +52,7 @@ import javax.ws.rs.core.Response;
                 extensions = {
                         @Extension(properties = {
                                 @ExtensionProperty(name = "name", value = "DeviceFeatureManagement"),
-                                @ExtensionProperty(name = "context", value = "/api/device-mgt/v1.0/devices"),
+                                @ExtensionProperty(name = "context", value = "/api/device-mgt/v1.0/deviceOperations"),
                         })
                 }
         ),
@@ -62,19 +72,16 @@ import javax.ws.rs.core.Response;
         }
 )
 @Path("/deviceOperations")
-@Api(value = "Device Management", description = "This API carries all device management related operations " +
-        "such as get all the available devices, etc.")
+@Api(value = "Device Management", description = "This API carries all device operation-related endpoints.")
 public interface DeviceFeatureOperationService {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/device-type/{type}/features")
     @ApiOperation(
             produces = MediaType.APPLICATION_JSON,
             httpMethod = "GET",
-            value = "Getting Feature Details of a Device",
-            notes = "WSO2 IoTS features enable you to carry out many operations based on the device platform. " +
-                    "Using this REST API you can get the features that can be carried out on a preferred device type," +
-                    " such as iOS, Android or Windows.",
+            value = "Retrieve Operation Details",
+            notes = "Retrieve operation details based on operation code, name, or device type. " +
+                    "Only one of 'code' or 'name' should be specified. If both are given, request will fail.",
             tags = "Device Management",
             extensions = {
                     @Extension(properties = {
@@ -86,64 +93,43 @@ public interface DeviceFeatureOperationService {
             value = {
                     @ApiResponse(
                             code = 200,
-                            message = "OK. \n Successfully fetched the list of features.",
-                            response = Feature.class,
-                            responseContainer = "List",
-                            responseHeaders = {
-                                    @ResponseHeader(
-                                            name = "Content-Type",
-                                            description = "The content type of the body"),
-                                    @ResponseHeader(
-                                            name = "ETag",
-                                            description = "Entity Tag of the response resource.\n" +
-                                                    "Used by caches, or in conditional requests."),
-                                    @ResponseHeader(
-                                            name = "Last-Modified",
-                                            description = "Date and time the resource was last modified.\n" +
-                                                    "Used by caches, or in conditional requests.")}),
-                    @ApiResponse(
-                            code = 303,
-                            message = "See Other. \n " +
-                                    "The source can be retrieved from the URL specified in the location header.",
-                            responseHeaders = {
-                                    @ResponseHeader(
-                                            name = "Content-Location",
-                                            description = "The Source URL of the document.")}),
-                    @ApiResponse(
-                            code = 304,
-                            message = "Not Modified. \n " +
-                                    "Empty body because the client already has the latest version of the requested resource."),
+                            message = "OK. Successfully retrieved operation details.",
+                            response = DeviceFeatureInfo.class,
+                            responseContainer = "List"
+                    ),
                     @ApiResponse(
                             code = 400,
-                            message = "Bad Request. \n Invalid request or validation error.",
-                            response = ErrorResponse.class),
+                            message = "Bad Request. Only one of 'code' or 'name' must be provided.",
+                            response = ErrorResponse.class
+                    ),
                     @ApiResponse(
                             code = 404,
-                            message = "Not Found. \n The specified device can not be found.",
+                            message = "Not Found. \n The specified operation can not be found.",
                             response = ErrorResponse.class),
                     @ApiResponse(
-                            code = 406,
-                            message = "Not Acceptable. \n The requested media type is not supported."),
-                    @ApiResponse(
                             code = 500,
-                            message = "Internal Server Error. \n " +
-                                    "Server error occurred while retrieving the feature list for the device platform.",
-                            response = ErrorResponse.class)
-            })
-    Response getFeaturesOfDevice(
+                            message = "Internal Server Error. Error while retrieving operation details.",
+                            response = ErrorResponse.class
+                    )
+            }
+    )
+    Response getOperationDetails(
+            @ApiParam(
+                    name = "code",
+                    value = "The operation code to search for (supports partial match). Cannot be used with 'name'.",
+                    required = false)
+            @QueryParam("code") String code,
+
+            @ApiParam(
+                    name = "name",
+                    value = "The operation name to search for (supports partial match). Cannot be used with 'code'.",
+                    required = false)
+            @QueryParam("name") String name,
+
             @ApiParam(
                     name = "type",
-                    value = "The device type name, such as ios, android, windows or fire-alarm.",
-                    required = true)
-            @PathParam("type")
-            @Size(max = 45)
-            String type,
-            @ApiParam(
-                    name = "If-Modified-Since",
-                    value = "Checks if the requested variant was modified, since the specified date-time. \n" +
-                            "Provide the value in the following format: EEE, d MMM yyyy HH:mm:ss Z. \n" +
-                            "Example: Mon, 05 Jan 2014 15:10:00 +0200",
+                    value = "The device type to filter by (e.g., android, ios).",
                     required = false)
-            @HeaderParam("If-Modified-Since")
-            String ifModifiedSince);
+            @QueryParam("type") String type
+    );
 }

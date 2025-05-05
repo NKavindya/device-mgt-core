@@ -77,7 +77,7 @@ public class GenericDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
                         "FROM DM_OPERATION_DETAILS " +
                         "WHERE 1=1");
         if (code != null) {
-            query.append(" AND OPERATION_CODE = ?");
+            query.append(" AND OPERATION_CODE LIKE ?");
         }
         if (name != null) {
             query.append(" AND OPERATION_NAME LIKE ?");
@@ -89,7 +89,7 @@ public class GenericDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
             Connection connection = DeviceFeatureOperationsDAOFactory.getConnection();
             try (PreparedStatement stmt = connection.prepareStatement(query.toString())) {
                 int index = 1;
-                if (code != null) stmt.setString(index++, code);
+                if (code != null) stmt.setString(index++, "%" + code + "%");
                 if (name != null) stmt.setString(index++, "%" + name + "%");
                 if (type != null) stmt.setString(index++, type);
 

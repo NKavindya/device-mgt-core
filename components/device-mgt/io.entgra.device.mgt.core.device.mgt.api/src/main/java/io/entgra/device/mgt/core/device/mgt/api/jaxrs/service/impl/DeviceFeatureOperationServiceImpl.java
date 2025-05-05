@@ -22,56 +22,42 @@ package io.entgra.device.mgt.core.device.mgt.api.jaxrs.service.impl;
 import io.entgra.device.mgt.core.device.mgt.api.jaxrs.beans.ErrorResponse;
 import io.entgra.device.mgt.core.device.mgt.api.jaxrs.service.api.DeviceFeatureOperationService;
 import io.entgra.device.mgt.core.device.mgt.api.jaxrs.util.DeviceMgtAPIUtils;
-import io.entgra.device.mgt.core.device.mgt.common.Feature;
-import io.entgra.device.mgt.core.device.mgt.common.FeatureManager;
 import io.entgra.device.mgt.core.device.mgt.common.dto.DeviceFeatureInfo;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.DeviceFeatureOperationException;
-import io.entgra.device.mgt.core.device.mgt.common.exceptions.DeviceManagementException;
-import io.entgra.device.mgt.core.device.mgt.common.exceptions.DeviceTypeNotFoundException;
-import io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperations;
-import io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperationsImpl;
-import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import javax.validation.constraints.Size;
-import javax.ws.rs.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.ArrayList;
 import java.util.List;
 
 @Path("/deviceOperations")
 public class DeviceFeatureOperationServiceImpl implements DeviceFeatureOperationService {
     private static final Log log = LogFactory.getLog(DeviceFeatureOperationServiceImpl.class);
-
     @GET
-    @Path("/device-type/{type}/features")
-    @Override
-    public Response getFeaturesOfDevice(
-            @PathParam("type") @Size(max = 45) String type,
-            @HeaderParam("If-Modified-Since") String ifModifiedSince) {
-        List<Feature> features = new ArrayList<>();
-        DeviceManagementProviderService dms;
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getOperationDetails(
+            @QueryParam("code") String code,
+            @QueryParam("name") String name,
+            @QueryParam("type") String type) {
+        if (code != null && name != null) {
+            String msg = "Only one of 'code' or 'name' should be provided.";
+            return Response.status(Response.Status.BAD_REQUEST).entity(msg).build();
+        }
         try {
-            dms = DeviceMgtAPIUtils.getDeviceManagementService();
-            FeatureManager fm;
-            try {
-                fm = dms.getFeatureManager(type);
-            } catch (DeviceTypeNotFoundException e) {
-                String msg = "No device type found with name : " + type ;
-                return Response.status(Response.Status.NOT_FOUND).entity(msg).build();
-            }
-            if (fm != null) {
-                features = fm.getFeatures();
-            }
-        } catch (DeviceManagementException e) {
-            String msg = "Error occurred while retrieving the list of features of '" + type + "'";
+            List<DeviceFeatureInfo> operationList =
+                    DeviceMgtAPIUtils.getDeviceFeatureOperations().getOperationDetails(code, name, type);
+            return Response.status(Response.Status.OK).entity(operationList).build();
+        } catch (DeviceFeatureOperationException e) {
+            String msg = "Error occurred while retrieving operation details.";
             log.error(msg, e);
             return Response.serverError().entity(
                     new ErrorResponse.ErrorResponseBuilder().setMessage(msg).build()).build();
         }
-        return Response.status(Response.Status.OK).entity(features).build();
     }
 }
 
