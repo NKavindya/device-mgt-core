@@ -20,6 +20,7 @@
 package io.entgra.device.mgt.core.notification.mgt.core.impl;
 
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagementException;
+import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationEventBroker;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
@@ -32,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -74,7 +76,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                     .map(UserNotificationAction::getNotificationId)
                     .collect(Collectors.toList());
             List<Notification> notifications =
-                    notificationDAO.getNotificationsByIds(notificationIds, limit, offset);
+                    notificationDAO.getNotificationsByIds(notificationIds);
             // map actions to notifications
             Map<Integer, String> actionTypeMap = userActions.stream()
                     .collect(Collectors.toMap(UserNotificationAction::getNotificationId,
@@ -109,8 +111,25 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             NotificationManagementDAOFactory.beginTransaction();
             notificationDAO.markNotificationAsRead(notificationId, username);
             NotificationManagementDAOFactory.commitTransaction();
+            int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
+            String payload = String.format("{\"unreadCount\":%d}", unreadCount);
+            NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
         } catch (TransactionManagementException e) {
             String msg = "Error occurred while marking notification as read for user: " + username;
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        } finally {
+            NotificationManagementDAOFactory.closeConnection();
+        }
+    }
+
+    @Override
+    public int getUserNotificationCount(String username, String status) throws NotificationManagementException {
+        try {
+            NotificationManagementDAOFactory.openConnection();
+            return notificationDAO.getNotificationActionsCountByUser(username, status);
+        } catch (SQLException e) {
+            String msg = "Error occurred while counting user notifications for user: " + username;
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         } finally {

@@ -43,12 +43,10 @@ public interface NotificationManagementDAO {
      * (i.e., most recent first). Only selected fields — notification ID, description, and type — are returned.
      *
      * @param notificationIds List of notification IDs to filter the query. Must not be null or empty.
-     * @param limit The maximum number of results to return.
-     * @param offset The offset from where to start fetching the results (used for pagination).
      * @return A list of {@link Notification} objects containing ID, description, and type for each matched record.
      * @throws NotificationManagementException If any SQL or connection error occurs during query execution.
      */
-    List<Notification> getNotificationsByIds(List<Integer> notificationIds, int limit, int offset)
+    List<Notification> getNotificationsByIds(List<Integer> notificationIds)
             throws NotificationManagementException;
 
     /**
@@ -72,5 +70,25 @@ public interface NotificationManagementDAO {
      */
     void markNotificationAsRead(int notificationId, String username) throws NotificationManagementException;
 
+    /**
+     * Retrieves all notification actions performed by all users.
+     *
+     * @return a list of {@link UserNotificationAction} objects representing actions taken by users
+     *         on notifications (e.g., READ, DISMISSED).
+     * @throws NotificationManagementException if an error occurs while retrieving the data from the database.
+     */
     List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementException;
+
+    /**
+     * Retrieves the total number of notification actions for a specific user, optionally filtered by action status.
+     *
+     * @param username the username whose notification action count is to be retrieved.
+     * @param status   (optional) the action status to filter by (e.g., "READ", "UNREAD").
+     *                 If null or empty, all actions are counted regardless of status.
+     * @return the count of matching notification actions for the given user.
+     * @throws NotificationManagementException if an error occurs while querying the database.
+     */
+    int getNotificationActionsCountByUser(String username, String status) throws NotificationManagementException;
+
+    int getUnreadNotificationCountForUser(String username) throws NotificationManagementException;
 }

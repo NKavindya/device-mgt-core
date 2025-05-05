@@ -78,10 +78,10 @@ public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
                         "FROM DM_OPERATION_DETAILS " +
                         "WHERE 1=1");
         if (code != null) {
-            query.append(" AND OPERATION_CODE = ?");
+            query.append(" AND OPERATION_CODE LIKE ?");
         }
         if (name != null) {
-            query.append(" AND OPERATION_NAME ILIKE ?");
+            query.append(" AND OPERATION_NAME LIKE ?");
         }
         if (type != null) {
             query.append(" AND DEVICE_TYPE = ?");
@@ -90,7 +90,7 @@ public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
             Connection connection = DeviceFeatureOperationsDAOFactory.getConnection();
             try (PreparedStatement stmt = connection.prepareStatement(query.toString())) {
                 int index = 1;
-                if (code != null) stmt.setString(index++, code);
+                if (code != null) stmt.setString(index++, "%" + code + "%");
                 if (name != null) stmt.setString(index++, "%" + name + "%");
                 if (type != null) stmt.setString(index++, type);
 

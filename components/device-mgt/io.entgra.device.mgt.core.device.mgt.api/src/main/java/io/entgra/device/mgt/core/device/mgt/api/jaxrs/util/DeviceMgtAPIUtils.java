@@ -33,6 +33,7 @@ import io.entgra.device.mgt.core.device.mgt.api.jaxrs.service.impl.util.RequestV
 import io.entgra.device.mgt.core.device.mgt.common.authorization.GroupAccessAuthorizationService;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.DeviceStatusManagementService;
 import io.entgra.device.mgt.core.device.mgt.core.permission.mgt.PermissionManagerServiceImpl;
+import io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperations;
 import io.entgra.device.mgt.core.device.mgt.core.service.TagManagementProviderService;
 import io.entgra.device.mgt.core.tenant.mgt.common.spi.TenantManagerAdminService;
 import org.apache.axis2.AxisFault;
@@ -169,6 +170,7 @@ public class DeviceMgtAPIUtils {
     private static volatile APIPublisherService apiPublisher;
     private static volatile TenantManagerAdminService tenantManagerAdminService;
     private static volatile TagManagementProviderService tagManagementService;
+    private static volatile DeviceFeatureOperations deviceFeatureOperations;
     static {
         String keyStorePassword = ServerConfiguration.getInstance().getFirstProperty("Security.KeyStore.Password");
         String trustStorePassword = ServerConfiguration.getInstance().getFirstProperty(
@@ -1349,5 +1351,27 @@ public class DeviceMgtAPIUtils {
             }
         }
         return tenantManagerAdminService;
+    }
+
+    /**
+     * Initializing and accessing method for DeviceFeatureOperations.
+     *
+     * @return DeviceFeatureOperations instance
+     * @throws IllegalStateException if DeviceFeatureOperations cannot be initialized
+     */
+    public static DeviceFeatureOperations getDeviceFeatureOperations() {
+        if (deviceFeatureOperations == null) {
+            synchronized (DeviceMgtAPIUtils.class) {
+                if (deviceFeatureOperations == null) {
+                    PrivilegedCarbonContext ctx = PrivilegedCarbonContext.getThreadLocalCarbonContext();
+                    deviceFeatureOperations = (DeviceFeatureOperations) ctx.getOSGiService(
+                            DeviceFeatureOperations.class, null);
+                    if (deviceFeatureOperations == null) {
+                        throw new IllegalStateException("DeviceStatusManagementService Management service not initialized.");
+                    }
+                }
+            }
+        }
+        return deviceFeatureOperations;
     }
 }
