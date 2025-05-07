@@ -27,9 +27,6 @@ public class NotificationConfigBatchNotifications {
     @JsonProperty("enabled")
     private boolean enabled;
 
-    @JsonProperty("groupingCriteria")
-    private List<String> groupingCriteria;
-
     @JsonProperty("sendBatchNotification")
     private long sendBatchNotification;
 
@@ -42,14 +39,6 @@ public class NotificationConfigBatchNotifications {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-
-    public List<String> getGroupingCriteria() {
-        return groupingCriteria;
-    }
-
-    public void setGroupingCriteria(List<String> groupingCriteria) {
-        this.groupingCriteria = groupingCriteria;
     }
 
     public boolean isIncludeDeviceListInBatch() {

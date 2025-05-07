@@ -30,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -93,17 +94,11 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
                         return matchesName && matchesType && matchesCode;
                     })
                     .collect(Collectors.toList());
-            if (filteredConfigs.isEmpty()) {
-                String msg = "No notification configurations found for given criteria.";
-                log.warn(msg);
-                return Response.status(HttpStatus.SC_NOT_FOUND).entity(msg).build();
-            }
             int fromIndex = Math.max(0, Math.min(offset, filteredConfigs.size()));
             int toIndex = Math.max(0, Math.min(offset + limit, filteredConfigs.size()));
             List<NotificationConfig> pagedConfigs = filteredConfigs.subList(fromIndex, toIndex);
-            NotificationConfigurationList resultList = new NotificationConfigurationList();
-            resultList.setNotificationConfigurations(pagedConfigs);
-            return Response.status(HttpStatus.SC_OK).entity(resultList).build();
+            allConfigurations.setNotificationConfigurations(pagedConfigs);
+            return Response.status(HttpStatus.SC_OK).entity(allConfigurations).build();
         } catch (NotificationConfigurationServiceException e) {
             String msg = "Unexpected error occurred while retrieving notification configurations.";
             log.error(msg, e);
@@ -197,8 +192,11 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
         }
     }
 
-    @Override
+    @DELETE
     @Path("/{configId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Override
     public Response deleteNotificationConfig(@PathParam("configId") int configId) {
         try {
             NotificationConfigService notificationConfigService =
@@ -209,9 +207,9 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
                 return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
             }
             notificationConfigService.deleteNotificationConfigContext(configId);
-            return Response.status(HttpStatus.SC_NO_CONTENT).build();
+            return Response.status(HttpStatus.SC_OK).entity("Notification configuration deleted successfully.").build();
         } catch (NotificationConfigurationServiceException e) {
-            String msg = "Error occurred while deleting notification configuration(s).";
+            String msg = "Error occurred while deleting notification configuration with ID: " + configId;
             log.error(msg, e);
             return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
         }

@@ -32,12 +32,36 @@ public class NotificationConfigurationList {
     @JsonProperty("notificationConfigurations")
     private List<NotificationConfig> notificationConfigurations = new ArrayList<>();
 
+    @ApiModelProperty(value = "Default Archive period for notifications")
+    @JsonProperty("defaultArchiveAfter")
+    private String defaultArchiveAfter;
+
+    @ApiModelProperty(value = "Default Archive type for notifications")
+    @JsonProperty("defaultArchiveType")
+    private String defaultArchiveType;
+
     public List<NotificationConfig> getNotificationConfigurations() {
         return notificationConfigurations;
     }
 
     public void setNotificationConfigurations(List<NotificationConfig> notificationConfigurations) {
         this.notificationConfigurations = notificationConfigurations;
+    }
+
+    public String getDefaultArchiveAfter() {
+        return defaultArchiveAfter;
+    }
+
+    public void setDefaultArchiveAfter(String defaultArchiveAfter) {
+        this.defaultArchiveAfter = defaultArchiveAfter;
+    }
+    
+    public String getDefaultArchiveType() {
+        return defaultArchiveType;
+    }
+
+    public void setDefaultArchiveType(String defaultArchiveType) {
+        this.defaultArchiveType = defaultArchiveType;
     }
 
     public void add(NotificationConfig config) {
