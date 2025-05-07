@@ -30,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -176,8 +177,11 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
         }
     }
 
-    @Override
+    @DELETE
     @Path("/{configId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Override
     public Response deleteNotificationConfig(@PathParam("configId") int configId) {
         try {
             NotificationConfigService notificationConfigService =
@@ -188,9 +192,9 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
                 return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
             }
             notificationConfigService.deleteNotificationConfigContext(configId);
-            return Response.status(HttpStatus.SC_NO_CONTENT).build();
+            return Response.status(HttpStatus.SC_OK).entity("Notification configuration deleted successfully.").build();
         } catch (NotificationConfigurationServiceException e) {
-            String msg = "Error occurred while deleting notification configuration(s).";
+            String msg = "Error occurred while deleting notification configuration with ID: " + configId;
             log.error(msg, e);
             return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
         }
