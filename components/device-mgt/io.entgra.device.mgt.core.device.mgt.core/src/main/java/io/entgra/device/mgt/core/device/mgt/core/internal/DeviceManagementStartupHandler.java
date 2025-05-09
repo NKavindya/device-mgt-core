@@ -18,13 +18,11 @@
 package io.entgra.device.mgt.core.device.mgt.core.internal;
 
 import com.google.gson.Gson;
-import io.entgra.device.mgt.core.device.mgt.common.Device;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.Metadata;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
-import io.entgra.device.mgt.core.device.mgt.common.operation.mgt.Operation;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.DeviceManagementConstants;
 import io.entgra.device.mgt.core.device.mgt.core.dto.operation.mgt.DeviceOperationDetails;
 import io.entgra.device.mgt.core.device.mgt.core.operation.change.status.task.dto.OperationConfig;
@@ -42,8 +40,6 @@ import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 
 public class DeviceManagementStartupHandler implements ServerStartupObserver {
     private static final Log log = LogFactory.getLog(DeviceManagementStartupHandler.class);
@@ -137,17 +133,13 @@ public class DeviceManagementStartupHandler implements ServerStartupObserver {
                             List<DeviceOperationDetails> updatedOperations =
                                     operationDAO.getUpdatedOperationsByDeviceTypeAndStatus(deviceType, requiredStatusChange);
                             if (!updatedOperations.isEmpty()) {
-                                Map<Integer, Device> enrolments = new HashMap<>();
                                 for (DeviceOperationDetails details : updatedOperations) {
-                                    Device device = new Device(details.getDeviceId());
-                                    device.setType(details.getDeviceType());
-                                    enrolments.put(device.getId(), device);
-                                    Operation operation = new Operation();
-                                    operation.setCode(details.getOperationCode());
-                                    operation.setStatus(Operation.Status.valueOf(requiredStatusChange));
+                                    String operationCode = details.getOperationCode();
+                                    String deviceTypeValue = details.getDeviceType();
+                                    int deviceEnrollmentID = details.getDeviceId();
                                     DeviceManagementDataHolder.getInstance().getNotificationManagementService()
-                                            .handleOperationNotificationIfApplicable(operation, enrolments, tenantId,
-                                                    "postSync");
+                                            .handleOperationNotificationIfApplicable(operationCode, requiredStatusChange,
+                                                    deviceTypeValue, deviceEnrollmentID, tenantId, "postSync");
                                 }
                             }
                             OperationManagementDAOFactory.commitTransaction();

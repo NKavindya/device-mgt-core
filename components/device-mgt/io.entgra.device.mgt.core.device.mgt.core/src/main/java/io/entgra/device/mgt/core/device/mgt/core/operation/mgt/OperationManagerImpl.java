@@ -18,7 +18,7 @@
 
 package io.entgra.device.mgt.core.device.mgt.core.operation.mgt;
 
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.dto.operation.mgt.DeviceOperationDetails;
 import io.entgra.device.mgt.core.device.mgt.core.permission.mgt.PermissionManagerServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.extensions.logger.spi.EntgraLogger;
@@ -448,9 +448,17 @@ public class OperationManagerImpl implements OperationManager {
             }
         }
         try {
-            DeviceManagementDataHolder.getInstance().getNotificationManagementService()
-                    .handleOperationNotificationIfApplicable(operation, enrolments, tenantId,
-                            "immediate");
+            if (isScheduled && notificationStrategy != null) {
+                for (Device device : enrolments.values()) {
+                    String deviceType = device.getType();
+                    int deviceEnrollmentID = device.getId();
+                    String operationCode = operation.getCode();
+                    String operationStatus = operation.getStatus().toString();
+                    DeviceManagementDataHolder.getInstance().getNotificationManagementService()
+                            .handleOperationNotificationIfApplicable(operationCode, operationStatus,
+                                    deviceType, deviceEnrollmentID, tenantId, "immediate");
+                }
+            }
         } catch (NotificationManagementException e) {
             String msg = "An Error occurred while updating handleOperationNotificationIfApplicable";
             log.error(msg, e);
@@ -950,14 +958,13 @@ public class OperationManagerImpl implements OperationManager {
                     operationDAO.getDeviceOperationDetails(enrolmentId, operationId);
             // handle notification if the operation was updated and the status has changed
             if (isOperationUpdated && previousDeviceOperationDetails != null) {
-                // new Device object for the updated operation using the previous details
-                Device device = new Device(previousDeviceOperationDetails.getDeviceId());
-                device.setType(previousDeviceOperationDetails.getDeviceType());
-                Map<Integer, Device> enrolments = new HashMap<>();
-                enrolments.put(device.getId(), device);
+                String operationCode = operation.getCode();
+                String operationStatus = operation.getStatus().toString();
+                String deviceType = previousDeviceOperationDetails.getDeviceType();
+                int deviceEnrollmentID = previousDeviceOperationDetails.getDeviceId();
                 DeviceManagementDataHolder.getInstance().getNotificationManagementService()
-                        .handleOperationNotificationIfApplicable(operation, enrolments, tenantId,
-                                "postSync");
+                        .handleOperationNotificationIfApplicable(operationCode, operationStatus,
+                                deviceType, deviceEnrollmentID, tenantId, "postSync");
             }
             if (!isOperationUpdated) {
                 log.warn("Operation " + operationId + "'s status is not updated");

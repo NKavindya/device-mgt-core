@@ -255,29 +255,24 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
-    public void handleOperationNotificationIfApplicable(Operation operation, Map<Integer, Device> enrolments,
+    public void handleOperationNotificationIfApplicable(String operationCode, String operationStatus,
+                                                        String deviceType, int deviceEnrollmentID,
                                                         int tenantId, String notificationTriggerPoint)
             throws NotificationManagementException {
         try {
-            NotificationConfig config = NotificationHelper.getNotificationConfigurationByCode(operation.getCode());
+            NotificationConfig config = NotificationHelper.getNotificationConfigurationByCode(operationCode);
             if (config != null) {
-                String deviceType = enrolments.values().iterator().next().getType();
                 List<String> configDeviceTypes = config.getNotificationSettings().getDeviceTypes();
                 List<String> triggerPoints = config.getNotificationSettings().getNotificationTriggerPoints();
                 if (configDeviceTypes == null || configDeviceTypes.isEmpty() ||
                         triggerPoints == null || triggerPoints.isEmpty()) {
                     return;
                 }
-                if (configDeviceTypes.contains(deviceType) &&
-                        triggerPoints.contains(notificationTriggerPoint)) {
-                    String status = (operation.getStatus() != null) ?
-                            operation.getStatus().toString() :
-                            Operation.Status.PENDING.toString();
-                    String description = String.format("The operation %s (%s) for device with id %s of type %s is %s.",
-                            operation.getCode(), config.getDescription(),
-                            enrolments.values().iterator().next().getId(),
-                            deviceType,
-                            status);
+                if (configDeviceTypes.contains(deviceType) && triggerPoints.contains(notificationTriggerPoint)) {
+                    String status = (operationStatus != null) ? operationStatus : Operation.Status.PENDING.toString();
+                    String description = String.format("The operation %s (%s) for device with id %d of type %s is %s.",
+                            operationCode, config.getDescription(),
+                            deviceEnrollmentID, deviceType, status);
                     NotificationManagementDAOFactory.beginTransaction();
                     int notificationId = notificationDAO.insertNotification(
                             tenantId, config.getId(), config.getType(), description);
@@ -294,7 +289,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                 }
             }
         } catch (NotificationManagementException e) {
-            log.error("Failed to handle notification for operation " + operation.getCode(), e);
+            log.error("Failed to handle notification for operation " + operationCode, e);
         } catch (UserStoreException e) {
             throw new RuntimeException("Error retrieving users for role-based notification handling", e);
         } catch (TransactionManagementException e) {

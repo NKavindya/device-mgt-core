@@ -19,8 +19,10 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.impl;
 
-import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagementException;
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationEventBroker;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
+import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationEventBroker;
+import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationHelper;
+import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
@@ -30,6 +32,7 @@ import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagemen
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.user.api.UserStoreException;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -134,6 +137,82 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             throw new NotificationManagementException(msg, e);
         } finally {
             NotificationManagementDAOFactory.closeConnection();
+        }
+    }
+
+    @Override
+    public void handleOperationNotificationIfApplicable(String operationCode, String operationStatus,
+                                                        String deviceType, int deviceEnrollmentID,
+                                                        int tenantId, String notificationTriggerPoint)
+            throws NotificationManagementException {
+        try {
+            NotificationConfig config = NotificationHelper.getNotificationConfigurationByCode(operationCode);
+            if (config != null) {
+                List<String> configDeviceTypes = config.getNotificationSettings().getDeviceTypes();
+                List<String> triggerPoints = config.getNotificationSettings().getNotificationTriggerPoints();
+                if (configDeviceTypes == null || configDeviceTypes.isEmpty() ||
+                        triggerPoints == null || triggerPoints.isEmpty()) {
+                    return;
+                }
+                if (configDeviceTypes.contains(deviceType) && triggerPoints.contains(notificationTriggerPoint)) {
+                    String status = (operationStatus != null) ? operationStatus : "PENDING";
+                    String description = String.format("The operation %s (%s) for device with id %d of type %s is %s.",
+                            operationCode, config.getDescription(),
+                            deviceEnrollmentID, deviceType, status);
+                    NotificationManagementDAOFactory.beginTransaction();
+                    int notificationId = notificationDAO.insertNotification(
+                            tenantId, config.getId(), config.getType(), description);
+                    List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(config.getRecipients(), tenantId);
+                    if (!usernames.isEmpty()) {
+                        notificationDAO.insertNotificationUserActions(notificationId, usernames);
+                        for (String username : usernames) {
+                            int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                            String payload = String.format("{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
+                            NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+                        }
+                    }
+                    NotificationManagementDAOFactory.commitTransaction();
+                }
+            }
+        } catch (NotificationManagementException e) {
+            log.error("Failed to handle notification for operation " + operationCode, e);
+        } catch (UserStoreException e) {
+            throw new RuntimeException("Error retrieving users for role-based notification handling", e);
+        } catch (TransactionManagementException e) {
+            NotificationManagementDAOFactory.rollbackTransaction();
+            throw new NotificationManagementException("Error occurred while adding notification", e);
+        }
+    }
+
+    @Override
+    public void handleTaskNotificationIfApplicable(String taskCode, int tenantId, String message)
+            throws NotificationManagementException {
+        try {
+            NotificationConfig config = NotificationHelper.getNotificationConfigurationByCode(taskCode);
+            if (config != null) {
+                String description = String.format(message);
+                NotificationManagementDAOFactory.beginTransaction();
+                int notificationId = notificationDAO.insertNotification(
+                        tenantId, config.getId(), config.getType(), description);
+                List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(config.getRecipients(), tenantId);
+                if (!usernames.isEmpty()) {
+                    notificationDAO.insertNotificationUserActions(notificationId, usernames);
+                    for (String username : usernames) {
+                        int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                        String payload = String.format("{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
+                        NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+                    }
+                }
+                NotificationManagementDAOFactory.commitTransaction();
+            }
+        } catch (NotificationManagementException e) {
+            log.error("Failed to handle task notification for task " + taskCode, e);
+            throw e;
+        } catch (UserStoreException e) {
+            throw new RuntimeException("Error retrieving users for role-based task notification handling", e);
+        } catch (TransactionManagementException e) {
+            NotificationManagementDAOFactory.rollbackTransaction();
+            throw new NotificationManagementException("Error occurred while adding notification", e);
         }
     }
 }
