@@ -19,9 +19,12 @@
 
 package io.entgra.device.mgt.core.notification.mgt.common.service;
 
+import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
+import org.wso2.carbon.user.api.UserStoreException;
 
 import java.util.List;
 
@@ -72,4 +75,69 @@ public interface NotificationManagementService {
      * @throws NotificationManagementException if an error occurs while accessing the database.
      */
     int getUserNotificationCount(String username, String status) throws NotificationManagementException;
+
+    /**
+     * Deletes one or more notifications for a given user.
+     *
+     * @param notificationIds A list of notification IDs to be deleted.
+     * @param username        The username associated with the notifications.
+     * @throws NotificationManagementException If an error occurs while deleting the notifications.
+     */
+    void deleteUserNotifications(List<Integer> notificationIds, String username)
+            throws NotificationManagementException;
+
+    /**
+     * Handles the operation notification if applicable based on the provided operation code,
+     * status, device type, and other related details. This method constructs a notification message
+     * and triggers the appropriate notifications to the users based on the configuration.
+     * It checks the device type, the notification trigger point, and the operation's status
+     * before sending notifications.
+     *
+     * @param operationCode The unique code representing the operation (e.g., "POLICY_REVOKE").
+     * @param operationStatus The current status of the operation (e.g., "COMPLETED", "PENDING").
+     * @param deviceType The type of the device associated with the operation (e.g., "Smartphone").
+     * @param deviceEnrollmentIDs deviceEnrollmentID The unique identifier for the device enrollment.
+     * @param tenantId The tenant ID representing the specific tenant context for which notifications
+     *                 are being sent.
+     * @param notificationTriggerPoint The point in the process at which the notification should be triggered
+     *                                 (e.g., "postSync", "immediate").
+     *
+     * @throws NotificationManagementException If an error occurs while handling the notification
+     *                                        (e.g., issues with inserting notifications, user retrieval).
+     */
+    void handleOperationNotificationIfApplicable(String operationCode, String operationStatus,
+                                                 String deviceType, List<Integer> deviceEnrollmentIDs,
+                                                 int tenantId, String notificationTriggerPoint)
+            throws NotificationManagementException;
+
+    /**
+     * Handles and publishes a batch notification when an operation is executed for multiple devices.
+     *
+     * @param config        The notification configuration corresponding to the operation.
+     * @param deviceIds     The list of device IDs for which the operation was executed.
+     * @param operationStatus The final status of the operation (e.g., COMPLETED, PENDING).
+     * @param deviceType    The type of devices for which the operation was executed.
+     * @param tenantId      The tenant ID under which the operation was performed.
+     * @throws NotificationManagementException If an error occurs while managing the notification.
+     * @throws TransactionManagementException  If a transaction-related error occurs.
+     * @throws UserStoreException              If an error occurs while accessing the user store.
+     */
+    void handleBatchOperationNotificationIfApplicable(NotificationConfig config,
+                                                      List<Integer> deviceIds,
+                                                      String operationStatus,
+                                                      String deviceType,
+                                                      int tenantId)
+            throws NotificationManagementException, TransactionManagementException, UserStoreException;
+
+    /**
+     * Handles task-based notifications if a notification configuration exists for the given task code.
+     * If no configuration is found, the method simply exits without performing any notification actions.
+     *
+     * @param taskCode The unique identifier for the task being executed.
+     * @param tenantId The tenant ID under which the task is being executed.
+     * @param message The message to be sent with the notification, which can be task-specific.
+     * @throws NotificationManagementException If an error occurs while handling the notification.
+     */
+    void handleTaskNotificationIfApplicable(String taskCode, int tenantId, String message)
+            throws NotificationManagementException;
 }

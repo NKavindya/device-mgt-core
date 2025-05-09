@@ -20,6 +20,7 @@ package io.entgra.device.mgt.core.notification.mgt.core.internal;
 import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
 
+import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
 /**
@@ -30,6 +31,7 @@ public class NotificationManagementDataHolder {
     private DeviceManagementProviderService deviceManagementService;
     private TenantManager tenantManager;
     private MetadataManagementService metaDataManagementService;
+    private RealmService realmService;
 
     private static NotificationManagementDataHolder thisInstance = new NotificationManagementDataHolder();
 
@@ -62,5 +64,18 @@ public class NotificationManagementDataHolder {
 
     public void setMetaDataManagementService(MetadataManagementService metaDataManagementService) {
         this.metaDataManagementService = metaDataManagementService;
+    }
+
+    public RealmService getRealmService() {
+        if (realmService == null) {
+            throw new IllegalStateException("Realm service is not initialized properly");
+        }
+        return realmService;
+    }
+
+    public void setRealmService(RealmService realmService) {
+        this.realmService = realmService;
+        setTenantManager(realmService != null ?
+                realmService.getTenantManager() : null);
     }
 }

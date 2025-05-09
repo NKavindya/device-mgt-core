@@ -18,7 +18,7 @@
 
 package io.entgra.device.mgt.core.device.mgt.core.operation.mgt;
 
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.dto.operation.mgt.DeviceOperationDetails;
 import io.entgra.device.mgt.core.device.mgt.core.permission.mgt.PermissionManagerServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.extensions.logger.spi.EntgraLogger;
@@ -79,6 +79,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -448,9 +449,16 @@ public class OperationManagerImpl implements OperationManager {
             }
         }
         try {
-            DeviceManagementDataHolder.getInstance().getNotificationManagementService()
-                    .handleOperationNotificationIfApplicable(operation, enrolments, tenantId,
-                            "immediate");
+            String operationCode = operation.getCode();
+            String operationStatus = Operation.Status.PENDING.toString();
+            // all devices have same type in a batch, or handle grouping by type outside
+            if (!enrolments.isEmpty()) {
+                Device firstDevice = enrolments.values().iterator().next();
+                String deviceType = firstDevice.getType();
+                DeviceManagementDataHolder.getInstance().getNotificationManagementService()
+                        .handleOperationNotificationIfApplicable(operationCode, operationStatus,
+                                deviceType, new ArrayList<>(enrolments.keySet()), tenantId, "immediate");
+            }
         } catch (NotificationManagementException e) {
             String msg = "An Error occurred while updating handleOperationNotificationIfApplicable";
             log.error(msg, e);
@@ -916,9 +924,20 @@ public class OperationManagerImpl implements OperationManager {
                     try {
                         isOperationUpdated = operationDAO.updateOperationStatus(enrolmentId, operationId,
                                 io.entgra.device.mgt.core.device.mgt.core.dto.operation.mgt.
-                                        Operation.Status.valueOf(operation.getStatus().
-                                        toString()));
+                                        Operation.Status.valueOf(operation.getStatus().toString()));
                         OperationManagementDAOFactory.commitTransaction();
+                        OperationManagementDAOFactory.openConnection();
+                        DeviceOperationDetails previousDeviceOperationDetails =
+                                operationDAO.getDeviceOperationDetails(enrolmentId, operationId);
+                        if (isOperationUpdated && previousDeviceOperationDetails != null) {
+                            String operationCode = operation.getCode();
+                            String operationStatus = operation.getStatus().toString();
+                            String deviceType = previousDeviceOperationDetails.getDeviceType();
+                            int deviceEnrollmentID = previousDeviceOperationDetails.getDeviceId();
+                            DeviceManagementDataHolder.getInstance().getNotificationManagementService()
+                                    .handleOperationNotificationIfApplicable(operationCode, operationStatus,
+                                            deviceType, Collections.singletonList(deviceEnrollmentID), tenantId, "postSync");
+                        }
                         break;
                     } catch (OperationManagementDAOException e) {
                         OperationManagementDAOFactory.rollbackTransaction();
@@ -936,28 +955,18 @@ public class OperationManagerImpl implements OperationManager {
                         } catch (InterruptedException ignore) {
                             break;
                         }
+                    } catch (SQLException e) {
+                        String msg = "An Error occurred while getting DeviceOperationDetails";
+                        log.error(msg, e);
                     }
                 }
-                if (operation.getCode().equals("POLICY_REVOKE") && operation.getStatus().equals(Operation.Status.COMPLETED)){
+                if (operation.getCode().equals("POLICY_REVOKE") && operation.getStatus().equals(Operation.Status.COMPLETED)) {
                     if (this.getDevice(deviceId).getEnrolmentInfo().getStatus().equals(EnrolmentInfo.Status.DISENROLLMENT_REQUESTED)) {
-                        DeviceManagementProviderService deviceManagementProviderService = DeviceManagementDataHolder.getInstance().
-                                getDeviceManagementProvider();
+                        DeviceManagementProviderService deviceManagementProviderService = DeviceManagementDataHolder.getInstance()
+                                .getDeviceManagementProvider();
                         deviceManagementProviderService.removeDevice(deviceId);
                     }
                 }
-            }
-            DeviceOperationDetails previousDeviceOperationDetails =
-                    operationDAO.getDeviceOperationDetails(enrolmentId, operationId);
-            // handle notification if the operation was updated and the status has changed
-            if (isOperationUpdated && previousDeviceOperationDetails != null) {
-                // new Device object for the updated operation using the previous details
-                Device device = new Device(previousDeviceOperationDetails.getDeviceId());
-                device.setType(previousDeviceOperationDetails.getDeviceType());
-                Map<Integer, Device> enrolments = new HashMap<>();
-                enrolments.put(device.getId(), device);
-                DeviceManagementDataHolder.getInstance().getNotificationManagementService()
-                        .handleOperationNotificationIfApplicable(operation, enrolments, tenantId,
-                                "postSync");
             }
             if (!isOperationUpdated) {
                 log.warn("Operation " + operationId + "'s status is not updated");
@@ -1054,6 +1063,7 @@ public class OperationManagerImpl implements OperationManager {
                     }
                 }
             }
+
         } catch (TransactionManagementException e) {
             throw new OperationManagementException("Error occurred while initiating a transaction", e);
         } catch (DeviceManagementException e) {
@@ -1061,9 +1071,6 @@ public class OperationManagerImpl implements OperationManager {
                     + deviceId.getId() + " of the device type - " + deviceId.getType();
             log.error(msg, e);
             throw new OperationManagementException(msg, e);
-        } catch (OperationManagementDAOException e) {
-            String msg = "An Error occurred while getting DeviceOperationDetails";
-            log.error(msg, e);
         } catch (NotificationManagementException e) {
             String msg = "An Error occurred while updating handleOperationNotificationIfApplicable";
             log.error(msg, e);

@@ -21,9 +21,9 @@ import io.entgra.device.mgt.core.device.mgt.common.authorization.GroupAccessAuth
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.DeviceStatusManagementService;
 import io.entgra.device.mgt.core.device.mgt.core.authorization.GroupAccessAuthorizationServiceImpl;
+import io.entgra.device.mgt.core.device.mgt.core.dao.*;
 import io.entgra.device.mgt.core.device.mgt.core.metadata.mgt.DeviceStatusManagementServiceImpl;
-import io.entgra.device.mgt.core.device.mgt.core.service.TagManagementProviderService;
-import io.entgra.device.mgt.core.device.mgt.core.service.TagManagementProviderServiceImpl;
+import io.entgra.device.mgt.core.device.mgt.core.service.*;
 import io.entgra.device.mgt.core.server.bootup.heartbeat.beacon.service.HeartBeatManagementService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -59,10 +59,6 @@ import io.entgra.device.mgt.core.device.mgt.core.config.DeviceManagementConfig;
 import io.entgra.device.mgt.core.device.mgt.core.config.datasource.DataSourceConfig;
 import io.entgra.device.mgt.core.device.mgt.core.config.tenant.PlatformConfigurationManagementServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.config.ui.UIConfigurationManager;
-import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceManagementDAOFactory;
-import io.entgra.device.mgt.core.device.mgt.core.dao.EventManagementDAOFactory;
-import io.entgra.device.mgt.core.device.mgt.core.dao.GroupManagementDAOFactory;
-import io.entgra.device.mgt.core.device.mgt.core.dao.TrackerManagementDAOFactory;
 import io.entgra.device.mgt.core.device.mgt.core.device.details.mgt.DeviceInformationManager;
 import io.entgra.device.mgt.core.device.mgt.core.device.details.mgt.impl.DeviceInformationManagerImpl;
 import io.entgra.device.mgt.core.device.mgt.core.event.config.EventConfigurationProviderServiceImpl;
@@ -84,10 +80,6 @@ import io.entgra.device.mgt.core.device.mgt.core.push.notification.mgt.task.Push
 import io.entgra.device.mgt.core.device.mgt.core.report.mgt.ReportManagementServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.search.mgt.SearchManagerService;
 import io.entgra.device.mgt.core.device.mgt.core.search.mgt.impl.SearchManagerServiceImpl;
-import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
-import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderServiceImpl;
-import io.entgra.device.mgt.core.device.mgt.core.service.GroupManagementProviderService;
-import io.entgra.device.mgt.core.device.mgt.core.service.GroupManagementProviderServiceImpl;
 import io.entgra.device.mgt.core.device.mgt.core.task.DeviceTaskManagerService;
 import io.entgra.device.mgt.core.device.mgt.core.traccar.api.service.DeviceAPIClientService;
 import io.entgra.device.mgt.core.device.mgt.core.traccar.api.service.impl.DeviceAPIClientServiceImpl;
@@ -164,9 +156,6 @@ public class DeviceManagementServiceComponent {
             /*Initialize the device cache*/
             DeviceManagerUtil.initializeDeviceCache();
 
-            /* Initialize Operation Manager */
-            this.initOperationsManager();
-
             PushNotificationProviderRepository pushNotificationRepo = new PushNotificationProviderRepository();
             List<String> pushNotificationProviders = config.getPushNotificationConfiguration()
                     .getPushNotificationProviders();
@@ -190,6 +179,9 @@ public class DeviceManagementServiceComponent {
 
             /* Registering declarative service instances exposed by DeviceManagementServiceComponent */
             this.registerServices(componentContext);
+
+            /* Initialize Operation Manager */
+            this.initOperationsManager();
 
             /* This is a workaround to initialize all Device Management Service Providers after the initialization
              * of Device Management Service component in order to avoid bundle start up order related complications */
@@ -254,21 +246,21 @@ public class DeviceManagementServiceComponent {
             log.debug("Registering OSGi service DeviceManagementProviderServiceImpl");
         }
         int tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId(true);
-
-        /* Registering Tenants Observer */
         BundleContext bundleContext = componentContext.getBundleContext();
-        TenantCreateObserver listener = new TenantCreateObserver();
-        bundleContext.registerService(Axis2ConfigurationContextObserver.class.getName(), listener, null);
-
-        /* Registering Device Management Startup Handler */
-        DeviceManagementStartupHandler deviceManagementStartupHandler = new DeviceManagementStartupHandler();
-        DeviceManagementDataHolder.getInstance().setDeviceManagementStartupHandler(deviceManagementStartupHandler);
-        bundleContext.registerService(ServerStartupObserver.class.getName(), deviceManagementStartupHandler, null);
 
         /* Registering Device Management Service */
         DeviceManagementProviderService deviceManagementProvider = new DeviceManagementProviderServiceImpl();
         DeviceManagementDataHolder.getInstance().setDeviceManagementProvider(deviceManagementProvider);
         bundleContext.registerService(DeviceManagementProviderService.class.getName(), deviceManagementProvider, null);
+
+        /* Registering Notification Service */
+        NotificationManagementService notificationManagementService
+                = new NotificationManagementServiceImpl();
+        bundleContext.registerService(NotificationManagementService.class.getName(), notificationManagementService, null);
+
+        /* Registering Tenants Observer */
+        TenantCreateObserver listener = new TenantCreateObserver();
+        bundleContext.registerService(Axis2ConfigurationContextObserver.class.getName(), listener, null);
 
         /* Registering Device API Client Service */
         DeviceAPIClientService deviceAPIClientService = new DeviceAPIClientServiceImpl();
@@ -299,11 +291,6 @@ public class DeviceManagementServiceComponent {
         PlatformConfigurationManagementService
                 tenantConfiguration = new PlatformConfigurationManagementServiceImpl();
         bundleContext.registerService(PlatformConfigurationManagementService.class.getName(), tenantConfiguration, null);
-
-        /* Registering Notification Service */
-        NotificationManagementService notificationManagementService
-                = new NotificationManagementServiceImpl();
-        bundleContext.registerService(NotificationManagementService.class.getName(), notificationManagementService, null);
 
         /* Registering Report Service */
         ReportManagementService reportManagementService = new ReportManagementServiceImpl();
@@ -344,6 +331,11 @@ public class DeviceManagementServiceComponent {
         } catch (MetadataManagementException e) {
             log.error("Error occurred while initializing the white label management service", e);
         }
+
+        /* Registering Device Management Startup Handler */
+        DeviceManagementStartupHandler deviceManagementStartupHandler = new DeviceManagementStartupHandler();
+        DeviceManagementDataHolder.getInstance().setDeviceManagementStartupHandler(deviceManagementStartupHandler);
+        bundleContext.registerService(ServerStartupObserver.class.getName(), deviceManagementStartupHandler, null);
 
         /* Registering DeviceState Filter Service */
         DeviceStatusManagementService deviceStatusManagementService = new DeviceStatusManagementServiceImpl();

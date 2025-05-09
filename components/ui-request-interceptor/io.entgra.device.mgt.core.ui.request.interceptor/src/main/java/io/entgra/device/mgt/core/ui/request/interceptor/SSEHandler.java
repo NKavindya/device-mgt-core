@@ -18,11 +18,11 @@
 
 package io.entgra.device.mgt.core.ui.request.interceptor;
 
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationEventBroker;
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationListener;
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
-import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationDAO;
-import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.NotificationManagementDAOFactory;
+import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationEventBroker;
+import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationListener;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -49,7 +49,8 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
     private static final Log log = LogFactory.getLog(SSEHandler.class);
     // map to store list of AsyncContexts per user
     private static final Map<String, List<AsyncContext>> userStreams = new ConcurrentHashMap<>();
-    private final NotificationDAO notificationDAO = NotificationManagementDAOFactory.getNotificationDAO();
+    private final NotificationManagementDAO notificationDAO =
+            NotificationManagementDAOFactory.getNotificationManagementDAO();
 
     @Override
     public void init(ServletConfig config) {

@@ -18,13 +18,11 @@
 package io.entgra.device.mgt.core.device.mgt.core.internal;
 
 import com.google.gson.Gson;
-import io.entgra.device.mgt.core.device.mgt.common.Device;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.Metadata;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
-import io.entgra.device.mgt.core.device.mgt.common.operation.mgt.Operation;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.DeviceManagementConstants;
 import io.entgra.device.mgt.core.device.mgt.core.dto.operation.mgt.DeviceOperationDetails;
 import io.entgra.device.mgt.core.device.mgt.core.operation.change.status.task.dto.OperationConfig;
@@ -41,9 +39,10 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 public class DeviceManagementStartupHandler implements ServerStartupObserver {
     private static final Log log = LogFactory.getLog(DeviceManagementStartupHandler.class);
@@ -112,7 +111,7 @@ public class DeviceManagementStartupHandler implements ServerStartupObserver {
         }
     }
 
-    private void operationStatusChangeObserver () {
+    private void operationStatusChangeObserver() {
         MetadataManagementService metadataManagementService = DeviceManagementDataHolder
                 .getInstance().getMetadataManagementService();
         OperationDAO operationDAO = OperationManagementDAOFactory.getOperationDAO();
@@ -137,31 +136,37 @@ public class DeviceManagementStartupHandler implements ServerStartupObserver {
                             List<DeviceOperationDetails> updatedOperations =
                                     operationDAO.getUpdatedOperationsByDeviceTypeAndStatus(deviceType, requiredStatusChange);
                             if (!updatedOperations.isEmpty()) {
-                                Map<Integer, Device> enrolments = new HashMap<>();
+                                // group operations by (operationCode + deviceType)
+                                Map<String, List<Integer>> groupedOperations = new HashMap<>();
                                 for (DeviceOperationDetails details : updatedOperations) {
-                                    Device device = new Device(details.getDeviceId());
-                                    device.setType(details.getDeviceType());
-                                    enrolments.put(device.getId(), device);
-                                    Operation operation = new Operation();
-                                    operation.setCode(details.getOperationCode());
-                                    operation.setStatus(Operation.Status.valueOf(requiredStatusChange));
+                                    String key = details.getOperationCode() + "|" + details.getDeviceType();
+                                    groupedOperations.computeIfAbsent(key, k -> new ArrayList<>())
+                                            .add(details.getDeviceId());
+                                }
+                                // call notification service for each group
+                                for (Map.Entry<String, List<Integer>> entry : groupedOperations.entrySet()) {
+                                    String[] parts = entry.getKey().split("\\|");
+                                    String operationCode = parts[0];
+                                    String groupedDeviceType = parts[1];
+                                    List<Integer> deviceIds = entry.getValue();
                                     DeviceManagementDataHolder.getInstance().getNotificationManagementService()
-                                            .handleOperationNotificationIfApplicable(operation, enrolments, tenantId,
-                                                    "postSync");
+                                            .handleOperationNotificationIfApplicable(operationCode, requiredStatusChange,
+                                                    groupedDeviceType, deviceIds, tenantId, "postSync");
                                 }
                             }
                             OperationManagementDAOFactory.commitTransaction();
                         } catch (OperationManagementDAOException e) {
                             OperationManagementDAOFactory.rollbackTransaction();
-                            String msg = "Error occurred while updating operation status. DeviceType : " + deviceType + ", " +
-                                    "Initial operation status: " + initialOperationStatus + ", Required status:" + requiredStatusChange;
+                            String msg = "Error occurred while updating operation status. DeviceType : " + deviceType
+                                    + ", " + "Initial operation status: " + initialOperationStatus + ", Required status:"
+                                    + requiredStatusChange;
                             log.error(msg, e);
                         } catch (NotificationManagementException e) {
-                            String msg = "Transactional error occurred while updating the operation status";
+                            String msg = "Notification error occurred while updating the operation status";
                             log.error(msg, e);
                         }
                     } catch (TransactionManagementException e) {
-                        String msg = "An Error occurred while updating handleOperationNotificationIfApplicable";
+                        String msg = "Transaction error occurred while updating handleOperationNotificationIfApplicable";
                         log.error(msg, e);
                     } finally {
                         OperationManagementDAOFactory.closeConnection();

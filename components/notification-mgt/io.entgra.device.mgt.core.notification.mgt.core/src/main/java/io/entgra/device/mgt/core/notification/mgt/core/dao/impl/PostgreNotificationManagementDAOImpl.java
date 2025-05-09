@@ -19,7 +19,7 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
 
-import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.util.NotificationDAOUtil;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.util.NotificationDAOUtil;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
@@ -35,6 +35,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class PostgreNotificationManagementDAOImpl implements NotificationManagementDAO {
     private static final Log log = LogFactory.getLog(PostgreNotificationManagementDAOImpl.class);
@@ -262,5 +263,87 @@ public class PostgreNotificationManagementDAOImpl implements NotificationManagem
             NotificationDAOUtil.cleanupResources(stmt, rs);
         }
         return count;
+    }
+
+    @Override
+    public int insertNotification(int tenantId, int notificationConfigId, String type, String description)
+            throws NotificationManagementException {
+        String sql =
+                "INSERT INTO DM_NOTIFICATION " +
+                        "(NOTIFICATION_CONFIG_ID, " +
+                        "TENANT_ID, " +
+                        "DESCRIPTION, " +
+                        "TYPE) " +
+                        "VALUES (?, ?, ?, ?) " +
+                        "RETURNING NOTIFICATION_ID";
+        try (Connection conn = NotificationManagementDAOFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, notificationConfigId);
+            stmt.setInt(2, tenantId);
+            stmt.setString(3, description);
+            stmt.setString(4, type);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            throw new NotificationManagementException("Error inserting notification", e);
+        }
+        return -1;
+    }
+
+    @Override
+    public void insertNotificationUserActions(int notificationId, List<String> usernames)
+            throws NotificationManagementException {
+        String sql =
+                "INSERT INTO DM_NOTIFICATION_USER_ACTION " +
+                        "(NOTIFICATION_ID, " +
+                        "USERNAME, " +
+                        "ACTION_TYPE) " +
+                        "VALUES (?, ?, ?)";
+        try (Connection conn = NotificationManagementDAOFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (String username : usernames) {
+                stmt.setInt(1, notificationId);
+                stmt.setString(2, username);
+                stmt.setString(3, "UNREAD");
+                stmt.addBatch();
+            }
+            stmt.executeBatch();
+        } catch (SQLException e) {
+            throw new NotificationManagementException("Error inserting notification user actions", e);
+        }
+    }
+
+    @Override
+    public void deleteUserNotifications(List<Integer> notificationIds, String username)
+            throws NotificationManagementException {
+        if (notificationIds == null || notificationIds.isEmpty()) {
+            return;
+        }
+        String placeholders = notificationIds.stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(", "));
+        String query =
+                "DELETE " +
+                        "FROM DM_NOTIFICATION_USER_ACTION " +
+                "WHERE USERNAME = ? " +
+                        "AND NOTIFICATION_ID " +
+                        "IN (" + placeholders + ")";
+        try {
+            Connection connection = NotificationManagementDAOFactory.getConnection();
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                stmt.setString(1, username);
+                for (int i = 0; i < notificationIds.size(); i++) {
+                    stmt.setInt(i + 2, notificationIds.get(i));
+                }
+                stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            String msg = "Error occurred while deleting notifications for user: " + username + " (PostgreSQL)";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        }
     }
 }
