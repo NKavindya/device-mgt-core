@@ -31,6 +31,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PUT;
@@ -97,6 +98,24 @@ public class NotificationServiceImpl implements NotificationService {
             return Response.status(HttpStatus.SC_OK).entity("Notification marked as read").build();
         } catch (NotificationManagementException e) {
             String msg = "Failed to mark notification as read for user: " + username;
+            log.error(msg, e);
+            return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
+        }
+    }
+
+    @DELETE
+    @Path("/delete")
+    public Response deleteUserNotifications(
+            @QueryParam("username") String username,
+            List<Integer> notificationIds
+    ) {
+        NotificationManagementService notificationService =
+                NotificationManagementApiUtil.getNotificationManagementService();
+        try {
+            notificationService.deleteUserNotifications(notificationIds, username);
+            return Response.status(HttpStatus.SC_OK).entity("Notifications deleted successfully").build();
+        } catch (NotificationManagementException e) {
+            String msg = "Failed to delete notifications for user: " + username;
             log.error(msg, e);
             return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
         }

@@ -22,10 +22,8 @@ import io.entgra.device.mgt.core.device.mgt.common.Device;
 import io.entgra.device.mgt.core.device.mgt.common.DeviceIdentifier;
 import io.entgra.device.mgt.core.device.mgt.common.PaginationRequest;
 import io.entgra.device.mgt.core.device.mgt.common.PaginationResult;
-import io.entgra.device.mgt.core.device.mgt.common.operation.mgt.Operation;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Defines the contract of NotificationManagementService.
@@ -104,31 +102,4 @@ public interface NotificationManagementService {
 
     PaginationResult getNotificationsByStatus(Notification.Status status,
                                    PaginationRequest request) throws NotificationManagementException;
-
-    /**
-     * Handles notifications for a given operation if applicable, based on the notification configuration.
-     * This method checks whether notifications are configured for the operation and tenant, and if so,
-     * it constructs a notification description and inserts the notification into the database.
-     * It also processes user and role-based notification recipients.
-     *
-     * @param operation  The operation for which the notification needs to be handled.
-     * @param enrolments A map of enrolment IDs to devices involved in the operation.
-     * @param tenantId   The tenant ID for which the notification is being processed.
-     * @param notificationTriggerPoint Determines when the notification should be triggered. Either: immediately after
-     *  the operation is triggered or after syncing with the device to determine success/failure
-     */
-    void handleOperationNotificationIfApplicable(Operation operation, Map<Integer, Device> enrolments, int tenantId,
-                                                 String notificationTriggerPoint) throws NotificationManagementException;
-
-    /**
-     * Handles task-based notifications if a notification configuration exists for the given task code.
-     * If no configuration is found, the method simply exits without performing any notification actions.
-     *
-     * @param taskCode The unique identifier for the task being executed.
-     * @param tenantId The tenant ID under which the task is being executed.
-     * @param message The message to be sent with the notification, which can be task-specific.
-     * @throws NotificationManagementException If an error occurs while handling the notification.
-     */
-    void handleTaskNotificationIfApplicable(String taskCode, int tenantId, String message)
-            throws NotificationManagementException;
 }

@@ -28,7 +28,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -119,93 +118,5 @@ public class GenericNotificationDAOImpl extends AbstractNotificationDAOImpl {
             NotificationDAOUtil.cleanupResources(stmt, rs);
         }
         return notifications;
-    }
-
-    @Override
-    public int insertNotification(int tenantId, int notificationConfigId, String type, String description)
-            throws NotificationManagementException {
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        String sql =
-                "INSERT INTO DM_NOTIFICATION " +
-                        "(NOTIFICATION_CONFIG_ID, " +
-                        "TENANT_ID, " +
-                        "DESCRIPTION, " +
-                        "TYPE) " +
-                        "VALUES (?, ?, ?, ?)";
-        int notificationId = -1;
-        try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
-            stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            stmt.setInt(1, notificationConfigId);
-            stmt.setInt(2, tenantId);
-            stmt.setString(3, description);
-            stmt.setString(4, type);
-            stmt.executeUpdate();
-            rs = stmt.getGeneratedKeys();
-            if (rs.next()) {
-                notificationId = rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            throw new NotificationManagementException("Error inserting notification", e);
-        } finally {
-            NotificationDAOUtil.cleanupResources(stmt, rs);
-        }
-        return notificationId;
-    }
-
-    @Override
-    public void insertNotificationUserActions(int notificationId, List<String> usernames)
-            throws NotificationManagementException {
-        PreparedStatement stmt = null;
-        String sql =
-                "INSERT INTO DM_NOTIFICATION_USER_ACTION " +
-                        "(NOTIFICATION_ID, " +
-                        "USERNAME, " +
-                        "ACTION_TYPE) " +
-                        "VALUES (?, ?, ?)";
-        try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
-            stmt = conn.prepareStatement(sql);
-            for (String username : usernames) {
-                stmt.setInt(1, notificationId);
-                stmt.setString(2, username);
-                stmt.setString(3, "UNREAD");
-                stmt.addBatch();
-            }
-            stmt.executeBatch();
-        } catch (SQLException e) {
-            throw new NotificationManagementException("Error inserting notification user actions", e);
-        } finally {
-            NotificationDAOUtil.cleanupResources(stmt, null);
-        }
-    }
-
-    @Override
-    public int getUnreadNotificationCountForUser(String username) throws NotificationManagementException {
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        int count = 0;
-        String sql =
-                "SELECT COUNT(*) " +
-                        "AS UNREAD_COUNT " +
-                "FROM DM_NOTIFICATION_USER_ACTION " +
-                "WHERE USERNAME = ? " +
-                        "AND ACTION_TYPE = 'UNREAD'";
-        try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
-            stmt = conn.prepareStatement(sql);
-            stmt.setString(1, username);
-            rs = stmt.executeQuery();
-            if (rs.next()) {
-                count = rs.getInt("UNREAD_COUNT");
-            }
-        } catch (SQLException e) {
-            throw new NotificationManagementException("Error retrieving unread notification count for user: "
-                    + username, e);
-        } finally {
-            NotificationDAOUtil.cleanupResources(stmt, rs);
-        }
-        return count;
     }
 }

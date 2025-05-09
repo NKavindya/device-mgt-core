@@ -100,36 +100,4 @@ public interface NotificationDAO {
 
 	List<Notification> getNotificationsByStatus(PaginationRequest request, Notification.Status status, int tenantId) throws
 			NotificationManagementException;
-
-	/**
-	 * Inserts a new notification entry into the notification database.
-	 *
-	 * @param tenantId         The ID of the tenant for whom the notification is being created.
-	 * @param notificationConfigId The ID of the notification configuration to associate with the notification.
-	 * @param type             The type of the notification.
-	 * @param description      A description providing details of the notification.
-	 * @return The ID of the newly inserted notification.
-	 * @throws NotificationManagementException If an error occurs while inserting the notification.
-	 */
-	int insertNotification(int tenantId, int notificationConfigId, String type, String description)
-			throws NotificationManagementException;
-
-	/**
-	 * Inserts user-specific actions related to a given notification.
-	 *
-	 * @param notificationId The ID of the notification for which user actions are being inserted.
-	 * @param usernames      A list of usernames to associate with the notification actions.
-	 * @throws NotificationManagementException If an error occurs while inserting the user actions.
-	 */
-	void insertNotificationUserActions(int notificationId, List<String> usernames) throws NotificationManagementException;
-
-	/**
-	 * Retrieves the count of unread notifications for a specific user.
-	 *
-	 * @param username The username for which to retrieve the count of unread notifications.
-	 * @return The number of unread notifications for the given user.
-	 * @throws NotificationManagementException if a database access error occurs
-	 *         or the query execution fails.
-	 */
-	int getUnreadNotificationCountForUser(String username) throws NotificationManagementException;
 }

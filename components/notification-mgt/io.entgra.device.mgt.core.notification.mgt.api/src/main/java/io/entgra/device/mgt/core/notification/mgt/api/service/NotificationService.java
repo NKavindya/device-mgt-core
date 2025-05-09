@@ -21,9 +21,19 @@ package io.entgra.device.mgt.core.notification.mgt.api.service;
 
 import io.entgra.device.mgt.core.apimgt.annotations.Scope;
 import io.entgra.device.mgt.core.apimgt.annotations.Scopes;
-import io.swagger.annotations.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import io.swagger.annotations.Extension;
+import io.swagger.annotations.ExtensionProperty;
+import io.swagger.annotations.Info;
+import io.swagger.annotations.SwaggerDefinition;
+import io.swagger.annotations.Tag;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PUT;
@@ -31,6 +41,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.List;
 
 /**
  * Notifications related REST-API.
@@ -235,4 +246,49 @@ public interface NotificationService {
                     required = true)
             @QueryParam("username")
             String username);
+
+    @DELETE
+    @Path("/delete")
+    @ApiOperation(
+            produces = MediaType.APPLICATION_JSON,
+            httpMethod = "DELETE",
+            value = "Delete User Notifications",
+            notes = "Delete one or more notifications for a specific user.",
+            tags = "Notification Management",
+            extensions = {
+                    @Extension(properties = {
+                            @ExtensionProperty(name = SCOPE, value = "dm:notif:delete")
+                    })
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            code = 200,
+                            message = "OK. Successfully deleted notifications.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 400,
+                            message = "Bad Request. Missing or invalid parameters.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 500,
+                            message = "Internal Server Error. Failed to delete notifications.",
+                            response = Response.class)
+            }
+    )
+    Response deleteUserNotifications(
+            @ApiParam(
+                    name = "username",
+                    value = "Username for whom the notifications should be deleted",
+                    required = true)
+            @QueryParam("username")
+            String username,
+
+            @ApiParam(
+                    name = "notificationIds",
+                    value = "List of Notification IDs to be deleted (passed in request body)",
+                    required = true)
+            List<Integer> notificationIds
+    );
 }
