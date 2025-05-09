@@ -106,19 +106,28 @@ public interface NotificationManagementService {
                                    PaginationRequest request) throws NotificationManagementException;
 
     /**
-     * Handles notifications for a given operation if applicable, based on the notification configuration.
-     * This method checks whether notifications are configured for the operation and tenant, and if so,
-     * it constructs a notification description and inserts the notification into the database.
-     * It also processes user and role-based notification recipients.
+     * Handles the operation notification if applicable based on the provided operation code,
+     * status, device type, and other related details. This method constructs a notification message
+     * and triggers the appropriate notifications to the users based on the configuration.
+     * It checks the device type, the notification trigger point, and the operation's status
+     * before sending notifications.
      *
-     * @param operation  The operation for which the notification needs to be handled.
-     * @param enrolments A map of enrolment IDs to devices involved in the operation.
-     * @param tenantId   The tenant ID for which the notification is being processed.
-     * @param notificationTriggerPoint Determines when the notification should be triggered. Either: immediately after
-     *  the operation is triggered or after syncing with the device to determine success/failure
+     * @param operationCode The unique code representing the operation (e.g., "POLICY_REVOKE").
+     * @param operationStatus The current status of the operation (e.g., "COMPLETED", "PENDING").
+     * @param deviceType The type of the device associated with the operation (e.g., "Smartphone").
+     * @param deviceEnrollmentID The unique identifier for the device enrollment.
+     * @param tenantId The tenant ID representing the specific tenant context for which notifications
+     *                 are being sent.
+     * @param notificationTriggerPoint The point in the process at which the notification should be triggered
+     *                                 (e.g., "postSync", "immediate").
+     *
+     * @throws NotificationManagementException If an error occurs while handling the notification
+     *                                        (e.g., issues with inserting notifications, user retrieval).
      */
-    void handleOperationNotificationIfApplicable(Operation operation, Map<Integer, Device> enrolments, int tenantId,
-                                                 String notificationTriggerPoint) throws NotificationManagementException;
+    void handleOperationNotificationIfApplicable(String operationCode, String operationStatus,
+                                                 String deviceType, int deviceEnrollmentID,
+                                                 int tenantId, String notificationTriggerPoint)
+            throws NotificationManagementException;
 
     /**
      * Handles task-based notifications if a notification configuration exists for the given task code.

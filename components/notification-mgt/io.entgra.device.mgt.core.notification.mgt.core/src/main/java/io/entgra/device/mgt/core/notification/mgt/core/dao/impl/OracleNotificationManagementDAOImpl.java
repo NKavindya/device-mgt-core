@@ -19,7 +19,7 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
 
-import io.entgra.device.mgt.core.device.mgt.core.notification.mgt.dao.util.NotificationDAOUtil;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.util.NotificationDAOUtil;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
@@ -29,10 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -267,5 +264,53 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
             NotificationDAOUtil.cleanupResources(stmt, rs);
         }
         return count;
+    }
+
+    @Override
+    public int insertNotification(int tenantId, int notificationConfigId, String type, String description)
+            throws NotificationManagementException {
+        String sql =
+                "INSERT INTO DM_NOTIFICATION " +
+                        "(NOTIFICATION_CONFIG_ID, " +
+                        "TENANT_ID, " +
+                        "DESCRIPTION, " +
+                        "TYPE) " +
+                        "VALUES (?, ?, ?, ?) " +
+                        "RETURNING NOTIFICATION_ID INTO ?";
+        try (Connection conn = NotificationManagementDAOFactory.getConnection();
+             CallableStatement stmt = conn.prepareCall(sql)) {
+            stmt.setInt(1, notificationConfigId);
+            stmt.setInt(2, tenantId);
+            stmt.setString(3, description);
+            stmt.setString(4, type);
+            stmt.registerOutParameter(6, java.sql.Types.INTEGER);
+            stmt.executeUpdate();
+            return stmt.getInt(6);
+        } catch (SQLException e) {
+            throw new NotificationManagementException("Error inserting notification", e);
+        }
+    }
+
+    @Override
+    public void insertNotificationUserActions(int notificationId, List<String> usernames)
+            throws NotificationManagementException {
+        String sql =
+                "INSERT INTO DM_NOTIFICATION_USER_ACTION " +
+                        "(NOTIFICATION_ID, " +
+                        "USERNAME, " +
+                        "ACTION_TYPE) " +
+                        "VALUES (?, ?, ?)";
+        try (Connection conn = NotificationManagementDAOFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (String username : usernames) {
+                stmt.setInt(1, notificationId);
+                stmt.setString(2, username);
+                stmt.setString(3, "UNREAD");
+                stmt.addBatch();
+            }
+            stmt.executeBatch();
+        } catch (SQLException e) {
+            throw new NotificationManagementException("Error inserting notification user actions", e);
+        }
     }
 }

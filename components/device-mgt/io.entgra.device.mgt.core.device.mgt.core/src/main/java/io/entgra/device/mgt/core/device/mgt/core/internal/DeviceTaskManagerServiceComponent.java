@@ -20,7 +20,7 @@ package io.entgra.device.mgt.core.device.mgt.core.internal;
 
 import io.entgra.device.mgt.core.device.mgt.common.DeviceStatusTaskPluginConfig;
 import io.entgra.device.mgt.core.device.mgt.common.OperationMonitoringTaskConfig;
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementService;
+import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
 import io.entgra.device.mgt.core.device.mgt.core.config.DeviceConfigurationManager;
 import io.entgra.device.mgt.core.device.mgt.core.config.DeviceManagementConfig;
 import io.entgra.device.mgt.core.device.mgt.core.config.datasource.DataSourceConfig;

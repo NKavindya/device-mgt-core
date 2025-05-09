@@ -19,10 +19,10 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.dao.factory;
 
-import io.entgra.device.mgt.core.device.mgt.common.DeviceManagementConstants;
-import io.entgra.device.mgt.core.device.mgt.common.exceptions.IllegalTransactionStateException;
-import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagementException;
-import io.entgra.device.mgt.core.device.mgt.common.exceptions.UnsupportedDatabaseEngineException;
+import io.entgra.device.mgt.core.notification.mgt.common.util.NotificationManagementConstants;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.IllegalTransactionStateException;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.UnsupportedDatabaseEngineException;
 import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.JNDILookupDefinition;
 import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.NotificationDatasourceConfiguration;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
@@ -105,15 +105,15 @@ public class NotificationManagementDAOFactory {
             throw new IllegalStateException("Database is not initialized properly.");
         }
         switch (productName) {
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_ORACLE:
+            case NotificationManagementConstants.DataBaseTypes.DB_TYPE_ORACLE:
                 return new OracleNotificationManagementDAOImpl();
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MSSQL:
+            case NotificationManagementConstants.DataBaseTypes.DB_TYPE_MSSQL:
                 return new SQLServerNotificationManagementDAOImpl();
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_POSTGRESQL:
+            case NotificationManagementConstants.DataBaseTypes.DB_TYPE_POSTGRESQL:
                 return new PostgreNotificationManagementDAOImpl();
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_H2:
+            case NotificationManagementConstants.DataBaseTypes.DB_TYPE_H2:
                 return new H2NotificationManagementDAOImpl();
-            case DeviceManagementConstants.DataBaseTypes.DB_TYPE_MYSQL:
+            case NotificationManagementConstants.DataBaseTypes.DB_TYPE_MYSQL:
                 return new GenericNotificationManagementDAOImpl();
             default:
                 throw new UnsupportedDatabaseEngineException("Unsupported database product: " + productName);
