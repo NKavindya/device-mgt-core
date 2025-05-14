@@ -164,9 +164,6 @@ public class DeviceManagementServiceComponent {
             /*Initialize the device cache*/
             DeviceManagerUtil.initializeDeviceCache();
 
-            /* Initialize Operation Manager */
-            this.initOperationsManager();
-
             PushNotificationProviderRepository pushNotificationRepo = new PushNotificationProviderRepository();
             List<String> pushNotificationProviders = config.getPushNotificationConfiguration()
                     .getPushNotificationProviders();
@@ -190,6 +187,9 @@ public class DeviceManagementServiceComponent {
 
             /* Registering declarative service instances exposed by DeviceManagementServiceComponent */
             this.registerServices(componentContext);
+
+            /* Initialize Operation Manager */
+            this.initOperationsManager();
 
             /* This is a workaround to initialize all Device Management Service Providers after the initialization
              * of Device Management Service component in order to avoid bundle start up order related complications */
@@ -260,11 +260,6 @@ public class DeviceManagementServiceComponent {
         TenantCreateObserver listener = new TenantCreateObserver();
         bundleContext.registerService(Axis2ConfigurationContextObserver.class.getName(), listener, null);
 
-        /* Registering Device Management Startup Handler */
-        DeviceManagementStartupHandler deviceManagementStartupHandler = new DeviceManagementStartupHandler();
-        DeviceManagementDataHolder.getInstance().setDeviceManagementStartupHandler(deviceManagementStartupHandler);
-        bundleContext.registerService(ServerStartupObserver.class.getName(), deviceManagementStartupHandler, null);
-
         /* Registering Device Management Service */
         DeviceManagementProviderService deviceManagementProvider = new DeviceManagementProviderServiceImpl();
         DeviceManagementDataHolder.getInstance().setDeviceManagementProvider(deviceManagementProvider);
@@ -300,10 +295,12 @@ public class DeviceManagementServiceComponent {
                 tenantConfiguration = new PlatformConfigurationManagementServiceImpl();
         bundleContext.registerService(PlatformConfigurationManagementService.class.getName(), tenantConfiguration, null);
 
-        /* Registering Notification Service */
-        NotificationManagementService notificationManagementService
-                = new NotificationManagementServiceImpl();
-        bundleContext.registerService(NotificationManagementService.class.getName(), notificationManagementService, null);
+
+//        /* Registering Notification Service */
+//        NotificationManagementService notificationManagementService
+//                = new NotificationManagementServiceImpl();
+//        bundleContext.registerService(NotificationManagementService.class.getName(), notificationManagementService, null);
+
 
         /* Registering Report Service */
         ReportManagementService reportManagementService = new ReportManagementServiceImpl();
@@ -344,6 +341,11 @@ public class DeviceManagementServiceComponent {
         } catch (MetadataManagementException e) {
             log.error("Error occurred while initializing the white label management service", e);
         }
+
+        /* Registering Device Management Startup Handler */
+        DeviceManagementStartupHandler deviceManagementStartupHandler = new DeviceManagementStartupHandler();
+        DeviceManagementDataHolder.getInstance().setDeviceManagementStartupHandler(deviceManagementStartupHandler);
+        bundleContext.registerService(ServerStartupObserver.class.getName(), deviceManagementStartupHandler, null);
 
         /* Registering DeviceState Filter Service */
         DeviceStatusManagementService deviceStatusManagementService = new DeviceStatusManagementServiceImpl();

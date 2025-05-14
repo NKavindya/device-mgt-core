@@ -52,22 +52,18 @@ public class NotificationManagementServiceComponent {
             NotificationConfigurationManager notificationConfigManager = NotificationConfigurationManager.getInstance();
             NotificationManagementDAOFactory.init(notificationConfigManager
                     .getNotificationManagementRepository().getDataSourceConfig());
+
             NotificationManagementService notificationManagementService = new NotificationManagementServiceImpl();
             bundleContext.registerService(NotificationManagementService.class.getName(),
                     notificationManagementService, null);
-        } catch (Throwable t) {
-            String msg = "Error occurred while activating Notification Configuration Service";
-            log.error(msg, t);
-        }
-        try {
+
             NotificationConfigService notificationConfigurationService = new NotificationConfigServiceImpl();
             bundleContext.registerService(NotificationConfigService.class.getName(),
                     notificationConfigurationService, null);
-        } catch (Throwable t) {
+        } catch (Throwable e) {
             String msg = "Error occurred while activating " + NotificationManagementServiceComponent.class.getName();
-            log.error(msg, t);
+            log.error(msg, e);
         }
-
     }
 
     @SuppressWarnings("unused")
