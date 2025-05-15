@@ -20,7 +20,7 @@ package io.entgra.device.mgt.core.notification.mgt.core.dao.util;
 
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification;
 import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
-import io.entgra.device.mgt.core.device.mgt.core.internal.DeviceManagementDataHolder;
+import io.entgra.device.mgt.core.notification.mgt.core.internal.NotificationManagementDataHolder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
@@ -101,7 +101,7 @@ public class NotificationDAOUtil {
 			String msg = "Tenant domain is not properly set and thus, is null";
 			throw new NotificationManagementException(msg);
 		}
-		TenantManager tenantManager = DeviceManagementDataHolder.getInstance().getTenantManager();
+		TenantManager tenantManager = NotificationManagementDataHolder.getInstance().getTenantManager();
 		try {
 			tenantId = tenantManager.getTenantId(tenantDomain);
 		} catch (UserStoreException e) {

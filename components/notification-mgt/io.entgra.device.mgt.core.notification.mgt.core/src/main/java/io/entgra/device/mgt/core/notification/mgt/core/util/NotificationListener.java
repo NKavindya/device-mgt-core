@@ -17,7 +17,7 @@
  */
 
 
-package io.entgra.device.mgt.core.device.mgt.common.notification.mgt;
+package io.entgra.device.mgt.core.notification.mgt.core.util;
 
 import java.util.List;
 

@@ -448,16 +448,14 @@ public class OperationManagerImpl implements OperationManager {
             }
         }
         try {
-            if (isScheduled && notificationStrategy != null) {
-                for (Device device : enrolments.values()) {
-                    String deviceType = device.getType();
-                    int deviceEnrollmentID = device.getId();
-                    String operationCode = operation.getCode();
-                    String operationStatus = operation.getStatus().toString();
-                    DeviceManagementDataHolder.getInstance().getNotificationManagementService()
-                            .handleOperationNotificationIfApplicable(operationCode, operationStatus,
-                                    deviceType, deviceEnrollmentID, tenantId, "immediate");
-                }
+            for (Device device : enrolments.values()) {
+                String deviceType = device.getType();
+                int deviceEnrollmentID = device.getId();
+                String operationCode = operation.getCode();
+                String operationStatus = Operation.Status.PENDING.toString();
+                DeviceManagementDataHolder.getInstance().getNotificationManagementService()
+                        .handleOperationNotificationIfApplicable(operationCode, operationStatus,
+                                deviceType, deviceEnrollmentID, tenantId, "immediate");
             }
         } catch (NotificationManagementException e) {
             String msg = "An Error occurred while updating handleOperationNotificationIfApplicable";

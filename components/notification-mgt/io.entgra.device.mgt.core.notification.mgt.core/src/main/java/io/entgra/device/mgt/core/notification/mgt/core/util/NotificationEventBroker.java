@@ -18,8 +18,6 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.util;
 
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationListener;
-
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 

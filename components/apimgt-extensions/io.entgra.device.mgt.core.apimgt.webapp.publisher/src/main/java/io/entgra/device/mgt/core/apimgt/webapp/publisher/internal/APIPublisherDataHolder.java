@@ -23,7 +23,7 @@ import io.entgra.device.mgt.core.apimgt.webapp.publisher.APIConfig;
 import io.entgra.device.mgt.core.apimgt.webapp.publisher.APIPublisherService;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
 import io.entgra.device.mgt.core.apimgt.webapp.publisher.PostApiPublishingObsever;
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementService;
+import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.registry.core.service.RegistryService;

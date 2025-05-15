@@ -27,7 +27,7 @@ import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationM
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigRecipients;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationList;
-import io.entgra.device.mgt.core.device.mgt.core.internal.DeviceManagementDataHolder;
+import io.entgra.device.mgt.core.notification.mgt.core.internal.NotificationManagementDataHolder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -36,7 +36,9 @@ import org.wso2.carbon.user.api.UserStoreManager;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class NotificationHelper {
     private static final Log log = LogFactory.getLog(NotificationHelper.class);
@@ -45,31 +47,31 @@ public class NotificationHelper {
 
     public static List<String> extractUsernamesFromRecipients(NotificationConfigRecipients recipients, int tenantId)
             throws UserStoreException {
-        List<String> usernames = new ArrayList<>();
+        Set<String> usernameSet = new HashSet<>();
         if (recipients == null) {
-            return usernames;
+            return new ArrayList<>();
         }
-        UserStoreManager userStoreManager = DeviceManagementDataHolder.getInstance()
+        UserStoreManager userStoreManager = NotificationManagementDataHolder.getInstance()
                 .getRealmService().getTenantUserRealm(tenantId).getUserStoreManager();
         List<String> users = recipients.getUsers();
         if (users != null) {
-            usernames.addAll(users);
+            usernameSet.addAll(users);
         }
         List<String> roles = recipients.getRoles();
         if (roles != null) {
             for (String role : roles) {
                 String[] usersWithRole = userStoreManager.getUserListOfRole(role);
-                usernames.addAll(Arrays.asList(usersWithRole));
+                usernameSet.addAll(Arrays.asList(usersWithRole));
             }
         }
-        return usernames;
+        return new ArrayList<>(usernameSet);
     }
 
     public static NotificationConfig getNotificationConfigurationByCode(String code)
             throws NotificationManagementException {
         log.info("Fetching notification configuration for code: " + code);
-        MetadataManagementService metaDataService = DeviceManagementDataHolder
-                .getInstance().getMetadataManagementService();
+        MetadataManagementService metaDataService = NotificationManagementDataHolder
+                .getInstance().getMetaDataManagementService();
         try {
             if (metaDataService == null) {
                 log.error("MetaDataManagementService is null");

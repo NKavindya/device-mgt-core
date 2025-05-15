@@ -36,6 +36,7 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.wso2.carbon.user.core.service.RealmService;
 
 
 @Component(
@@ -72,6 +73,11 @@ public class NotificationManagementServiceComponent {
         // Do nothing
     }
 
+    /**
+     * Sets DeviceManagementProviderService.
+     *
+     * @param deviceManagementProviderService An instance of DeviceManagementProviderService
+     */
     @Reference(
             name = "device.mgt.provider.service",
             service = io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService.class,
@@ -83,6 +89,21 @@ public class NotificationManagementServiceComponent {
                 .setDeviceManagementProviderService(deviceManagementProviderService);
     }
 
+    /**
+     * Unsets DeviceManagementProviderService.
+     *
+     * @param deviceManagementProviderService An instance of DeviceManagementProviderService
+     */
+    protected void unsetDeviceManagementProviderService(
+            DeviceManagementProviderService deviceManagementProviderService) {
+        NotificationManagementDataHolder.getInstance().setDeviceManagementProviderService(null);
+    }
+
+    /**
+     * Sets MetadataManagementService.
+     *
+     * @param metaDataManagementService An instance of MetadataManagementService
+     */
     @Reference(
             name = "io.entgra.device.mgt.core.device.mgt.core.internal.DeviceManagementServiceComponent",
             service = io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService.class,
@@ -97,15 +118,45 @@ public class NotificationManagementServiceComponent {
         }
     }
 
-    protected void unsetDeviceManagementProviderService(
-            DeviceManagementProviderService deviceManagementProviderService) {
-        NotificationManagementDataHolder.getInstance().setDeviceManagementProviderService(null);
-    }
-
+    /**
+     * Unsets MetadataManagementService.
+     *
+     * @param metaDataManagementService An instance of MetadataManagementService
+     */
     protected void unsetMetadataManagementService(MetadataManagementService metaDataManagementService) {
         NotificationManagementDataHolder.getInstance().setMetaDataManagementService(null);
         if (log.isDebugEnabled()) {
             log.debug("Meta data Management Service is unset successfully");
         }
+    }
+
+    /**
+     * Sets RealmService.
+     *
+     * @param realmService An instance of RealmService
+     */
+    @Reference(
+            name = "realm.service",
+            service = org.wso2.carbon.user.core.service.RealmService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetRealmService")
+    protected void setRealmService(RealmService realmService) {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting Realm Service");
+        }
+        NotificationManagementDataHolder.getInstance().setRealmService(realmService);
+    }
+
+    /**
+     * Unsets RealmService.
+     *
+     * @param realmService An instance of RealmService
+     */
+    protected void unsetRealmService(RealmService realmService) {
+        if (log.isDebugEnabled()) {
+            log.debug("Unsetting Realm Service");
+        }
+        NotificationManagementDataHolder.getInstance().setRealmService(null);
     }
 }

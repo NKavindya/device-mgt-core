@@ -162,12 +162,14 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                     NotificationManagementDAOFactory.beginTransaction();
                     int notificationId = notificationDAO.insertNotification(
                             tenantId, config.getId(), config.getType(), description);
-                    List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(config.getRecipients(), tenantId);
+                    List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(
+                            config.getRecipients(), tenantId);
                     if (!usernames.isEmpty()) {
                         notificationDAO.insertNotificationUserActions(notificationId, usernames);
                         for (String username : usernames) {
                             int count = notificationDAO.getUnreadNotificationCountForUser(username);
-                            String payload = String.format("{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
+                            String payload = String.format(
+                                    "{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
                             NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
                         }
                     }
@@ -194,7 +196,8 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                 NotificationManagementDAOFactory.beginTransaction();
                 int notificationId = notificationDAO.insertNotification(
                         tenantId, config.getId(), config.getType(), description);
-                List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(config.getRecipients(), tenantId);
+                List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(
+                        config.getRecipients(), tenantId);
                 if (!usernames.isEmpty()) {
                     notificationDAO.insertNotificationUserActions(notificationId, usernames);
                     for (String username : usernames) {
