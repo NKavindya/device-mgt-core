@@ -174,24 +174,31 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                 handleBatchOperationNotificationIfApplicable(config, deviceEnrollmentIDs,
                         operationStatus, deviceType, tenantId);
             } else {
-                for (int deviceEnrollmentID : deviceEnrollmentIDs) {
-                    String description = String.format("The operation %s (%s) for device with id %d of type %s is %s.",
-                            config.getCode(), config.getDescription(), deviceEnrollmentID, deviceType, statusToCheck);
-                    NotificationManagementDAOFactory.beginTransaction();
-                    int notificationId = notificationDAO.insertNotification(
-                            tenantId, config.getId(), config.getType(), description);
-                    List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(
-                            config.getRecipients(), tenantId);
-                    if (!usernames.isEmpty()) {
-                        notificationDAO.insertNotificationUserActions(notificationId, usernames);
-                        for (String username : usernames) {
-                            int count = notificationDAO.getUnreadNotificationCountForUser(username);
-                            String payload = String.format(
-                                    "{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
-                            NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+                NotificationManagementDAOFactory.beginTransaction();
+                try {
+                    for (int deviceEnrollmentID : deviceEnrollmentIDs) {
+                        String description = String.format("The operation %s (%s) for device with id %d of type %s is %s.",
+                                config.getCode(), config.getDescription(), deviceEnrollmentID, deviceType, statusToCheck);
+                        int notificationId = notificationDAO.insertNotification(
+                                tenantId, config.getId(), config.getType(), description);
+                        List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(
+                                config.getRecipients(), tenantId);
+                        if (!usernames.isEmpty()) {
+                            notificationDAO.insertNotificationUserActions(notificationId, usernames);
+                            for (String username : usernames) {
+                                int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                                String payload = String.format(
+                                        "{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
+                                NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+                            }
                         }
                     }
                     NotificationManagementDAOFactory.commitTransaction();
+                } catch (NotificationManagementException e) {
+                    NotificationManagementDAOFactory.rollbackTransaction();
+                    throw new NotificationManagementException("Error occurred while adding notification", e);
+                } catch (UserStoreException e) {
+                    throw new NotificationManagementException("Error occurred while adding user actions", e);
                 }
             }
         } catch (NotificationManagementException e) {
