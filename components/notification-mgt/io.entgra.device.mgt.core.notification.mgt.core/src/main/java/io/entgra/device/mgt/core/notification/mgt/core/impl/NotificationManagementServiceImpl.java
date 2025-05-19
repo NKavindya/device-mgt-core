@@ -19,6 +19,9 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.impl;
 
+import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigBatchNotifications;
+import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigCriticalCriteria;
+import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationSettings;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationEventBroker;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationHelper;
@@ -142,23 +145,38 @@ public class NotificationManagementServiceImpl implements NotificationManagement
 
     @Override
     public void handleOperationNotificationIfApplicable(String operationCode, String operationStatus,
-                                                        String deviceType, int deviceEnrollmentID,
+                                                        String deviceType, List<Integer> deviceEnrollmentIDs,
                                                         int tenantId, String notificationTriggerPoint)
             throws NotificationManagementException {
         try {
             NotificationConfig config = NotificationHelper.getNotificationConfigurationByCode(operationCode);
-            if (config != null) {
-                List<String> configDeviceTypes = config.getNotificationSettings().getDeviceTypes();
-                List<String> triggerPoints = config.getNotificationSettings().getNotificationTriggerPoints();
-                if (configDeviceTypes == null || configDeviceTypes.isEmpty() ||
-                        triggerPoints == null || triggerPoints.isEmpty()) {
+            if (config == null) return;
+            NotificationConfigurationSettings settings = config.getNotificationSettings();
+            if (settings == null) return;
+            List<String> configDeviceTypes = settings.getDeviceTypes();
+            List<String> triggerPoints = settings.getNotificationTriggerPoints();
+            if (configDeviceTypes == null || triggerPoints == null ||
+                    !configDeviceTypes.contains(deviceType) ||
+                    !triggerPoints.contains(notificationTriggerPoint)) {
+                return;
+            }
+            String statusToCheck = (operationStatus != null) ? operationStatus : "PENDING";
+            NotificationConfigCriticalCriteria criticalCriteriaConfig = settings.getCriticalCriteriaOnly();
+            if (criticalCriteriaConfig != null && criticalCriteriaConfig.isStatus()) {
+                List<String> criticalCriteria = criticalCriteriaConfig.getCriticalCriteria();
+                if (criticalCriteria == null || !criticalCriteria.contains(statusToCheck)) {
                     return;
                 }
-                if (configDeviceTypes.contains(deviceType) && triggerPoints.contains(notificationTriggerPoint)) {
-                    String status = (operationStatus != null) ? operationStatus : "PENDING";
+            }
+            NotificationConfigBatchNotifications batchConfig = settings.getBatchNotifications();
+            boolean isBatch = batchConfig != null && batchConfig.isEnabled();
+            if (isBatch) {
+                handleBatchOperationNotificationIfApplicable(config, deviceEnrollmentIDs,
+                        operationStatus, deviceType, tenantId);
+            } else {
+                for (int deviceEnrollmentID : deviceEnrollmentIDs) {
                     String description = String.format("The operation %s (%s) for device with id %d of type %s is %s.",
-                            operationCode, config.getDescription(),
-                            deviceEnrollmentID, deviceType, status);
+                            config.getCode(), config.getDescription(), deviceEnrollmentID, deviceType, statusToCheck);
                     NotificationManagementDAOFactory.beginTransaction();
                     int notificationId = notificationDAO.insertNotification(
                             tenantId, config.getId(), config.getType(), description);
@@ -184,6 +202,41 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             NotificationManagementDAOFactory.rollbackTransaction();
             throw new NotificationManagementException("Error occurred while adding notification", e);
         }
+    }
+
+    @Override
+    public void handleBatchOperationNotificationIfApplicable(NotificationConfig config,
+                                                             List<Integer> deviceIds,
+                                                             String operationStatus,
+                                                             String deviceType,
+                                                             int tenantId)
+            throws NotificationManagementException, TransactionManagementException, UserStoreException {
+        String status = (operationStatus != null) ? operationStatus : "PENDING";
+        NotificationConfigBatchNotifications batchConfig = config.getNotificationSettings().getBatchNotifications();
+        boolean includeDeviceList = batchConfig.isIncludeDeviceListInBatch();
+        String description;
+        if (includeDeviceList) {
+            description = String.format("The operation %s (%s) for device with ids %s of type %s is %s.",
+                    config.getCode(), config.getDescription(), deviceIds.toString(), deviceType, status);
+        } else {
+            description = String.format("The operation %s (%s) for devices of type %s is %s.",
+                    config.getCode(), config.getDescription(), deviceType, status);
+        }
+        NotificationManagementDAOFactory.beginTransaction();
+        int notificationId = notificationDAO.insertNotification(
+                tenantId, config.getId(), config.getType(), description);
+        List<String> usernames = NotificationHelper.extractUsernamesFromRecipients(
+                config.getRecipients(), tenantId);
+        if (!usernames.isEmpty()) {
+            notificationDAO.insertNotificationUserActions(notificationId, usernames);
+            for (String username : usernames) {
+                int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                String payload = String.format(
+                        "{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
+                NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+            }
+        }
+        NotificationManagementDAOFactory.commitTransaction();
     }
 
     @Override
