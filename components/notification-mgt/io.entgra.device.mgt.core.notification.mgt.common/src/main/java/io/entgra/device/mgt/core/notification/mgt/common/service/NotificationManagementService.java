@@ -87,6 +87,15 @@ public interface NotificationManagementService {
             throws NotificationManagementException;
 
     /**
+     * Archive one or more notifications for a given user.
+     *
+     * @param notificationIds A list of notification IDs to be deleted.
+     * @param username        The username associated with the notifications.
+     * @throws NotificationManagementException If an error occurs while deleting the notifications.
+     */
+    void archiveUserNotifications(List<Integer> notificationIds, String username)
+            throws NotificationManagementException;
+    /**
      * Handles the operation notification if applicable based on the provided operation code,
      * status, device type, and other related details. This method constructs a notification message
      * and triggers the appropriate notifications to the users based on the configuration.

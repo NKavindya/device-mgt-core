@@ -17,14 +17,18 @@
  *
  */
 
-package io.entgra.device.mgt.core.notification.mgt.core.util;
+package io.entgra.device.mgt.core.notification.mgt.common.service;
 
-public class Constants {
-    public static final String CDM_CONFIG_FILE_NAME = "cdm-config.xml";
-    public static final String TENANT_ID_KEY = "TENANT_ID";
-    public static final String NOTIFICATION_ARCHIVAL_TASK_NAME = "NOTIFICATION_ARCHIVAL_TASK";
-    public static final String NOTIFICATION_ARCHIVAL_TASK_TYPE = "NOTIFICATION_ARCHIVAL_TASK_TYPE";
-    public static final String CRON_EXPRESSION = "0 0 2 * * ?";
-    public static final String DEFAULT_ARCHIVE_PERIOD = "12 months";
-    public static final String DEFAULT_ARCHIVE_TYPE = "DB";
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
+
+public interface NotificationArchivalService {
+
+    /**
+     * Archives notifications and their associated user actions that are older than a defined retention period.
+     * This method orchestrates the data movement and deletion between main and archive tables.
+     *
+     * @param tenantId relevant tenant id.
+     * @throws NotificationArchivalException If an error occurs during the archival process.
+     */
+    void archiveOldNotifications(int tenantId) throws NotificationArchivalException;
 }

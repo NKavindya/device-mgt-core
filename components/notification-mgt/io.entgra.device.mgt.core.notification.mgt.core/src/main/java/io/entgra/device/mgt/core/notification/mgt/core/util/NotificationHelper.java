@@ -34,11 +34,15 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
 
 import java.lang.reflect.Type;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class NotificationHelper {
     private static final Log log = LogFactory.getLog(NotificationHelper.class);
@@ -120,6 +124,62 @@ public class NotificationHelper {
                 log.error(message, e);
                 throw new NotificationManagementException(message, e);
             }
+        }
+    }
+
+    public static Timestamp resolveCutoffTimestamp(String duration) {
+        if (duration == null || duration.isEmpty()) {
+            return null;
+        }
+        Pattern pattern = Pattern.compile("(\\d+)\\s*(day|week|month|year)s?", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(duration.trim());
+        if (matcher.matches()) {
+            int amount = Integer.parseInt(matcher.group(1));
+            String unit = matcher.group(2).toLowerCase();
+            Calendar cal = Calendar.getInstance();
+            switch (unit) {
+                case "day":
+                    cal.add(Calendar.DAY_OF_MONTH, -amount);
+                    break;
+                case "week":
+                    cal.add(Calendar.WEEK_OF_YEAR, -amount);
+                    break;
+                case "month":
+                    cal.add(Calendar.MONTH, -amount);
+                    break;
+                case "year":
+                    cal.add(Calendar.YEAR, -amount);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid time unit: " + unit);
+            }
+            return new Timestamp(cal.getTimeInMillis());
+        }
+        throw new IllegalArgumentException("Invalid archive duration format: " + duration);
+    }
+
+    public static NotificationConfigurationList getNotificationConfigurationsFromMetadata()
+            throws NotificationManagementException {
+        log.info("Fetching all notification configurations from metadata.");
+        MetadataManagementService metaDataService = NotificationManagementDataHolder
+                .getInstance().getMetaDataManagementService();
+        try {
+            if (metaDataService == null) {
+                log.error("MetaDataManagementService is null");
+                throw new NotificationManagementException("MetaDataManagementService is not available");
+            }
+            Metadata existingMetadata = metaDataService.retrieveMetadata(NOTIFICATION_CONFIG_META_KEY);
+            if (existingMetadata == null) {
+                log.warn("No notification configuration metadata found.");
+                return null;
+            }
+            String metaValue = existingMetadata.getMetaValue();
+            Type listType = new TypeToken<NotificationConfigurationList>() {}.getType();
+            return new Gson().fromJson(metaValue, listType);
+        }catch (MetadataManagementException e) {
+            String message = "Unexpected error occurred while retrieving notification configurations for tenant ID.";
+            log.error(message, e);
+            throw new NotificationManagementException(message, e);
         }
     }
 }

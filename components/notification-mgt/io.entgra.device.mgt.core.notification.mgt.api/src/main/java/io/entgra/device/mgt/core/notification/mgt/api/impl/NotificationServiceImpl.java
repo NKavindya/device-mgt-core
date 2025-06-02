@@ -34,6 +34,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -116,6 +117,26 @@ public class NotificationServiceImpl implements NotificationService {
             return Response.status(HttpStatus.SC_OK).entity("Notifications deleted successfully").build();
         } catch (NotificationManagementException e) {
             String msg = "Failed to delete notifications for user: " + username;
+            log.error(msg, e);
+            return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
+        }
+    }
+
+    @POST
+    @Path("/archive")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response archiveUserNotifications(
+            @QueryParam("username") String username,
+            List<Integer> notificationIds
+    ) {
+        NotificationManagementService notificationService =
+                NotificationManagementApiUtil.getNotificationManagementService();
+        try {
+            notificationService.archiveUserNotifications(notificationIds, username);
+            return Response.status(HttpStatus.SC_OK).entity("Notifications archived successfully").build();
+        } catch (NotificationManagementException e) {
+            String msg = "Failed to archive notifications for user: " + username;
             log.error(msg, e);
             return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
         }

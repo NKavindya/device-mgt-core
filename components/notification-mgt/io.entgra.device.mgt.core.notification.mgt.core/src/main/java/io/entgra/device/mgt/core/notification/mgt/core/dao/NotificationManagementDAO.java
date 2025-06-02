@@ -132,4 +132,14 @@ public interface NotificationManagementDAO {
      */
     void deleteUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationManagementException;
+
+    /**
+     * Archive one or more notifications for a given user from the DB.
+     *
+     * @param notificationIds A list of notification IDs to be deleted.
+     * @param username        The username associated with the notifications.
+     * @throws NotificationManagementException If an error occurs while deleting the notifications.
+     */
+    void archiveUserNotifications(List<Integer> notificationIds, String username)
+            throws NotificationManagementException;
 }
