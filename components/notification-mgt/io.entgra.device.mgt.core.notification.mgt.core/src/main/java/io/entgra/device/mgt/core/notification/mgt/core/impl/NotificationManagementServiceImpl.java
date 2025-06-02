@@ -150,12 +150,27 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             NotificationManagementDAOFactory.beginTransaction();
             notificationDAO.deleteUserNotifications(notificationIds, username);
             NotificationManagementDAOFactory.commitTransaction();
-
             int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
             String payload = String.format("{\"unreadCount\":%d}", unreadCount);
             NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
         } catch (TransactionManagementException e) {
             String msg = "Error occurred while deleting notifications for user: " + username;
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        } finally {
+            NotificationManagementDAOFactory.closeConnection();
+        }
+    }
+
+    @Override
+    public void archiveUserNotifications(List<Integer> notificationIds, String username)
+            throws NotificationManagementException {
+        try {
+            NotificationManagementDAOFactory.beginTransaction();
+            notificationDAO.archiveUserNotifications(notificationIds, username);
+            NotificationManagementDAOFactory.commitTransaction();
+        } catch (TransactionManagementException e) {
+            String msg = "Error occurred while archiving notifications for user: " + username;
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         } finally {

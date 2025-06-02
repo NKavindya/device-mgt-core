@@ -36,6 +36,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -76,6 +77,20 @@ import java.util.List;
                         key = "dm:notif:mark-checked",
                         roles = {"Internal/devicemgt-user"},
                         permissions = {"/device-mgt/notifications/update"}
+                ),
+                @Scope(
+                        name = "Archive the Notifications",
+                        description = "Archive the Notifications",
+                        key = "dm:notif:archive",
+                        roles = {"Internal/devicemgt-user"},
+                        permissions = {"/device-mgt/notifications/archive"}
+                ),
+                @Scope(
+                        name = "Delete the Notification",
+                        description = "Delete the Notifications",
+                        key = "dm:notif:delete",
+                        roles = {"Internal/devicemgt-user"},
+                        permissions = {"/device-mgt/notifications/delete"}
                 )
         }
 )
@@ -284,10 +299,53 @@ public interface NotificationService {
                     required = true)
             @QueryParam("username")
             String username,
-
             @ApiParam(
                     name = "notificationIds",
                     value = "List of Notification IDs to be deleted (passed in request body)",
+                    required = true)
+            List<Integer> notificationIds
+    );
+
+    @POST
+    @Path("/archive")
+    @ApiOperation(
+            produces = MediaType.APPLICATION_JSON,
+            httpMethod = "POST",
+            value = "Archive User Notifications",
+            notes = "Archive one or more notifications for a specific user.",
+            tags = "Notification Management",
+            extensions = {
+                    @Extension(properties = {
+                            @ExtensionProperty(name = SCOPE, value = "dm:notif:archive")
+                    })
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            code = 200,
+                            message = "OK. Successfully archived notifications.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 400,
+                            message = "Bad Request. Missing or invalid parameters.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 500,
+                            message = "Internal Server Error. Failed to archive notifications.",
+                            response = Response.class)
+            }
+    )
+    Response archiveUserNotifications(
+            @ApiParam(
+                    name = "username",
+                    value = "Username for whom the notifications should be archived",
+                    required = true)
+            @QueryParam("username")
+            String username,
+            @ApiParam(
+                    name = "notificationIds",
+                    value = "List of Notification IDs to be archived (passed in request body)",
                     required = true)
             List<Integer> notificationIds
     );
