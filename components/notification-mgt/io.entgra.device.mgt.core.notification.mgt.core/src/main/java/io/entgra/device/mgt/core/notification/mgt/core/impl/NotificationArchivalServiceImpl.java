@@ -22,8 +22,6 @@ package io.entgra.device.mgt.core.notification.mgt.core.impl;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationList;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
-import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
-import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationArchivalService;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
@@ -58,18 +56,9 @@ public class NotificationArchivalServiceImpl implements NotificationArchivalServ
                 NotificationManagementDAOFactory.commitTransaction();
                 return;
             }
-            // use default from Constants if null/empty
+            NotificationHelper.applyDefaultArchiveValues(configList);
             String defaultArchiveType = configList.getDefaultArchiveType();
-            if (defaultArchiveType == null || defaultArchiveType.trim().isEmpty()) {
-                log.info("defaultArchiveType missing in config. Falling back to Constants.DEFAULT_ARCHIVE_TYPE.");
-                defaultArchiveType = Constants.DEFAULT_ARCHIVE_TYPE;
-            }
             String defaultArchiveAfter = configList.getDefaultArchiveAfter();
-            if (defaultArchiveAfter == null || defaultArchiveAfter.trim().isEmpty()) {
-                log.info("defaultArchiveAfter missing in config. Falling back to Constants.DEFAULT_ARCHIVE_PERIOD.");
-                defaultArchiveAfter = Constants.DEFAULT_ARCHIVE_PERIOD;
-            }
-            // archive config-specific notifications
             Set<Integer> alreadyHandledConfigIds = new HashSet<>();
             for (NotificationConfig config : configList.getNotificationConfigurations()) {
                 String archiveType = config.getNotificationSettings() != null ?
@@ -116,7 +105,6 @@ public class NotificationArchivalServiceImpl implements NotificationArchivalServ
                     defaultCutoff = NotificationHelper.resolveCutoffTimestamp(Constants.DEFAULT_ARCHIVE_PERIOD);
                 }
                 log.info("Archiving default-config notifications older than " + defaultCutoff);
-
                 List<Integer> moved = archivalDAO.moveNotificationsToArchiveExcludingConfigs(
                         defaultCutoff, tenantId, alreadyHandledConfigIds);
                 log.info("Moved " + moved.size() + " default-config notifications");

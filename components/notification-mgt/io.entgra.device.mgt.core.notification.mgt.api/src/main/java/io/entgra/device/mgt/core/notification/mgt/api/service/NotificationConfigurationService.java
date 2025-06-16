@@ -448,4 +448,63 @@ public interface NotificationConfigurationService {
             }
     )
     Response deleteNotificationConfigurations();
+
+    @PUT
+    @Path("/defaults")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @ApiOperation(
+            produces = MediaType.APPLICATION_JSON,
+            httpMethod = "PUT",
+            value = "Update Default Archival Settings",
+            notes = "Sets the default archive type and duration for notifications that do not have" +
+                    " specific configurations.",
+            tags = "Notification Configuration Management",
+            extensions = {
+                    @Extension(properties = {
+                            @ExtensionProperty(name = SCOPE, value = "dm:notificationConfig:update"),
+                            @ExtensionProperty(name = "context",
+                                    value = "/api/notification-mgt/v1.0/notification-configuration")
+                    })
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            code = 200,
+                            message = "OK. \nSuccessfully updated the default archival settings.",
+                            response = NotificationConfigurationList.class,
+                            responseHeaders = {
+                                    @ResponseHeader(
+                                            name = "Content-Type",
+                                            description = "The content type of the body"
+                                    ),
+                                    @ResponseHeader(
+                                            name = "Last-Modified",
+                                            description = "Date and time the resource was last modified. " +
+                                                    "Used by caches, or in conditional requests."
+                                    )
+                            }
+                    ),
+                    @ApiResponse(
+                            code = 400,
+                            message = "Bad Request. Invalid or missing archival settings provided.",
+                            response = ErrorResponse.class
+                    ),
+                    @ApiResponse(
+                            code = 500,
+                            message = "Internal Server Error. Failed to update the default archival " +
+                                    "settings due to a server error.",
+                            response = ErrorResponse.class
+                    )
+            }
+    )
+    Response updateDefaultArchiveSettings(
+            @ApiParam(
+                    name = "archiveDefaults",
+                    value = "DTO containing the default archive type and archive period (e.g., '6 days', '3 months').",
+                    required = true
+            )
+            NotificationConfigurationList archiveDefaults
+    );
 }

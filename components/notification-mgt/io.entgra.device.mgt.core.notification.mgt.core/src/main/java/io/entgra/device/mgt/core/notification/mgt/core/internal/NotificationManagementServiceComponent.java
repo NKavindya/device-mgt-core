@@ -19,6 +19,7 @@
 package io.entgra.device.mgt.core.notification.mgt.core.internal;
 
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationConfigurationServiceException;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationConfigService;
 import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
@@ -29,6 +30,7 @@ import io.entgra.device.mgt.core.notification.mgt.core.impl.NotificationConfigSe
 import io.entgra.device.mgt.core.notification.mgt.core.impl.NotificationManagementServiceImpl;
 import io.entgra.device.mgt.core.notification.mgt.core.task.NotificationArchivalTaskManager;
 import io.entgra.device.mgt.core.notification.mgt.core.task.NotificationArchivalTaskManagerImpl;
+import io.entgra.device.mgt.core.notification.mgt.core.util.Constants;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.framework.BundleContext;
@@ -41,7 +43,6 @@ import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.ntask.core.service.TaskService;
 import org.wso2.carbon.user.core.service.RealmService;
-
 
 @Component(
         name = "io.entgra.device.mgt.core.notification.mgt.core.internal.NotificationManagementServiceComponent",
@@ -57,15 +58,19 @@ public class NotificationManagementServiceComponent {
             NotificationConfigurationManager notificationConfigManager = NotificationConfigurationManager.getInstance();
             NotificationManagementDAOFactory.init(notificationConfigManager
                     .getNotificationManagementRepository().getDataSourceConfig());
-
             NotificationManagementService notificationManagementService = new NotificationManagementServiceImpl();
             bundleContext.registerService(NotificationManagementService.class.getName(),
                     notificationManagementService, null);
-
             NotificationConfigService notificationConfigurationService = new NotificationConfigServiceImpl();
             bundleContext.registerService(NotificationConfigService.class.getName(),
                     notificationConfigurationService, null);
-
+            try {
+                notificationConfigurationService.setDefaultNotificationArchiveMetadata(
+                                Constants.DEFAULT_ARCHIVE_TYPE,
+                                Constants.DEFAULT_ARCHIVE_PERIOD);
+            } catch (NotificationConfigurationServiceException e) {
+                log.error("Failed to set default notification archive metadata", e);
+            }
             NotificationArchivalTaskManager archivalTaskManager = new NotificationArchivalTaskManagerImpl();
             try {
                 archivalTaskManager.startTask();
