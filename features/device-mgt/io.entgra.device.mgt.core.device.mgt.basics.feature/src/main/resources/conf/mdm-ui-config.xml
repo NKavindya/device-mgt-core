@@ -161,6 +161,21 @@
             <DisplayValue>label_updated_time</DisplayValue>
             <Type>deviceInfo</Type>
         </DeviceInfoItem>
+        <DeviceInfoItem>
+            <DefinedValue>firmwareVersion</DefinedValue>
+            <DisplayValue>label_firmware_version</DisplayValue>
+            <Type>deviceInfo</Type>
+        </DeviceInfoItem>
+        <DeviceInfoItem>
+            <DefinedValue>firmwareSystemVersion</DefinedValue>
+            <DisplayValue>label_firmware_system_version</DisplayValue>
+            <Type>deviceInfo</Type>
+        </DeviceInfoItem>
+        <DeviceInfoItem>
+            <DefinedValue>firmwareAppVersion</DefinedValue>
+            <DisplayValue>label_firmware_app_version</DisplayValue>
+            <Type>deviceInfo</Type>
+        </DeviceInfoItem>
     </DeviceInfoConfigurations>
     <DeviceStatusConfigurations>
         <EnableDeviceStatusCheck>false</EnableDeviceStatusCheck>
