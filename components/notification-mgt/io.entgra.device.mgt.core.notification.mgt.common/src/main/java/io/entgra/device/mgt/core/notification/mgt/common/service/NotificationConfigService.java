@@ -26,6 +26,19 @@ import java.util.List;
 public interface NotificationConfigService {
 
     /**
+     * Sets the default notification archival metadata values for all notifications.
+     * This method updates the metadata entry identified by the {@code NOTIFICATION_CONFIG_META_KEY}
+     * to include or overwrite the default archival type and archival period. If the metadata does
+     * not already exist, a new entry will be created. If it exists, the values will be updated
+     * while preserving existing notification configurations.
+     * @param defaultType  The default archival type to set (e.g., "DB", "ELK").
+     * @param defaultAfter The default archival period to set (e.g., "12 months", "6 weeks").
+     * @throws NotificationConfigurationServiceException If an error occurs while updating or creating the metadata.
+     */
+    void setDefaultNotificationArchiveMetadata(String defaultType, String defaultAfter)
+            throws NotificationConfigurationServiceException;
+
+    /**
      * Retrieve the  notification configurations for a tenant.
      *
      * @return {@link List < Notification >}

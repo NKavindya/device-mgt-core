@@ -254,4 +254,30 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
             return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
         }
     }
+
+    @PUT
+    @Path("/defaults")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Override
+    public Response updateDefaultArchiveSettings(NotificationConfigurationList configList) {
+        String defaultType = configList.getDefaultArchiveType();
+        String defaultAfter = configList.getDefaultArchiveAfter();
+        if (defaultType == null || defaultAfter == null ||
+                defaultType.isEmpty() || defaultAfter.isEmpty()) {
+            String msg = "Default archive type and period must not be empty.";
+            log.error(msg);
+            return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
+        }
+        try {
+            NotificationConfigService notificationConfigService =
+                    NotificationConfigurationApiUtil.getNotificationConfigurationService();
+            notificationConfigService.setDefaultNotificationArchiveMetadata(defaultType, defaultAfter);
+            return Response.status(HttpStatus.SC_OK).entity(configList).build();
+        } catch (NotificationConfigurationServiceException e) {
+            String msg = "Error updating default archival settings: " + e.getMessage();
+            log.error(msg, e);
+            return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
+        }
+    }
 }

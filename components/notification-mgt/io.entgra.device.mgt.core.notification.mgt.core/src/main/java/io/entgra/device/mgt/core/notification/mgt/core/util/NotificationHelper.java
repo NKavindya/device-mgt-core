@@ -49,6 +49,14 @@ public class NotificationHelper {
     public static final String NOTIFICATION_CONFIG_META_KEY = "notification-config" ;
     private static final Gson gson = new Gson();
 
+    /**
+     * Extracts all usernames from the given recipients object including users and roles.
+     *
+     * @param recipients Recipients containing users and roles.
+     * @param tenantId   Tenant ID to get the correct user store.
+     * @return List of usernames.
+     * @throws UserStoreException if there is an error accessing the user store.
+     */
     public static List<String> extractUsernamesFromRecipients(NotificationConfigRecipients recipients, int tenantId)
             throws UserStoreException {
         Set<String> usernameSet = new HashSet<>();
@@ -71,6 +79,13 @@ public class NotificationHelper {
         return new ArrayList<>(usernameSet);
     }
 
+    /**
+     * Retrieves a specific notification configuration by its code from metadata.
+     *
+     * @param code The configuration code to look for.
+     * @return NotificationConfig object if found, otherwise null.
+     * @throws NotificationManagementException if there's an error retrieving or parsing the metadata.
+     */
     public static NotificationConfig getNotificationConfigurationByCode(String code)
             throws NotificationManagementException {
         log.info("Fetching notification configuration for code: " + code);
@@ -127,6 +142,13 @@ public class NotificationHelper {
         }
     }
 
+    /**
+     * Resolves a timestamp in the past based on a duration string like "6 days", "2 weeks", etc.
+     *
+     * @param duration Duration string (e.g., "7 days", "2 months").
+     * @return Timestamp object representing the cutoff time.
+     * @throws IllegalArgumentException if the format is invalid.
+     */
     public static Timestamp resolveCutoffTimestamp(String duration) {
         if (duration == null || duration.isEmpty()) {
             return null;
@@ -158,6 +180,12 @@ public class NotificationHelper {
         throw new IllegalArgumentException("Invalid archive duration format: " + duration);
     }
 
+    /**
+     * Fetches all notification configurations from metadata storage.
+     *
+     * @return NotificationConfigurationList object if found, otherwise null.
+     * @throws NotificationManagementException if there's an error retrieving the configurations.
+     */
     public static NotificationConfigurationList getNotificationConfigurationsFromMetadata()
             throws NotificationManagementException {
         log.info("Fetching all notification configurations from metadata.");
@@ -180,6 +208,23 @@ public class NotificationHelper {
             String message = "Unexpected error occurred while retrieving notification configurations for tenant ID.";
             log.error(message, e);
             throw new NotificationManagementException(message, e);
+        }
+    }
+
+
+    /**
+     * Applies default archive values to a configuration list if they are missing.
+     *
+     * @param configurations The configuration list to update with default values.
+     */
+    public static void applyDefaultArchiveValues(NotificationConfigurationList configurations) {
+        if (configurations.getDefaultArchiveAfter() == null
+                || configurations.getDefaultArchiveAfter().isEmpty()) {
+            configurations.setDefaultArchiveAfter(Constants.DEFAULT_ARCHIVE_PERIOD);
+        }
+        if (configurations.getDefaultArchiveType() == null
+                || configurations.getDefaultArchiveType().isEmpty()) {
+            configurations.setDefaultArchiveType(Constants.DEFAULT_ARCHIVE_TYPE);
         }
     }
 }
