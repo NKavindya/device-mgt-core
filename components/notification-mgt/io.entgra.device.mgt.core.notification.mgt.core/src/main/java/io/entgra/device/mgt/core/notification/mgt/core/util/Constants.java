@@ -22,6 +22,7 @@ package io.entgra.device.mgt.core.notification.mgt.core.util;
 public class Constants {
     public static final String CDM_CONFIG_FILE_NAME = "cdm-config.xml";
     public static final String TENANT_ID_KEY = "TENANT_ID";
+    public static final int SUPER_TENANT_ID = -1234;
     public static final String NOTIFICATION_ARCHIVAL_TASK_NAME = "NOTIFICATION_ARCHIVAL_TASK";
     public static final String NOTIFICATION_ARCHIVAL_TASK_TYPE = "NOTIFICATION_ARCHIVAL_TASK_TYPE";
     public static final String CRON_EXPRESSION = "0 0 2 * * ?";
