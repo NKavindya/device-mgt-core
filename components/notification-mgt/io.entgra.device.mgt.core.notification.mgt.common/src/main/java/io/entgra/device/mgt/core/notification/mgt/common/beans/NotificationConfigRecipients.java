@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Objects;
 
 public class NotificationConfigRecipients {
+
+    public NotificationConfigRecipients() {}
+
     private List<String> roles = new ArrayList<>(List.of("admin"));
     private List<String> users = new ArrayList<>(List.of("admin"));
 

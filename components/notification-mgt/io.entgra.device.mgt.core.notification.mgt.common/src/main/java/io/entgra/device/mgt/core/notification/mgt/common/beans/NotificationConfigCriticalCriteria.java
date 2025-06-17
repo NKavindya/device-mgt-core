@@ -22,6 +22,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class NotificationConfigCriticalCriteria {
+
+    public NotificationConfigCriticalCriteria() {}
+
     @JsonProperty("status")
     private boolean status;
 

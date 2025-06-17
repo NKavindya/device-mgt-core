@@ -24,6 +24,8 @@ import java.util.List;
 
 public class NotificationConfigBatchNotifications {
 
+    public NotificationConfigBatchNotifications() {}
+
     @JsonProperty("enabled")
     private boolean enabled;
 

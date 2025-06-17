@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="Notification Management Test Suite" parallel="false">
+    <test name="Notification Management Tests" preserve-order="true">
+        <classes>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.common.BaseNotificationManagementTest"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.dao.GenericNotificationManagementDAOTest"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAOTests"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.impl.NotificationArchivalServiceImplTest"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.impl.NotificationConfigServiceImplTest"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.internal.NotificationManagementServiceComponentTest"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.task.NotificationArchivalTaskManagerImplTest"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.task.NotificationArchivalTaskTest"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.util.NotificationEventBrokerTest"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.util.NotificationHelperTest"/>
+            <class name="io.entgra.device.mgt.core.notification.mgt.core.util.NotificationListenerTest"/>
+        </classes>
+    </test>
+</suite> 
