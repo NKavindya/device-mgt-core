@@ -59,6 +59,11 @@ public class NotificationManagementServiceImpl implements NotificationManagement
         notificationArchiveDAO = NotificationArchivalDestDAOFactory.getNotificationArchivalDAO();
     }
 
+    public NotificationManagementServiceImpl(NotificationManagementDAO dao, NotificationArchivalDAO archiveDAO) {
+        this.notificationDAO = dao;
+        this.notificationArchiveDAO = archiveDAO;
+    }
+
     @Override
     public List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementException {
         try {

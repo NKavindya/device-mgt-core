@@ -47,6 +47,7 @@ public class NotificationManagementDAOFactory {
     private static final ThreadLocal<Connection> currentConnection = new ThreadLocal<>();
     private static DataSource dataSource;
     private static String productName;
+    private static String databaseEngine;
 
     public static void init(NotificationDatasourceConfiguration notificationDatasourceConfiguration) {
         dataSource = resolveDatasource(notificationDatasourceConfiguration);
@@ -189,6 +190,15 @@ public class NotificationManagementDAOFactory {
             connection.commit();
         } catch (SQLException e) {
             log.error("Error encountered while committing the transaction", e);
+        }
+    }
+
+    public static void init(DataSource dtSource) {
+        dataSource = dtSource;
+        try {
+            databaseEngine = dataSource.getConnection().getMetaData().getDatabaseProductName();
+        } catch (SQLException e) {
+            log.error("Error occurred while retrieving config.datasource connection", e);
         }
     }
 }

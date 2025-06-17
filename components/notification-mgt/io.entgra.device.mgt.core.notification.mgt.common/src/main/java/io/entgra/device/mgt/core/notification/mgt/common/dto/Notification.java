@@ -30,6 +30,9 @@ public class Notification {
     private int priority;
     private Timestamp createdTimestamp;
 
+    public Notification() {
+    }
+
     public int getNotificationId() {
         return notificationId;
     }
