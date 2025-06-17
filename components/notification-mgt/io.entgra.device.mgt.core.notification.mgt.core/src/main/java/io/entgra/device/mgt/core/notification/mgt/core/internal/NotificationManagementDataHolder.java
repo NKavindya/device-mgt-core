@@ -56,7 +56,7 @@ public class NotificationManagementDataHolder {
         return tenantManager;
     }
 
-    private void setTenantManager(TenantManager tenantManager) {
+    public void setTenantManager(TenantManager tenantManager) {
         this.tenantManager = tenantManager;
     }
 
