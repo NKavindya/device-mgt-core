@@ -430,4 +430,61 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
             throw new NotificationManagementException(msg, e);
         }
     }
+
+    @Override
+    public void deleteAllUserNotifications(String username) throws NotificationManagementException {
+        String query =
+                "DELETE " +
+                        "FROM DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ?";
+        try {
+            Connection connection = NotificationManagementDAOFactory.getConnection();
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                    stmt.setString(1, username);
+                    stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            String msg = "Error occurred while deleting all notifications for user: " + username;
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        }
+    }
+
+    @Override
+    public void archiveAllUserNotifications(String username) throws NotificationManagementException {
+        String insertQuery =
+                "INSERT INTO DM_NOTIFICATION_USER_ACTION_ARCH " +
+                "(NOTIFICATION_ID, " +
+                        "USERNAME, " +
+                        "ACTION_TYPE, " +
+                        "ACTION_TIMESTAMP) " +
+                "SELECT " +
+                        "NOTIFICATION_ID, " +
+                        "USERNAME, " +
+                        "ACTION_TYPE, " +
+                        "ACTION_TIMESTAMP " +
+                "FROM DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ?";
+        String deleteQuery =
+                "DELETE " +
+                        "FROM DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ?";
+        try {
+            Connection connection = NotificationManagementDAOFactory.getConnection();
+            // archive (insert into ARCH table)
+            try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
+                insertStmt.setString(1, username);
+                insertStmt.executeUpdate();
+            }
+            // delete from original table
+            try (PreparedStatement deleteStmt = connection.prepareStatement(deleteQuery)) {
+                deleteStmt.setString(1, username);
+                deleteStmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            String msg = "Error occurred while archiving all notifications for user: " + username;
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        }
+    }
 }

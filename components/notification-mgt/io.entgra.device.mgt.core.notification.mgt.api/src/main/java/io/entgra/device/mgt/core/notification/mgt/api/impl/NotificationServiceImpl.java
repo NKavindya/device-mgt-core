@@ -32,6 +32,7 @@ import org.apache.commons.logging.LogFactory;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.POST;
@@ -106,14 +107,20 @@ public class NotificationServiceImpl implements NotificationService {
 
     @DELETE
     @Path("/delete")
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response deleteUserNotifications(
             @QueryParam("username") String username,
+            @QueryParam("all") @DefaultValue("false") boolean deleteAll,
             List<Integer> notificationIds
     ) {
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
-            notificationService.deleteUserNotifications(notificationIds, username);
+            if (deleteAll) {
+                notificationService.deleteAllUserNotifications(username);
+            } else {
+                notificationService.deleteUserNotifications(notificationIds, username);
+            }
             return Response.status(HttpStatus.SC_OK).entity("Notifications deleted successfully").build();
         } catch (NotificationManagementException e) {
             String msg = "Failed to delete notifications for user: " + username;
@@ -128,12 +135,17 @@ public class NotificationServiceImpl implements NotificationService {
     @Produces(MediaType.APPLICATION_JSON)
     public Response archiveUserNotifications(
             @QueryParam("username") String username,
+            @QueryParam("all") @DefaultValue("false") boolean archiveAll,
             List<Integer> notificationIds
     ) {
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
-            notificationService.archiveUserNotifications(notificationIds, username);
+            if (archiveAll) {
+                notificationService.archiveAllUserNotifications(username);
+            } else {
+                notificationService.archiveUserNotifications(notificationIds, username);
+            }
             return Response.status(HttpStatus.SC_OK).entity("Notifications archived successfully").build();
         } catch (NotificationManagementException e) {
             String msg = "Failed to archive notifications for user: " + username;

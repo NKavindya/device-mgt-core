@@ -34,6 +34,7 @@ import io.swagger.annotations.Tag;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.POST;
@@ -268,7 +269,8 @@ public interface NotificationService {
             produces = MediaType.APPLICATION_JSON,
             httpMethod = "DELETE",
             value = "Delete User Notifications",
-            notes = "Delete one or more notifications for a specific user.",
+            notes = "Delete one or more notifications for a specific user." +
+                    " If 'all=true' is passed, all notifications for the user will be deleted.",
             tags = "Notification Management",
             extensions = {
                     @Extension(properties = {
@@ -300,9 +302,18 @@ public interface NotificationService {
             @QueryParam("username")
             String username,
             @ApiParam(
+                    name = "all",
+                    value = "Whether to delete all notifications for the user. " +
+                            "If true, the body can be omitted.",
+                    required = false)
+            @QueryParam("all")
+            @DefaultValue("false")
+            boolean deleteAll,
+            @ApiParam(
                     name = "notificationIds",
-                    value = "List of Notification IDs to be deleted (passed in request body)",
-                    required = true)
+                    value = "List of Notification IDs to be deleted (passed in request body). " +
+                            "Ignored if 'all=true'.",
+                    required = false)
             List<Integer> notificationIds
     );
 
@@ -312,7 +323,8 @@ public interface NotificationService {
             produces = MediaType.APPLICATION_JSON,
             httpMethod = "POST",
             value = "Archive User Notifications",
-            notes = "Archive one or more notifications for a specific user.",
+            notes = "Archive one or more notifications for a specific user. " +
+                    "If 'all=true' is passed, all notifications for the user will be archived.",
             tags = "Notification Management",
             extensions = {
                     @Extension(properties = {
@@ -343,10 +355,20 @@ public interface NotificationService {
                     required = true)
             @QueryParam("username")
             String username,
+
+            @ApiParam(
+                    name = "all",
+                    value = "Whether to archive all notifications for the user. " +
+                            "If true, the body can be omitted.",
+                    required = false)
+            @QueryParam("all")
+            @DefaultValue("false")
+            boolean archiveAll,
             @ApiParam(
                     name = "notificationIds",
-                    value = "List of Notification IDs to be archived (passed in request body)",
-                    required = true)
+                    value = "List of Notification IDs to be archived (passed in request body). " +
+                            "Ignored if 'all=true'.",
+                    required = false)
             List<Integer> notificationIds
     );
 }

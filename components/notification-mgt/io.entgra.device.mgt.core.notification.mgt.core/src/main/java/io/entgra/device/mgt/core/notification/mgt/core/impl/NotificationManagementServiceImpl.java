@@ -179,6 +179,40 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
+    public void deleteAllUserNotifications(String username) throws NotificationManagementException {
+        try {
+            NotificationManagementDAOFactory.beginTransaction();
+            notificationDAO.deleteAllUserNotifications(username);
+            NotificationManagementDAOFactory.commitTransaction();
+
+            int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
+            String payload = String.format("{\"unreadCount\":%d}", unreadCount);
+            NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+        } catch (TransactionManagementException e) {
+            String msg = "Error occurred while deleting all notifications for user: " + username;
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        } finally {
+            NotificationManagementDAOFactory.closeConnection();
+        }
+    }
+
+    @Override
+    public void archiveAllUserNotifications(String username) throws NotificationManagementException {
+        try {
+            NotificationManagementDAOFactory.beginTransaction();
+            notificationDAO.archiveAllUserNotifications(username);
+            NotificationManagementDAOFactory.commitTransaction();
+        } catch (TransactionManagementException e) {
+            String msg = "Error occurred while archiving all notifications for user: " + username;
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        } finally {
+            NotificationManagementDAOFactory.closeConnection();
+        }
+    }
+
+    @Override
     public void handleOperationNotificationIfApplicable(String operationCode, String operationStatus,
                                                         String deviceType, List<Integer> deviceEnrollmentIDs,
                                                         int tenantId, String notificationTriggerPoint)
