@@ -22,7 +22,12 @@ package io.entgra.device.mgt.core.notification.mgt.core.impl;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigBatchNotifications;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigCriticalCriteria;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationSettings;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalDestDAOFactory;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalSourceDAOFactory;
+import io.entgra.device.mgt.core.notification.mgt.core.util.Constants;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationEventBroker;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationHelper;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
@@ -47,9 +52,11 @@ import java.util.stream.Collectors;
 public class NotificationManagementServiceImpl implements NotificationManagementService {
     private static final Log log = LogFactory.getLog(NotificationManagementServiceImpl.class);
     private final NotificationManagementDAO notificationDAO;
+    private final NotificationArchivalDAO notificationArchiveDAO;
 
     public NotificationManagementServiceImpl() {
         notificationDAO = NotificationManagementDAOFactory.getNotificationManagementDAO();
+        notificationArchiveDAO = NotificationArchivalDestDAOFactory.getNotificationArchivalDAO();
     }
 
     @Override
@@ -164,17 +171,20 @@ public class NotificationManagementServiceImpl implements NotificationManagement
 
     @Override
     public void archiveUserNotifications(List<Integer> notificationIds, String username)
-            throws NotificationManagementException {
+            throws NotificationArchivalException {
         try {
-            NotificationManagementDAOFactory.beginTransaction();
-            notificationDAO.archiveUserNotifications(notificationIds, username);
-            NotificationManagementDAOFactory.commitTransaction();
+            NotificationArchivalDestDAOFactory.beginTransaction();
+            NotificationArchivalSourceDAOFactory.beginTransaction();
+            notificationArchiveDAO.archiveUserNotifications(notificationIds, username);
+            NotificationArchivalDestDAOFactory.commitTransaction();
+            NotificationArchivalSourceDAOFactory.commitTransaction();
         } catch (TransactionManagementException e) {
             String msg = "Error occurred while archiving notifications for user: " + username;
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationArchivalException(msg, e);
         } finally {
-            NotificationManagementDAOFactory.closeConnection();
+            NotificationArchivalDestDAOFactory.closeConnection();
+            NotificationArchivalSourceDAOFactory.closeConnection();
         }
     }
 
@@ -198,17 +208,20 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
-    public void archiveAllUserNotifications(String username) throws NotificationManagementException {
+    public void archiveAllUserNotifications(String username) throws NotificationArchivalException {
         try {
-            NotificationManagementDAOFactory.beginTransaction();
-            notificationDAO.archiveAllUserNotifications(username);
-            NotificationManagementDAOFactory.commitTransaction();
+            NotificationArchivalDestDAOFactory.beginTransaction();
+            NotificationArchivalSourceDAOFactory.beginTransaction();
+            notificationArchiveDAO.archiveAllUserNotifications(username);
+            NotificationArchivalDestDAOFactory.commitTransaction();
+            NotificationArchivalSourceDAOFactory.commitTransaction();
         } catch (TransactionManagementException e) {
             String msg = "Error occurred while archiving all notifications for user: " + username;
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationArchivalException(msg, e);
         } finally {
-            NotificationManagementDAOFactory.closeConnection();
+            NotificationArchivalDestDAOFactory.closeConnection();
+            NotificationArchivalSourceDAOFactory.closeConnection();
         }
     }
 
@@ -229,7 +242,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                     !triggerPoints.contains(notificationTriggerPoint)) {
                 return;
             }
-            String statusToCheck = (operationStatus != null) ? operationStatus : "PENDING";
+            String statusToCheck = (operationStatus != null) ? operationStatus : Constants.PENDING;
             NotificationConfigCriticalCriteria criticalCriteriaConfig = settings.getCriticalCriteriaOnly();
             if (criticalCriteriaConfig != null && criticalCriteriaConfig.isStatus()) {
                 List<String> criticalCriteria = criticalCriteriaConfig.getCriticalCriteria();
@@ -287,7 +300,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                                                              String deviceType,
                                                              int tenantId)
             throws NotificationManagementException, TransactionManagementException, UserStoreException {
-        String status = (operationStatus != null) ? operationStatus : "PENDING";
+        String status = (operationStatus != null) ? operationStatus : Constants.PENDING;
         NotificationConfigBatchNotifications batchConfig = config.getNotificationSettings().getBatchNotifications();
         boolean includeDeviceList = batchConfig.isIncludeDeviceListInBatch();
         String description;

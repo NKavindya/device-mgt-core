@@ -24,6 +24,7 @@ import io.entgra.device.mgt.core.notification.mgt.api.util.NotificationManagemen
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.PaginatedUserNotificationResponse;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
 import org.apache.commons.httpclient.HttpStatus;
@@ -147,8 +148,8 @@ public class NotificationServiceImpl implements NotificationService {
                 notificationService.archiveUserNotifications(notificationIds, username);
             }
             return Response.status(HttpStatus.SC_OK).entity("Notifications archived successfully").build();
-        } catch (NotificationManagementException e) {
-            String msg = "Failed to archive notifications for user: " + username;
+        } catch (NotificationArchivalException e) {
+            String msg = "Error occurred during archiving notifications for user: " + username;
             log.error(msg, e);
             return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
         }

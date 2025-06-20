@@ -70,7 +70,7 @@ public class NotificationArchivalServiceImpl implements NotificationArchivalServ
                         config.getNotificationSettings().getArchiveType() : null;
                 String archiveAfter = config.getNotificationSettings() != null ?
                         config.getNotificationSettings().getArchiveAfter() : null;
-                if ("DB".equalsIgnoreCase(archiveType)) {
+                if (Constants.DEFAULT_ARCHIVE_TYPE.equalsIgnoreCase(archiveType)) {
                     if (archiveAfter == null || archiveAfter.trim().isEmpty()) {
                         log.warn("Missing archiveAfter for config ID " + config.getId() +
                                 ". Using default archive period.");
@@ -92,21 +92,19 @@ public class NotificationArchivalServiceImpl implements NotificationArchivalServ
                     if (!moved.isEmpty()) {
                         archivalDAO.moveUserActionsToArchive(moved);
                         log.info("Moved user actions for config ID " + config.getId());
-
-                        archivalDAO.deleteOldUserActions(moved);
                     }
                     archivalDAO.deleteOldNotificationsByConfig(cutoff, tenantId, config.getId());
                     alreadyHandledConfigIds.add(config.getId());
                 }
             }
             // archive all others using default DB config
-            if ("DB".equalsIgnoreCase(defaultArchiveType)) {
+            if (Constants.DEFAULT_ARCHIVE_TYPE.equalsIgnoreCase(defaultArchiveType)) {
                 Timestamp defaultCutoff;
                 try {
                     defaultCutoff = NotificationHelper.resolveCutoffTimestamp(defaultArchiveAfter);
                 } catch (IllegalArgumentException e) {
                     log.warn("Invalid defaultArchiveAfter '" + defaultArchiveAfter +
-                            "'. Falling back to Constants.DEFAULT_ARCHIVE_PERIOD.");
+                            "'. Falling back to DB.");
                     defaultCutoff = NotificationHelper.resolveCutoffTimestamp(Constants.DEFAULT_ARCHIVE_PERIOD);
                 }
                 log.info("Archiving default-config notifications older than " + defaultCutoff);
@@ -115,7 +113,6 @@ public class NotificationArchivalServiceImpl implements NotificationArchivalServ
                 log.info("Moved " + moved.size() + " default-config notifications");
                 if (!moved.isEmpty()) {
                     archivalDAO.moveUserActionsToArchive(moved);
-                    archivalDAO.deleteOldUserActions(moved);
                 }
                 archivalDAO.deleteOldNotificationsExcludingConfigs(defaultCutoff, tenantId, alreadyHandledConfigIds);
             }

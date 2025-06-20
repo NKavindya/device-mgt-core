@@ -73,28 +73,28 @@ import javax.ws.rs.core.Response;
                         description = "View notification configurations",
                         key = "dm:notificationConfig:view",
                         roles = {"Internal/devicemgt-user"},
-                        permissions = {"/device-mgt/notification-configurations/view"}
+                        permissions = {"/device-mgt/notifications/notification-configurations/view"}
                 ),
                 @Scope(
                         name = "Update Notification Configuration",
                         description = "Update a notification configuration",
                         key = "dm:notificationConfig:update",
                         roles = {"Internal/devicemgt-user"},
-                        permissions = {"/device-mgt/notification-configurations/update"}
+                        permissions = {"/device-mgt/notifications/notification-configurations/update"}
                 ),
                 @Scope(
                         name = "Create Notification Configuration",
                         description = "Create new notification configurations",
                         key = "dm:notificationConfig:create",
                         roles = {"Internal/devicemgt-user"},
-                        permissions = {"/device-mgt/notification-configurations/create"}
+                        permissions = {"/device-mgt/notifications/notification-configurations/create"}
                 ),
                 @Scope(
                         name = "Delete Notification Configuration",
                         description = "Delete new notification configurations",
                         key = "dm:notificationConfig:delete",
                         roles = {"Internal/devicemgt-user"},
-                        permissions = {"/device-mgt/notification-configurations/delete"}
+                        permissions = {"/device-mgt/notifications/notification-configurations/delete"}
                 )
         }
 )

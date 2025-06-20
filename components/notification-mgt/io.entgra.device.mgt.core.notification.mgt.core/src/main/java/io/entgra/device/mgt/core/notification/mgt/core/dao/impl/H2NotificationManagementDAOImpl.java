@@ -359,62 +359,6 @@ public class H2NotificationManagementDAOImpl implements NotificationManagementDA
     }
 
     @Override
-    public void archiveUserNotifications(List<Integer> notificationIds, String username)
-            throws NotificationManagementException {
-        if (notificationIds == null || notificationIds.isEmpty()) {
-            return;
-        }
-        String placeholders = notificationIds.stream()
-                .map(id -> "?")
-                .collect(Collectors.joining(", "));
-        String insertQuery =
-                "INSERT " +
-                        "INTO DM_NOTIFICATION_USER_ACTION_ARCH " +
-                "(NOTIFICATION_ID, " +
-                        "USERNAME, " +
-                        "ACTION_TYPE, " +
-                        "ACTION_TIMESTAMP) " +
-                "SELECT " +
-                        "NOTIFICATION_ID, " +
-                        "USERNAME, " +
-                        "ACTION_TYPE, " +
-                        "ACTION_TIMESTAMP " +
-                "FROM DM_NOTIFICATION_USER_ACTION " +
-                "WHERE USERNAME = ? " +
-                        "AND NOTIFICATION_ID " +
-                        "IN (" + placeholders + ")";
-        String deleteQuery =
-                "DELETE " +
-                        "FROM DM_NOTIFICATION_USER_ACTION " +
-                "WHERE USERNAME = ? " +
-                        "AND NOTIFICATION_ID " +
-                        "IN (" + placeholders + ")";
-        try {
-            Connection connection = NotificationManagementDAOFactory.getConnection();
-            // insert into archive
-            try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
-                insertStmt.setString(1, username);
-                for (int i = 0; i < notificationIds.size(); i++) {
-                    insertStmt.setInt(i + 2, notificationIds.get(i));
-                }
-                insertStmt.executeUpdate();
-            }
-            // delete from main table
-            try (PreparedStatement deleteStmt = connection.prepareStatement(deleteQuery)) {
-                deleteStmt.setString(1, username);
-                for (int i = 0; i < notificationIds.size(); i++) {
-                    deleteStmt.setInt(i + 2, notificationIds.get(i));
-                }
-                deleteStmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            String msg = "Error archiving notifications for user: " + username;
-            log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
-        }
-    }
-
-    @Override
     public void deleteAllUserNotifications(String username) throws NotificationManagementException {
         String query =
                 "DELETE " +
@@ -428,42 +372,6 @@ public class H2NotificationManagementDAOImpl implements NotificationManagementDA
             }
         } catch (SQLException e) {
             String msg = "Error occurred while deleting all notifications for user (H2): " + username;
-            log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
-        }
-    }
-
-    @Override
-    public void archiveAllUserNotifications(String username) throws NotificationManagementException {
-        String insertQuery =
-                "INSERT INTO DM_NOTIFICATION_USER_ACTION_ARCH " +
-                "(NOTIFICATION_ID, " +
-                        "USERNAME, " +
-                        "ACTION_TYPE, " +
-                        "ACTION_TIMESTAMP) " +
-                "SELECT " +
-                        "NOTIFICATION_ID, " +
-                        "USERNAME, " +
-                        "ACTION_TYPE, " +
-                        "ACTION_TIMESTAMP " +
-                "FROM DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE USERNAME = ?";
-        String deleteQuery =
-                "DELETE " +
-                        "FROM DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE USERNAME = ?";
-        try {
-            Connection connection = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
-                insertStmt.setString(1, username);
-                insertStmt.executeUpdate();
-            }
-            try (PreparedStatement deleteStmt = connection.prepareStatement(deleteQuery)) {
-                deleteStmt.setString(1, username);
-                deleteStmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            String msg = "Error occurred while archiving all notifications for user (H2): " + username;
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         }

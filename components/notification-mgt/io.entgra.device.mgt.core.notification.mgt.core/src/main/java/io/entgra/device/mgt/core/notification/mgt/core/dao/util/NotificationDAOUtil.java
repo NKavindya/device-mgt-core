@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 - 2023, Entgra (Pvt) Ltd. (http://www.entgra.io) All Rights Reserved.
+ * Copyright (c) 2018 - 2025, Entgra (Pvt) Ltd. (http://www.entgra.io) All Rights Reserved.
  *
  * Entgra (Pvt) Ltd. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,15 +18,8 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.dao.util;
 
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.Notification;
-import io.entgra.device.mgt.core.device.mgt.common.notification.mgt.NotificationManagementException;
-import io.entgra.device.mgt.core.notification.mgt.core.internal.NotificationManagementDataHolder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.context.CarbonContext;
-import org.wso2.carbon.user.api.UserStoreException;
-import org.wso2.carbon.user.core.tenant.TenantManager;
-import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
@@ -94,34 +87,6 @@ public class NotificationDAOUtil {
 		}
 	}
 
-	/**
-	 * Get id of the current tenant.
-	 *
-	 * @return tenant id
-	 * @throws NotificationManagementException if an error is observed when getting tenant id
-	 */
-	public static int getTenantId() throws NotificationManagementException {
-		CarbonContext context = CarbonContext.getThreadLocalCarbonContext();
-		int tenantId = context.getTenantId();
-		if (tenantId != MultitenantConstants.INVALID_TENANT_ID) {
-			return tenantId;
-		}
-		String tenantDomain = context.getTenantDomain();
-		if (tenantDomain == null) {
-			String msg = "Tenant domain is not properly set and thus, is null";
-			throw new NotificationManagementException(msg);
-		}
-		TenantManager tenantManager = NotificationManagementDataHolder.getInstance().getTenantManager();
-		try {
-			tenantId = tenantManager.getTenantId(tenantDomain);
-		} catch (UserStoreException e) {
-			String msg =
-					"Error occurred while retrieving id from the domain of tenant " + tenantDomain;
-			throw new NotificationManagementException(msg);
-		}
-		return tenantId;
-	}
-
 	public static DataSource lookupDataSource(String dataSourceName,
 	                                          final Hashtable<Object, Object> jndiProperties) {
 		try {
@@ -133,26 +98,5 @@ public class NotificationDAOUtil {
 		} catch (Exception e) {
 			throw new RuntimeException("Error in looking up data source: " + e.getMessage(), e);
 		}
-	}
-
-	public static Notification getNotification(ResultSet rs) throws SQLException {
-		Notification notification = new Notification();
-		notification.setNotificationId(rs.getInt("NOTIFICATION_ID"));
-		notification.setOperationId(rs.getInt("OPERATION_ID"));
-		notification.setDescription(rs.getString("DESCRIPTION"));
-		notification.setStatus(rs.getString("STATUS"));
-		return notification;
-	}
-
-	public static Notification getNotificationWithDeviceInfo(ResultSet rs) throws SQLException {
-		Notification notification = new Notification();
-		notification.setNotificationId(rs.getInt("NOTIFICATION_ID"));
-		notification.setOperationId(rs.getInt("OPERATION_ID"));
-		notification.setDescription(rs.getString("DESCRIPTION"));
-		notification.setStatus(rs.getString("STATUS"));
-		notification.setDeviceIdentifier(rs.getString("DEVICE_IDENTIFICATION"));
-		notification.setDeviceName(rs.getString("DEVICE_NAME"));
-		notification.setDeviceType(rs.getString("DEVICE_TYPE"));
-		return notification;
 	}
 }

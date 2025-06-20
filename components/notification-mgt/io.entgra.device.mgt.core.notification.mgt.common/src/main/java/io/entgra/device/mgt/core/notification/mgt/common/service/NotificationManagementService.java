@@ -22,6 +22,7 @@ package io.entgra.device.mgt.core.notification.mgt.common.service;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -46,7 +47,7 @@ public interface NotificationManagementService {
      * @param username The username of the user whose notifications are to be retrieved.
      * @param limit    The maximum number of notifications to return.
      * @param offset   The offset from which to start retrieving notifications (for pagination).
-     * @return A list of {@link UserNotificationPayload} objects containing notification metadata and action status.
+     * @return A list of {@link UserNotificationPayload} objects containing notification and action status.
      * @throws NotificationManagementException If an error occurs while accessing the data store.
      */
     List<UserNotificationPayload> getUserNotificationsWithStatus(String username, int limit, int offset, String status)
@@ -68,7 +69,7 @@ public interface NotificationManagementService {
      * Retrieves the total number of user notification actions for a specific user,
      * optionally filtered by notification status.
      *
-     * @param username the username to filter notification actions by (e.g., "admin").
+     * @param username the username to filter notification actions by.
      * @param status   (optional) the status of the notification action to filter by
      *                 (e.g., "READ", "UNREAD"). If null or empty, all statuses are counted.
      * @return the total count of notification actions for the given user and status.
@@ -91,10 +92,10 @@ public interface NotificationManagementService {
      *
      * @param notificationIds A list of notification IDs to be deleted.
      * @param username        The username associated with the notifications.
-     * @throws NotificationManagementException If an error occurs while deleting the notifications.
+     * @throws NotificationArchivalException If an error occurs while deleting the notifications.
      */
     void archiveUserNotifications(List<Integer> notificationIds, String username)
-            throws NotificationManagementException;
+            throws NotificationArchivalException;
 
     /**
      * Deletes all notifications for the given user from the active user notification table.
@@ -109,9 +110,9 @@ public interface NotificationManagementService {
      * user notification table to the archived table.
      *
      * @param username the username whose notifications should be archived.
-     * @throws NotificationManagementException if an error occurs during the archival process.
+     * @throws NotificationArchivalException if an error occurs during the archival process.
      */
-    void archiveAllUserNotifications(String username) throws NotificationManagementException;
+    void archiveAllUserNotifications(String username) throws NotificationArchivalException;
 
     /**
      * Handles the operation notification if applicable based on the provided operation code,
@@ -122,7 +123,7 @@ public interface NotificationManagementService {
      *
      * @param operationCode The unique code representing the operation (e.g., "POLICY_REVOKE").
      * @param operationStatus The current status of the operation (e.g., "COMPLETED", "PENDING").
-     * @param deviceType The type of the device associated with the operation (e.g., "Smartphone").
+     * @param deviceType The type of the device associated with the operation (e.g., "android").
      * @param deviceEnrollmentIDs deviceEnrollmentID The unique identifier for the device enrollment.
      * @param tenantId The tenant ID representing the specific tenant context for which notifications
      *                 are being sent.
