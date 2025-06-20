@@ -84,11 +84,21 @@ public class NotificationDAOUtil {
 		}
 	}
 
+	public static void cleanupResources(Connection conn) {
+		if (conn != null) {
+			try {
+				conn.close();
+			} catch (SQLException e) {
+				log.warn("Error occurred while closing the statement", e);
+			}
+		}
+	}
+
 	/**
 	 * Get id of the current tenant.
 	 *
 	 * @return tenant id
-	 * @throws io.entgra.device.mgt.core.device.mgt.core.dao.DeviceManagementDAOException if an error is observed when getting tenant id
+	 * @throws NotificationManagementException if an error is observed when getting tenant id
 	 */
 	public static int getTenantId() throws NotificationManagementException {
 		CarbonContext context = CarbonContext.getThreadLocalCarbonContext();

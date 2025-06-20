@@ -1,8 +1,11 @@
 package io.entgra.device.mgt.core.notification.mgt.core.dao.impl.archive;
 
+import io.entgra.device.mgt.core.device.mgt.core.config.DeviceConfigurationManager;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
-import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalSourceDAOFactory;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalDestDAOFactory;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.util.NotificationDAOUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -19,24 +22,30 @@ import java.util.stream.Collectors;
 public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
     private static final Log log = LogFactory.getLog(NotificationArchivalDAOImpl.class);
 
+    private static final String SOURCE_DB =
+            DeviceConfigurationManager.getInstance().getDeviceManagementConfig().getArchivalConfiguration()
+                    .getArchivalTaskConfiguration().getDbConfig().getSourceDB();
+
+    private static final String DESTINATION_DB =
+            DeviceConfigurationManager.getInstance().getDeviceManagementConfig().getArchivalConfiguration()
+                    .getArchivalTaskConfiguration().getDbConfig().getDestinationDB();
+
     @Override
     public List<Integer> moveNotificationsToArchive(Timestamp cutoff, int tenantId)
             throws NotificationManagementException {
         List<Integer> notificationIds = new ArrayList<>();
         String selectSQL =
-                "SELECT " +
-                        "NOTIFICATION_ID, " +
+                "SELECT NOTIFICATION_ID, " +
                         "NOTIFICATION_CONFIG_ID, " +
                         "TENANT_ID, " +
                         "DESCRIPTION, " +
                         "TYPE, " +
                         "CREATED_TIMESTAMP " +
-                        "FROM DM_NOTIFICATION " +
+                        "FROM " + SOURCE_DB + ".DM_NOTIFICATION " +
                         "WHERE CREATED_TIMESTAMP < ? " +
                         "AND TENANT_ID = ?";
         String insertSQL =
-                "INSERT " +
-                        "INTO DM_NOTIFICATION_ARCH " +
+                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_ARCH " +
                         "(NOTIFICATION_ID, " +
                         "NOTIFICATION_CONFIG_ID, " +
                         "TENANT_ID, " +
@@ -44,89 +53,79 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                         "TYPE, " +
                         "CREATED_TIMESTAMP) " +
                         "VALUES (?, ?, ?, ?, ?, ?)";
+        Connection sourceConn = null;
+        Connection destConn = null;
         try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement selectStmt = conn.prepareStatement(selectSQL);
-                 PreparedStatement insertStmt = conn.prepareStatement(insertSQL)) {
+            sourceConn = NotificationArchivalSourceDAOFactory.getConnection();
+            destConn = NotificationArchivalDestDAOFactory.getConnection();
+            try (PreparedStatement selectStmt = sourceConn.prepareStatement(selectSQL);
+                 PreparedStatement insertStmt = destConn.prepareStatement(insertSQL)) {
                 selectStmt.setTimestamp(1, cutoff);
                 selectStmt.setInt(2, tenantId);
-                ResultSet rs = selectStmt.executeQuery();
-                while (rs.next()) {
-                    int id = rs.getInt("NOTIFICATION_ID");
-                    insertStmt.setInt(1, id);
-                    insertStmt.setInt(2, rs.getInt("NOTIFICATION_CONFIG_ID"));
-                    insertStmt.setInt(3, rs.getInt("TENANT_ID"));
-                    insertStmt.setString(4, rs.getString("DESCRIPTION"));
-                    insertStmt.setString(5, rs.getString("TYPE"));
-                    insertStmt.setTimestamp(6, rs.getTimestamp("CREATED_TIMESTAMP"));
-                    insertStmt.addBatch();
-                    notificationIds.add(id);
+                try (ResultSet rs = selectStmt.executeQuery()) {
+                    while (rs.next()) {
+                        int id = rs.getInt("NOTIFICATION_ID");
+                        insertStmt.setInt(1, id);
+                        insertStmt.setInt(2, rs.getInt("NOTIFICATION_CONFIG_ID"));
+                        insertStmt.setInt(3, rs.getInt("TENANT_ID"));
+                        insertStmt.setString(4, rs.getString("DESCRIPTION"));
+                        insertStmt.setString(5, rs.getString("TYPE"));
+                        insertStmt.setTimestamp(6, rs.getTimestamp("CREATED_TIMESTAMP"));
+                        insertStmt.addBatch();
+                        notificationIds.add(id);
+                    }
+                    insertStmt.executeBatch();
                 }
-                insertStmt.executeBatch();
             }
         } catch (SQLException e) {
-            String msg = "Error occurred while archiving notifications";
+            String msg = "Error occurred while archiving notifications from source DB to destination DB.";
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
+        } finally {
+            NotificationDAOUtil.cleanupResources(sourceConn);
+            NotificationDAOUtil.cleanupResources(destConn);
         }
         return notificationIds;
     }
 
     @Override
     public void moveUserActionsToArchive(List<Integer> notificationIds) throws NotificationManagementException {
-        if (notificationIds.isEmpty()) return;
+        if (notificationIds == null || notificationIds.isEmpty()) return;
         String inClause = notificationIds.stream().map(id -> "?").collect(Collectors.joining(","));
-        String selectSQL =
+        String insertSQL =
+                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH " +
+                "(ACTION_ID, " +
+                        "NOTIFICATION_ID, " +
+                        "USERNAME, " +
+                        "ACTION_TYPE, " +
+                        "ACTION_TIMESTAMP) " +
                 "SELECT " +
                         "ACTION_ID, " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
                         "ACTION_TYPE, " +
                         "ACTION_TIMESTAMP " +
-                        "FROM DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE NOTIFICATION_ID " +
+                "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
+                "WHERE NOTIFICATION_ID " +
                         "IN (" + inClause + ")";
-        String checkExistSQL =
-                "SELECT 1 " +
-                        "FROM DM_NOTIFICATION_USER_ACTION_ARCH " +
-                        "WHERE ACTION_ID = ?";
-        String insertSQL =
-                "INSERT " +
-                        "INTO DM_NOTIFICATION_USER_ACTION_ARCH " +
-                        "(ACTION_ID, " +
-                        "NOTIFICATION_ID, " +
-                        "USERNAME, " +
-                        "ACTION_TYPE, " +
-                        "ACTION_TIMESTAMP) " +
-                        "VALUES (?, ?, ?, ?, ?)";
+        String deleteSQL =
+                "DELETE FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
+                "WHERE NOTIFICATION_ID " +
+                        "IN (" + inClause + ")";
         try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement selectStmt = conn.prepareStatement(selectSQL);
-                 PreparedStatement checkExistStmt = conn.prepareStatement(checkExistSQL);
-                 PreparedStatement insertStmt = conn.prepareStatement(insertSQL)) {
+            Connection sourceConn = NotificationArchivalSourceDAOFactory.getConnection();
+            Connection destConn = NotificationArchivalDestDAOFactory.getConnection();
+            try (PreparedStatement insertStmt = destConn.prepareStatement(insertSQL);
+                 PreparedStatement deleteStmt = sourceConn.prepareStatement(deleteSQL)) {
                 for (int i = 0; i < notificationIds.size(); i++) {
-                    selectStmt.setInt(i + 1, notificationIds.get(i));
+                    insertStmt.setInt(i + 1, notificationIds.get(i));
+                    deleteStmt.setInt(i + 1, notificationIds.get(i));
                 }
-                ResultSet rs = selectStmt.executeQuery();
-                while (rs.next()) {
-                    int actionId = rs.getInt("ACTION_ID");
-                    checkExistStmt.setInt(1, actionId);
-                    ResultSet checkRs = checkExistStmt.executeQuery();
-                    if (checkRs.next()) {
-                        // Already exists, skip
-                        continue;
-                    }
-                    insertStmt.setInt(1, actionId);
-                    insertStmt.setInt(2, rs.getInt("NOTIFICATION_ID"));
-                    insertStmt.setString(3, rs.getString("USERNAME"));
-                    insertStmt.setString(4, rs.getString("ACTION_TYPE"));
-                    insertStmt.setTimestamp(5, rs.getTimestamp("ACTION_TIMESTAMP"));
-                    insertStmt.addBatch();
-                }
-                insertStmt.executeBatch();
+                insertStmt.executeUpdate();
+                deleteStmt.executeUpdate();
             }
         } catch (SQLException e) {
-            String msg = "Failed to archive user actions";
+            String msg = "Error occurred while archiving user actions";
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         }
@@ -140,7 +139,7 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                         "WHERE CREATED_TIMESTAMP < ? " +
                         "AND TENANT_ID = ?";
         try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
+            Connection conn = NotificationArchivalSourceDAOFactory.getConnection();
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setTimestamp(1, cutoff);
                 stmt.setInt(2, tenantId);
@@ -163,7 +162,7 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                         "WHERE NOTIFICATION_ID " +
                         "IN (" + inClause + ")";
         try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
+            Connection conn = NotificationArchivalSourceDAOFactory.getConnection();
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 for (int i = 0; i < notificationIds.size(); i++) {
                     stmt.setInt(i + 1, notificationIds.get(i));
@@ -180,7 +179,15 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
     @Override
     public List<Integer> moveNotificationsToArchiveByConfig(Timestamp cutoff, int tenantId, int configId)
             throws NotificationManagementException {
-        String selectSQL =
+        List<Integer> movedIds = new ArrayList<>();
+        String insertSQL =
+                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_ARCH " +
+                "(NOTIFICATION_ID, " +
+                        "NOTIFICATION_CONFIG_ID, " +
+                        "TENANT_ID, " +
+                        "DESCRIPTION, " +
+                        "TYPE, " +
+                        "CREATED_TIMESTAMP) " +
                 "SELECT " +
                         "NOTIFICATION_ID, " +
                         "NOTIFICATION_CONFIG_ID, " +
@@ -188,41 +195,33 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                         "DESCRIPTION, " +
                         "TYPE, " +
                         "CREATED_TIMESTAMP " +
-                "FROM DM_NOTIFICATION " +
-                        "WHERE TENANT_ID = ? " +
+                "FROM " + SOURCE_DB + ".DM_NOTIFICATION " +
+                "WHERE TENANT_ID = ? " +
                         "AND NOTIFICATION_CONFIG_ID = ? " +
                         "AND CREATED_TIMESTAMP < ?";
-        String insertSQL =
-                "INSERT INTO DM_NOTIFICATION_ARCH " +
-                        "(NOTIFICATION_ID, " +
-                        "NOTIFICATION_CONFIG_ID, " +
-                        "TENANT_ID, " +
-                        "DESCRIPTION, " +
-                        "TYPE, " +
-                        "CREATED_TIMESTAMP) " +
-                "VALUES (?, ?, ?, ?, ?, ?)";
-        List<Integer> movedIds = new ArrayList<>();
+        String selectIdsSQL =
+                "SELECT NOTIFICATION_ID " +
+                        "FROM " + SOURCE_DB + ".DM_NOTIFICATION " +
+                "WHERE TENANT_ID = ? " +
+                        "AND NOTIFICATION_CONFIG_ID = ? " +
+                        "AND CREATED_TIMESTAMP < ?";
         try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement selectStmt = conn.prepareStatement(selectSQL);
-                 PreparedStatement insertStmt = conn.prepareStatement(insertSQL)) {
+            Connection sourceConn = NotificationArchivalSourceDAOFactory.getConnection();
+            Connection destConn = NotificationArchivalDestDAOFactory.getConnection();
+            try (PreparedStatement insertStmt = destConn.prepareStatement(insertSQL);
+                 PreparedStatement selectStmt = sourceConn.prepareStatement(selectIdsSQL)) {
+                insertStmt.setInt(1, tenantId);
+                insertStmt.setInt(2, configId);
+                insertStmt.setTimestamp(3, cutoff);
+                insertStmt.executeUpdate();
                 selectStmt.setInt(1, tenantId);
                 selectStmt.setInt(2, configId);
                 selectStmt.setTimestamp(3, cutoff);
                 try (ResultSet rs = selectStmt.executeQuery()) {
                     while (rs.next()) {
-                        int id = rs.getInt("NOTIFICATION_ID");
-                        insertStmt.setInt(1, id);
-                        insertStmt.setInt(2, rs.getInt("NOTIFICATION_CONFIG_ID"));
-                        insertStmt.setInt(3, rs.getInt("TENANT_ID"));
-                        insertStmt.setString(4, rs.getString("DESCRIPTION"));
-                        insertStmt.setString(5, rs.getString("TYPE"));
-                        insertStmt.setTimestamp(6, rs.getTimestamp("CREATED_TIMESTAMP"));
-                        insertStmt.addBatch();
-                        movedIds.add(id);
+                        movedIds.add(rs.getInt("NOTIFICATION_ID"));
                     }
                 }
-                insertStmt.executeBatch();
             }
         } catch (SQLException e) {
             String msg = "Error moving notifications to archive for configId: " + configId;
@@ -236,11 +235,19 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
     public List<Integer> moveNotificationsToArchiveExcludingConfigs(Timestamp cutoff, int tenantId,
                                                                     Set<Integer> excludedConfigIds)
             throws NotificationManagementException {
+        List<Integer> movedIds = new ArrayList<>();
         if (excludedConfigIds == null || excludedConfigIds.isEmpty()) {
-            // no exclusions, use standard archival
             return moveNotificationsToArchiveByConfig(cutoff, tenantId, -1);
         }
-        StringBuilder queryBuilder = new StringBuilder(
+        String placeholders = excludedConfigIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        String insertSQL =
+                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_ARCH " +
+                "(NOTIFICATION_ID, " +
+                        "NOTIFICATION_CONFIG_ID, " +
+                        "TENANT_ID, " +
+                        "DESCRIPTION, " +
+                        "TYPE, " +
+                        "CREATED_TIMESTAMP) " +
                 "SELECT " +
                         "NOTIFICATION_ID, " +
                         "NOTIFICATION_CONFIG_ID, " +
@@ -248,47 +255,39 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                         "DESCRIPTION, " +
                         "TYPE, " +
                         "CREATED_TIMESTAMP " +
-                        "FROM DM_NOTIFICATION " +
-                        "WHERE TENANT_ID = ? " +
+                "FROM " + SOURCE_DB + ".DM_NOTIFICATION " +
+                "WHERE TENANT_ID = ? " +
                         "AND CREATED_TIMESTAMP < ? " +
                         "AND NOTIFICATION_CONFIG_ID " +
-                        "NOT IN (");
-        String placeholders = excludedConfigIds.stream().map(id -> "?").collect(Collectors.joining(","));
-        queryBuilder.append(placeholders).append(")");
-        String insertSQL =
-                "INSERT INTO DM_NOTIFICATION_ARCH " +
-                        "(NOTIFICATION_ID, " +
-                        "NOTIFICATION_CONFIG_ID, " +
-                        "TENANT_ID, " +
-                        "DESCRIPTION, " +
-                        "TYPE, " +
-                        "CREATED_TIMESTAMP) " +
-                "VALUES (?, ?, ?, ?, ?, ?)";
-        List<Integer> movedIds = new ArrayList<>();
+                        "NOT IN (" + placeholders + ")";
+        String selectIdsSQL =
+                "SELECT NOTIFICATION_ID " +
+                        "FROM " + SOURCE_DB + ".DM_NOTIFICATION " +
+                "WHERE TENANT_ID = ? " +
+                        "AND CREATED_TIMESTAMP < ? " +
+                        "AND NOTIFICATION_CONFIG_ID " +
+                        "NOT IN (" + placeholders + ")";
         try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement selectStmt = conn.prepareStatement(queryBuilder.toString());
-                 PreparedStatement insertStmt = conn.prepareStatement(insertSQL)) {
+            Connection sourceConn = NotificationArchivalSourceDAOFactory.getConnection();
+            Connection destConn = NotificationArchivalDestDAOFactory.getConnection();
+            try (PreparedStatement insertStmt = destConn.prepareStatement(insertSQL);
+                 PreparedStatement selectStmt = sourceConn.prepareStatement(selectIdsSQL)) {
+                insertStmt.setInt(1, tenantId);
+                insertStmt.setTimestamp(2, cutoff);
                 selectStmt.setInt(1, tenantId);
                 selectStmt.setTimestamp(2, cutoff);
                 int i = 3;
                 for (Integer configId : excludedConfigIds) {
-                    selectStmt.setInt(i++, configId);
+                    insertStmt.setInt(i, configId);
+                    selectStmt.setInt(i, configId);
+                    i++;
                 }
+                insertStmt.executeUpdate();
                 try (ResultSet rs = selectStmt.executeQuery()) {
                     while (rs.next()) {
-                        int id = rs.getInt("NOTIFICATION_ID");
-                        insertStmt.setInt(1, id);
-                        insertStmt.setInt(2, rs.getInt("NOTIFICATION_CONFIG_ID"));
-                        insertStmt.setInt(3, rs.getInt("TENANT_ID"));
-                        insertStmt.setString(4, rs.getString("DESCRIPTION"));
-                        insertStmt.setString(5, rs.getString("TYPE"));
-                        insertStmt.setTimestamp(6, rs.getTimestamp("CREATED_TIMESTAMP"));
-                        insertStmt.addBatch();
-                        movedIds.add(id);
+                        movedIds.add(rs.getInt("NOTIFICATION_ID"));
                     }
                 }
-                insertStmt.executeBatch();
             }
         } catch (SQLException e) {
             String msg = "Error moving notifications excluding configIds";
@@ -307,7 +306,7 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                         "AND NOTIFICATION_CONFIG_ID = ? " +
                         "AND CREATED_TIMESTAMP < ?";
         try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
+            Connection conn = NotificationArchivalSourceDAOFactory.getConnection();
             try (PreparedStatement stmt = conn.prepareStatement(deleteSQL)) {
                 stmt.setInt(1, tenantId);
                 stmt.setInt(2, configId);
@@ -329,7 +328,7 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                     "DELETE FROM DM_NOTIFICATION " +
                             "WHERE TENANT_ID = ? " +
                             "AND CREATED_TIMESTAMP < ?";
-            try (Connection conn = NotificationManagementDAOFactory.getConnection();
+            try (Connection conn = NotificationArchivalSourceDAOFactory.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(deleteSQL)) {
                 stmt.setInt(1, tenantId);
                 stmt.setTimestamp(2, cutoff);
@@ -348,7 +347,7 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                 excludedConfigIds.stream().map(id -> "?").collect(Collectors.joining(","));
         queryBuilder.append(placeholders).append(")");
         try {
-            Connection conn = NotificationManagementDAOFactory.getConnection();
+            Connection conn = NotificationArchivalSourceDAOFactory.getConnection();
             try (PreparedStatement stmt = conn.prepareStatement(queryBuilder.toString())) {
                 stmt.setInt(1, tenantId);
                 stmt.setTimestamp(2, cutoff);

@@ -24,7 +24,10 @@ import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationCon
 import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
 import io.entgra.device.mgt.core.notification.mgt.core.config.NotificationConfigurationManager;
+import io.entgra.device.mgt.core.notification.mgt.core.config.archive.NotificationArchiveConfigManager;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalDestDAOFactory;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalSourceDAOFactory;
 import io.entgra.device.mgt.core.notification.mgt.core.exception.NotificationArchivalTaskManagerException;
 import io.entgra.device.mgt.core.notification.mgt.core.impl.NotificationConfigServiceImpl;
 import io.entgra.device.mgt.core.notification.mgt.core.impl.NotificationManagementServiceImpl;
@@ -58,6 +61,12 @@ public class NotificationManagementServiceComponent {
             NotificationConfigurationManager notificationConfigManager = NotificationConfigurationManager.getInstance();
             NotificationManagementDAOFactory.init(notificationConfigManager
                     .getNotificationManagementRepository().getDataSourceConfig());
+            NotificationArchivalSourceDAOFactory.init(notificationConfigManager
+                    .getNotificationManagementRepository().getDataSourceConfig());
+            NotificationArchiveConfigManager notificationArchConfigManager =
+                    NotificationArchiveConfigManager.getInstance();
+            NotificationArchivalDestDAOFactory.init(notificationArchConfigManager
+                    .getNotificationArchiveRepository().getDataSourceConfig());
             NotificationManagementService notificationManagementService = new NotificationManagementServiceImpl();
             bundleContext.registerService(NotificationManagementService.class.getName(),
                     notificationManagementService, null);
