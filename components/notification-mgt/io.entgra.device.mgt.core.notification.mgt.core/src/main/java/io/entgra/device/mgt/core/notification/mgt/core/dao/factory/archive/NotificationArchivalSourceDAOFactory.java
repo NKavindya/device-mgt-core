@@ -26,7 +26,11 @@ import io.entgra.device.mgt.core.notification.mgt.common.util.NotificationManage
 import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.JNDILookupDefinition;
 import io.entgra.device.mgt.core.notification.mgt.core.config.datasource.NotificationDatasourceConfiguration;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
-import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.archive.NotificationArchivalDAOImpl;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.archive.GenericNotificationArchivalDAOImpl;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.archive.OracleNotificationArchivalDAOImpl;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.archive.PostgreNotificationArchivalDAOImpl;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.archive.SQLServerNotificationArchivalDAOImpl;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.impl.archive.H2NotificationArchivalDAOImpl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -102,11 +106,15 @@ public class NotificationArchivalSourceDAOFactory {
         }
         switch (productName) {
             case NotificationManagementConstants.DataBaseTypes.DB_TYPE_ORACLE:
+                return new OracleNotificationArchivalDAOImpl();
             case NotificationManagementConstants.DataBaseTypes.DB_TYPE_MSSQL:
+                return new SQLServerNotificationArchivalDAOImpl();
             case NotificationManagementConstants.DataBaseTypes.DB_TYPE_POSTGRESQL:
+                return new PostgreNotificationArchivalDAOImpl();
             case NotificationManagementConstants.DataBaseTypes.DB_TYPE_H2:
+                return new H2NotificationArchivalDAOImpl();
             case NotificationManagementConstants.DataBaseTypes.DB_TYPE_MYSQL:
-                return new NotificationArchivalDAOImpl();
+                return new GenericNotificationArchivalDAOImpl();
             default:
                 throw new UnsupportedDatabaseEngineException("Unsupported database product: " + productName);
         }

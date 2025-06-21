@@ -1,3 +1,22 @@
+/*
+ *  Copyright (c) 2018 - 2025, Entgra (Pvt) Ltd. (http://www.entgra.io) All Rights Reserved.
+ *
+ * Entgra (Pvt) Ltd. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ */
+
 package io.entgra.device.mgt.core.notification.mgt.core.dao.impl.archive;
 
 import io.entgra.device.mgt.core.device.mgt.core.config.DeviceConfigurationManager;
@@ -19,8 +38,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
-    private static final Log log = LogFactory.getLog(NotificationArchivalDAOImpl.class);
+public class GenericNotificationArchivalDAOImpl implements NotificationArchivalDAO {
+    private static final Log log = LogFactory.getLog(GenericNotificationArchivalDAOImpl.class);
 
     private static final String SOURCE_DB =
             DeviceConfigurationManager.getInstance().getDeviceManagementConfig().getArchivalConfiguration()
@@ -147,30 +166,6 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
             }
         } catch (SQLException e) {
             String msg = "Failed to delete old notifications for tenant " + tenantId;
-            log.error(msg, e);
-            throw new NotificationArchivalException(msg, e);
-        }
-    }
-
-    @Override
-    public int deleteOldUserActions(List<Integer> notificationIds) throws NotificationArchivalException {
-        if (notificationIds.isEmpty()) return 0;
-        String inClause = notificationIds.stream().map(id -> "?").collect(Collectors.joining(","));
-        String sql =
-                "DELETE " +
-                        "FROM DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE NOTIFICATION_ID " +
-                        "IN (" + inClause + ")";
-        try {
-            Connection conn = NotificationArchivalSourceDAOFactory.getConnection();
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                for (int i = 0; i < notificationIds.size(); i++) {
-                    stmt.setInt(i + 1, notificationIds.get(i));
-                }
-                return stmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            String msg = "Failed to delete old user actions";
             log.error(msg, e);
             throw new NotificationArchivalException(msg, e);
         }
@@ -464,6 +459,40 @@ public class NotificationArchivalDAOImpl implements NotificationArchivalDAO {
             }
         } catch (SQLException e) {
             String msg = "Error occurred while archiving all notifications for user: " + username;
+            log.error(msg, e);
+            throw new NotificationArchivalException(msg, e);
+        }
+    }
+
+    @Override
+    public void deleteExpiredArchivedNotifications(Timestamp cutoff, int tenantId)
+            throws NotificationArchivalException {
+        String deleteUserActionsSQL =
+                "DELETE FROM " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH " +
+                        "WHERE ACTION_TIMESTAMP < ? " +
+                        "AND NOTIFICATION_ID IN (" +
+                        "SELECT NOTIFICATION_ID " +
+                        "FROM " + DESTINATION_DB + ".DM_NOTIFICATION_ARCH " +
+                        "WHERE CREATED_TIMESTAMP < ? " +
+                        "AND TENANT_ID = ?)";
+        String deleteNotificationsSQL =
+                "DELETE FROM " + DESTINATION_DB + ".DM_NOTIFICATION_ARCH " +
+                        "WHERE CREATED_TIMESTAMP < ? " +
+                        "AND TENANT_ID = ?";
+        try {
+            Connection destConn = NotificationArchivalDestDAOFactory.getConnection();
+            try (PreparedStatement deleteUserActionsStmt = destConn.prepareStatement(deleteUserActionsSQL);
+                 PreparedStatement deleteNotificationsStmt = destConn.prepareStatement(deleteNotificationsSQL)) {
+                deleteUserActionsStmt.setTimestamp(1, cutoff);
+                deleteUserActionsStmt.setTimestamp(2, cutoff);
+                deleteUserActionsStmt.setInt(3, tenantId);
+                deleteUserActionsStmt.executeUpdate();
+                deleteNotificationsStmt.setTimestamp(1, cutoff);
+                deleteNotificationsStmt.setInt(2, tenantId);
+                deleteNotificationsStmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            String msg = "Error occurred while deleting expired archived notifications (MySQL/H2)";
             log.error(msg, e);
             throw new NotificationArchivalException(msg, e);
         }

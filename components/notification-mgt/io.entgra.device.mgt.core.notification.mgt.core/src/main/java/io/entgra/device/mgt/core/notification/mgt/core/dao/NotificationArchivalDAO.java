@@ -57,15 +57,6 @@ public interface NotificationArchivalDAO {
     int deleteOldNotifications(Timestamp cutoffTimestamp, int tenantId) throws NotificationArchivalException;
 
     /**
-     * Deletes user actions associated with the given notification IDs from the main table.
-     *
-     * @param notificationIds The list of notification IDs whose user actions need to be deleted.
-     * @return The number of deleted user actions.
-     * @throws NotificationArchivalException If a database error occurs during the deletion.
-     */
-    int deleteOldUserActions(List<Integer> notificationIds) throws NotificationArchivalException;
-
-    /**
      * Moves notifications for a specific configuration ID older than the given cutoff to the archive table.
      *
      * @param cutoff   The cutoff timestamp.
@@ -132,4 +123,14 @@ public interface NotificationArchivalDAO {
      * @throws NotificationArchivalException if an error occurs during the archival process.
      */
     void archiveAllUserNotifications(String username) throws NotificationArchivalException;
+
+    /**
+     * Deletes archived notifications and their associated user actions that are older than the specified
+     * cutoff timestamp for the given tenant. This helps to clean up old data from the archive tables.
+     *
+     * @param cutoff   The timestamp before which data should be deleted.
+     * @param tenantId The tenant ID for which archival data should be cleaned up.
+     * @throws NotificationArchivalException If an error occurs during the deletion process.
+     */
+    void deleteExpiredArchivedNotifications(Timestamp cutoff, int tenantId) throws NotificationArchivalException;
 }

@@ -54,29 +54,38 @@ public class NotificationArchivalTask extends DynamicPartitionedScheduleTask {
                 return;
             }
         }
-
         log.info("Executing " + Constants.NOTIFICATION_ARCHIVAL_TASK_NAME + " for tenant: " + tenantId + " at "
                 + new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date()));
         long startTime = System.currentTimeMillis();
-        try {
-            if (tenantId == -1234) {
+        if (tenantId == -1234) {
+            try {
                 archivalService.archiveOldNotifications(tenantId);
-            } else {
+            } catch (NotificationArchivalException e) {
+                log.error("Error during notification archival for tenant: " + tenantId, e);
+            }
+            try {
+                archivalService.deleteExpiredArchivedNotifications(tenantId);
+            } catch (NotificationArchivalException e) {
+                log.error("Error during deletion of old archived notifications for tenant: " + tenantId, e);
+            }
+        } else {
+            try {
+                PrivilegedCarbonContext.startTenantFlow();
+                PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                        .setTenantId(tenantId, true);
                 try {
-                    PrivilegedCarbonContext.startTenantFlow();
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                            .setTenantId(tenantId, true);
                     archivalService.archiveOldNotifications(tenantId);
                 } catch (NotificationArchivalException e) {
-                    log.error("An error occurred while running " + Constants.NOTIFICATION_ARCHIVAL_TASK_NAME
-                            + " for tenant: " + tenantId, e);
-                } finally {
-                    PrivilegedCarbonContext.endTenantFlow();
+                    log.error("Error during notification archival for tenant: " + tenantId, e);
                 }
+                try {
+                    archivalService.deleteExpiredArchivedNotifications(tenantId);
+                } catch (NotificationArchivalException e) {
+                    log.error("Error during deletion of old archived notifications for tenant: " + tenantId, e);
+                }
+            } finally {
+                PrivilegedCarbonContext.endTenantFlow();
             }
-        } catch (NotificationArchivalException e) {
-            log.error("An error occurred while running " + Constants.NOTIFICATION_ARCHIVAL_TASK_NAME
-                    + " for tenant: " + tenantId, e);
         }
         long endTime = System.currentTimeMillis();
         long difference = endTime - startTime;

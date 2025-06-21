@@ -122,9 +122,29 @@ public class NotificationArchivalServiceImpl implements NotificationArchivalServ
         } catch (Exception e) {
             NotificationArchivalSourceDAOFactory.rollbackTransaction();
             NotificationArchivalDestDAOFactory.rollbackTransaction();
-            throw new NotificationArchivalException("Error during dynamic archival", e);
+            String msg = "Error during dynamic archival";
+            log.error(msg, e);
+            throw new NotificationArchivalException(msg, e);
         } finally {
             NotificationArchivalSourceDAOFactory.closeConnection();
+            NotificationArchivalDestDAOFactory.closeConnection();
+        }
+    }
+
+    @Override
+    public void deleteExpiredArchivedNotifications(int tenantId) throws NotificationArchivalException {
+        try {
+            log.info("Deleting archived notifications older than " + Constants.DEFAULT_ARCHIVE_DELETE_PERIOD);
+            Timestamp cutoff = NotificationHelper.resolveCutoffTimestamp(Constants.DEFAULT_ARCHIVE_DELETE_PERIOD);
+            NotificationArchivalDestDAOFactory.beginTransaction();
+            archivalDAO.deleteExpiredArchivedNotifications(cutoff, tenantId);
+            NotificationArchivalDestDAOFactory.commitTransaction();
+        } catch (Exception e) {
+            NotificationArchivalDestDAOFactory.rollbackTransaction();
+            String msg = "Error deleting expired archived notifications";
+            log.error(msg, e);
+            throw new NotificationArchivalException(msg, e);
+        } finally {
             NotificationArchivalDestDAOFactory.closeConnection();
         }
     }

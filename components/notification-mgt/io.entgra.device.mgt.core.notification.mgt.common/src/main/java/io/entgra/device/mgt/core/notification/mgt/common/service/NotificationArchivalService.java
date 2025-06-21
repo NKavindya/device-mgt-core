@@ -31,4 +31,14 @@ public interface NotificationArchivalService {
      * @throws NotificationArchivalException If an error occurs during the archival process.
      */
     void archiveOldNotifications(int tenantId) throws NotificationArchivalException;
+
+    /**
+     * Deletes archived notifications and their associated user actions from the archive tables
+     * (DM_NOTIFICATION_ARCH and DM_NOTIFICATION_USER_ACTION_ARCH) that are older than the
+     * configured {@code DEFAULT_ARCHIVE_DELETE_PERIOD}.
+     *
+     * @param tenantId relevant tenant id.
+     * @throws NotificationArchivalException If an error occurs during the archival process.
+     */
+    void deleteExpiredArchivedNotifications(int tenantId) throws NotificationArchivalException;
 }
