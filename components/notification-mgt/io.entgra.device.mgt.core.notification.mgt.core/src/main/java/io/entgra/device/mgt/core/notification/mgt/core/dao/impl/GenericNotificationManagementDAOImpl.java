@@ -19,7 +19,6 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
 
-import io.entgra.device.mgt.core.notification.mgt.core.dao.util.NotificationDAOUtil;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
@@ -96,22 +95,24 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
             }
         }
         query.append(") ORDER BY CREATED_TIMESTAMP DESC");
-        try (Connection connection = NotificationManagementDAOFactory.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(query.toString())) {
-            int tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
-            int paramIndex = 1;
-            preparedStatement.setInt(paramIndex++, tenantId);
-            for (Integer id : notificationIds) {
-                preparedStatement.setInt(paramIndex++, id);
-            }
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                while (resultSet.next()) {
-                    Notification notification = new Notification();
-                    notification.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
-                    notification.setDescription(resultSet.getString("DESCRIPTION"));
-                    notification.setType(resultSet.getString("TYPE"));
-                    notification.setCreatedTimestamp(resultSet.getTimestamp("CREATED_TIMESTAMP"));
-                    notifications.add(notification);
+        try {
+            Connection connection = NotificationManagementDAOFactory.getConnection();
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query.toString())) {
+                int tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
+                int paramIndex = 1;
+                preparedStatement.setInt(paramIndex++, tenantId);
+                for (Integer id : notificationIds) {
+                    preparedStatement.setInt(paramIndex++, id);
+                }
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        Notification notification = new Notification();
+                        notification.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
+                        notification.setDescription(resultSet.getString("DESCRIPTION"));
+                        notification.setType(resultSet.getString("TYPE"));
+                        notification.setCreatedTimestamp(resultSet.getTimestamp("CREATED_TIMESTAMP"));
+                        notifications.add(notification);
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -250,28 +251,30 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
         if (status != null && !status.isEmpty()) {
             query.append(" AND ACTION_TYPE = ?");
         }
-        try (Connection connection = NotificationManagementDAOFactory.getConnection();
-             PreparedStatement ps = connection.prepareStatement(query.toString())) {
-            int paramIndex = 1;
-            ps.setString(paramIndex++, username);
-            if (status != null && !status.isEmpty()) {
-                ps.setString(paramIndex++, status.toUpperCase());
-            }
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
+        try {
+            Connection connection = NotificationManagementDAOFactory.getConnection();
+            try (PreparedStatement ps = connection.prepareStatement(query.toString())) {
+                int paramIndex = 1;
+                ps.setString(paramIndex++, username);
+                if (status != null && !status.isEmpty()) {
+                    ps.setString(paramIndex++, status.toUpperCase());
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt(1);
+                    }
                 }
             }
         } catch (SQLException e) {
-            throw new NotificationManagementException("Error counting user notifications", e);
+            String msg = "Error counting user notifications";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         }
         return 0;
     }
 
     @Override
     public int getUnreadNotificationCountForUser(String username) throws NotificationManagementException {
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
         int count = 0;
         String sql =
                 "SELECT COUNT(*) " +
@@ -281,15 +284,17 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
                         "AND ACTION_TYPE = 'UNREAD'";
         try {
             Connection conn = NotificationManagementDAOFactory.getConnection();
-            stmt = conn.prepareStatement(sql);
-            stmt.setString(1, username);
-            rs = stmt.executeQuery();
-            if (rs.next()) {
-                count = rs.getInt("UNREAD_COUNT");
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, username);
+                ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    count = rs.getInt("UNREAD_COUNT");
+                }
             }
         } catch (SQLException e) {
-            throw new NotificationManagementException("Error retrieving unread notification count for user: "
-                    + username, e);
+            String msg = "Error retrieving unread notification count for user: " + username;
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         }
         return count;
     }
@@ -297,8 +302,6 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
     @Override
     public int insertNotification(int tenantId, int notificationConfigId, String type, String description)
             throws NotificationManagementException {
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
         String sql =
                 "INSERT INTO DM_NOTIFICATION " +
                         "(NOTIFICATION_CONFIG_ID, " +
@@ -309,20 +312,21 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
         int notificationId = -1;
         try {
             Connection conn = NotificationManagementDAOFactory.getConnection();
-            stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-            stmt.setInt(1, notificationConfigId);
-            stmt.setInt(2, tenantId);
-            stmt.setString(3, description);
-            stmt.setString(4, type);
-            stmt.executeUpdate();
-            rs = stmt.getGeneratedKeys();
-            if (rs.next()) {
-                notificationId = rs.getInt(1);
+            try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setInt(1, notificationConfigId);
+                stmt.setInt(2, tenantId);
+                stmt.setString(3, description);
+                stmt.setString(4, type);
+                stmt.executeUpdate();
+                ResultSet rs = stmt.getGeneratedKeys();
+                if (rs.next()) {
+                    notificationId = rs.getInt(1);
+                }
             }
         } catch (SQLException e) {
-            throw new NotificationManagementException("Error inserting notification", e);
-        } finally {
-            NotificationDAOUtil.cleanupResources(stmt, rs);
+            String msg = "Error inserting notification";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         }
         return notificationId;
     }
@@ -330,7 +334,6 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
     @Override
     public void insertNotificationUserActions(int notificationId, List<String> usernames)
             throws NotificationManagementException {
-        PreparedStatement stmt = null;
         String sql =
                 "INSERT INTO DM_NOTIFICATION_USER_ACTION " +
                         "(NOTIFICATION_ID, " +
@@ -339,18 +342,19 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
                         "VALUES (?, ?, ?)";
         try {
             Connection conn = NotificationManagementDAOFactory.getConnection();
-            stmt = conn.prepareStatement(sql);
-            for (String username : usernames) {
-                stmt.setInt(1, notificationId);
-                stmt.setString(2, username);
-                stmt.setString(3, "UNREAD");
-                stmt.addBatch();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                for (String username : usernames) {
+                    stmt.setInt(1, notificationId);
+                    stmt.setString(2, username);
+                    stmt.setString(3, "UNREAD");
+                    stmt.addBatch();
+                }
+                stmt.executeBatch();
             }
-            stmt.executeBatch();
         } catch (SQLException e) {
-            throw new NotificationManagementException("Error inserting notification user actions", e);
-        } finally {
-            NotificationDAOUtil.cleanupResources(stmt, null);
+            String msg = "Error inserting notification user actions";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         }
     }
 
