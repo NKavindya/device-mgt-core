@@ -341,6 +341,9 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
     @Override
     public void insertNotificationUserActions(int notificationId, List<String> usernames)
             throws NotificationManagementException {
+        if (usernames == null || usernames.isEmpty()) {
+            return;
+        }
         String sql =
                 "INSERT INTO DM_NOTIFICATION_USER_ACTION " +
                         "(NOTIFICATION_ID, " +
