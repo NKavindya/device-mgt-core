@@ -121,13 +121,13 @@ public class PostgreNotificationArchivalDAOImpl implements NotificationArchivalD
                         + "(ACTION_ID, " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP) "
                         + "SELECT " +
                         "ACTION_ID, " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP "
                         + "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION "
                         + "WHERE NOTIFICATION_ID " +
@@ -374,7 +374,7 @@ public class PostgreNotificationArchivalDAOImpl implements NotificationArchivalD
                 "SELECT " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP "
                         + "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION "
                         + "WHERE USERNAME = ? " +
@@ -384,7 +384,7 @@ public class PostgreNotificationArchivalDAOImpl implements NotificationArchivalD
                 "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH "
                         + "(NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP) "
                         + "VALUES (?, ?, ?, ?)";
         String deleteSQL =
@@ -406,7 +406,7 @@ public class PostgreNotificationArchivalDAOImpl implements NotificationArchivalD
                     while (rs.next()) {
                         ins.setInt(1, rs.getInt("NOTIFICATION_ID"));
                         ins.setString(2, rs.getString("USERNAME"));
-                        ins.setString(3, rs.getString("ACTION_TYPE"));
+                        ins.setBoolean(3, rs.getBoolean("IS_READ"));
                         ins.setTimestamp(4, rs.getTimestamp("ACTION_TIMESTAMP"));
                         ins.addBatch();
                     }
@@ -432,7 +432,7 @@ public class PostgreNotificationArchivalDAOImpl implements NotificationArchivalD
                 "SELECT " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP "
                         + "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION "
                         + "WHERE USERNAME = ?";
@@ -440,7 +440,7 @@ public class PostgreNotificationArchivalDAOImpl implements NotificationArchivalD
                 "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH "
                         + "(NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP) "
                         + "VALUES (?, ?, ?, ?)";
         String deleteSQL =
@@ -457,7 +457,7 @@ public class PostgreNotificationArchivalDAOImpl implements NotificationArchivalD
                     while (rs.next()) {
                         ins.setInt(1, rs.getInt("NOTIFICATION_ID"));
                         ins.setString(2, rs.getString("USERNAME"));
-                        ins.setString(3, rs.getString("ACTION_TYPE"));
+                        ins.setBoolean(3, rs.getBoolean("IS_READ"));
                         ins.setTimestamp(4, rs.getTimestamp("ACTION_TIMESTAMP"));
                         ins.addBatch();
                     }

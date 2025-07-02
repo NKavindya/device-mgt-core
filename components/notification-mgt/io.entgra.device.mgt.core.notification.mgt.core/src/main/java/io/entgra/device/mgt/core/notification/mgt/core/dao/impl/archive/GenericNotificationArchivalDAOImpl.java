@@ -116,13 +116,13 @@ public class GenericNotificationArchivalDAOImpl implements NotificationArchivalD
                 "(ACTION_ID, " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP) " +
                 "SELECT " +
                         "ACTION_ID, " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP " +
                 "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
                 "WHERE NOTIFICATION_ID " +
@@ -386,7 +386,7 @@ public class GenericNotificationArchivalDAOImpl implements NotificationArchivalD
         String selectQuery =
                 "SELECT NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP " +
                         "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
                         "WHERE USERNAME = ? " +
@@ -396,7 +396,7 @@ public class GenericNotificationArchivalDAOImpl implements NotificationArchivalD
                 "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH " +
                         "(NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP) " +
                         "VALUES (?, ?, ?, ?)";
         String deleteQuery =
@@ -418,7 +418,7 @@ public class GenericNotificationArchivalDAOImpl implements NotificationArchivalD
                     while (rs.next()) {
                         insertStmt.setInt(1, rs.getInt("NOTIFICATION_ID"));
                         insertStmt.setString(2, rs.getString("USERNAME"));
-                        insertStmt.setString(3, rs.getString("ACTION_TYPE"));
+                        insertStmt.setBoolean(3, rs.getBoolean("IS_READ"));
                         insertStmt.setTimestamp(4, rs.getTimestamp("ACTION_TIMESTAMP"));
                         insertStmt.addBatch();
                     }
@@ -443,7 +443,7 @@ public class GenericNotificationArchivalDAOImpl implements NotificationArchivalD
                 "SELECT " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP " +
                         "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
                         "WHERE USERNAME = ?";
@@ -451,7 +451,7 @@ public class GenericNotificationArchivalDAOImpl implements NotificationArchivalD
                 "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH " +
                         "(NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP) " +
                         "VALUES (?, ?, ?, ?)";
         String deleteQuery =
@@ -468,7 +468,7 @@ public class GenericNotificationArchivalDAOImpl implements NotificationArchivalD
                     while (rs.next()) {
                         insertStmt.setInt(1, rs.getInt("NOTIFICATION_ID"));
                         insertStmt.setString(2, rs.getString("USERNAME"));
-                        insertStmt.setString(3, rs.getString("ACTION_TYPE"));
+                        insertStmt.setBoolean(3, rs.getBoolean("IS_READ"));
                         insertStmt.setTimestamp(4, rs.getTimestamp("ACTION_TIMESTAMP"));
                         insertStmt.addBatch();
                     }

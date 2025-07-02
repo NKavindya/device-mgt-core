@@ -117,13 +117,13 @@ public class H2NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                         "(ACTION_ID, " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP) " +
                         "SELECT " +
                         "ACTION_ID, " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP " +
                         "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
                         "WHERE NOTIFICATION_ID " +
@@ -367,7 +367,7 @@ public class H2NotificationArchivalDAOImpl implements NotificationArchivalDAO {
         String selectQuery =
                 "SELECT NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP " +
                         "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
                         "WHERE USERNAME = ? " +
@@ -377,7 +377,7 @@ public class H2NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                 "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH " +
                         "(NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP) " +
                         "VALUES (?, ?, ?, ?)";
         String deleteQuery =
@@ -399,7 +399,7 @@ public class H2NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                     while (rs.next()) {
                         insertStmt.setInt(1, rs.getInt("NOTIFICATION_ID"));
                         insertStmt.setString(2, rs.getString("USERNAME"));
-                        insertStmt.setString(3, rs.getString("ACTION_TYPE"));
+                        insertStmt.setBoolean(3, rs.getBoolean("IS_READ"));
                         insertStmt.setTimestamp(4, rs.getTimestamp("ACTION_TIMESTAMP"));
                         insertStmt.addBatch();
                     }
@@ -424,7 +424,7 @@ public class H2NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                 "SELECT " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP " +
                         "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
                         "WHERE USERNAME = ?";
@@ -432,7 +432,7 @@ public class H2NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                 "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH " +
                         "(NOTIFICATION_ID, " +
                         "USERNAME, " +
-                        "ACTION_TYPE, " +
+                        "IS_READ, " +
                         "ACTION_TIMESTAMP) " +
                         "VALUES (?, ?, ?, ?)";
         String deleteQuery =
@@ -449,7 +449,7 @@ public class H2NotificationArchivalDAOImpl implements NotificationArchivalDAO {
                     while (rs.next()) {
                         insertStmt.setInt(1, rs.getInt("NOTIFICATION_ID"));
                         insertStmt.setString(2, rs.getString("USERNAME"));
-                        insertStmt.setString(3, rs.getString("ACTION_TYPE"));
+                        insertStmt.setBoolean(3, rs.getBoolean("IS_READ"));
                         insertStmt.setTimestamp(4, rs.getTimestamp("ACTION_TIMESTAMP"));
                         insertStmt.addBatch();
                     }
