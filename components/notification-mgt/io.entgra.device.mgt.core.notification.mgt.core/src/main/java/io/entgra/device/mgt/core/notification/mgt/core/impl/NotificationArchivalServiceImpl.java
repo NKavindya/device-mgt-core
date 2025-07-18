@@ -47,6 +47,11 @@ public class NotificationArchivalServiceImpl implements NotificationArchivalServ
         deleteDAO = NotificationArchivalSourceDAOFactory.getNotificationArchivalDAO();
     }
 
+    public NotificationArchivalServiceImpl(NotificationArchivalDAO archivalDAO, NotificationArchivalDAO deleteDAO) {
+        this.archivalDAO = archivalDAO;
+        this.deleteDAO = deleteDAO;
+    }
+
     @Override
     public void archiveOldNotifications(int tenantId) throws NotificationArchivalException {
         try {
