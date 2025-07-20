@@ -22,6 +22,7 @@ package io.entgra.device.mgt.core.notification.mgt.core.impl;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationList;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationArchivalService;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalDestDAOFactory;
@@ -49,18 +50,22 @@ public class NotificationArchivalServiceImpl implements NotificationArchivalServ
 
     @Override
     public void archiveOldNotifications(int tenantId) throws NotificationArchivalException {
+        log.info("Starting dynamic notification archival based on config-defined periods.");
+        NotificationConfigurationList configList;
         try {
-            log.info("Starting dynamic notification archival based on config-defined periods.");
+            configList = NotificationHelper.getNotificationConfigurationsFromMetadata();
+        } catch (NotificationManagementException e) {
+            String msg = "Failed to load notification configurations. Skipping archival.";
+            log.error(msg, e);
+            throw new NotificationArchivalException(msg, e);
+        }
+        if (configList == null || configList.getNotificationConfigurations() == null) {
+            log.warn("No notification configurations found. Skipping archival.");
+            return;
+        }
+        try {
             NotificationArchivalSourceDAOFactory.beginTransaction();
             NotificationArchivalDestDAOFactory.beginTransaction();
-            // get notification config list from metadata
-            NotificationConfigurationList configList = NotificationHelper.getNotificationConfigurationsFromMetadata();
-            if (configList == null || configList.getNotificationConfigurations() == null) {
-                log.warn("No notification configurations found. Skipping archival.");
-                NotificationArchivalSourceDAOFactory.commitTransaction();
-                NotificationArchivalDestDAOFactory.commitTransaction();
-                return;
-            }
             NotificationHelper.setDefaultArchivalValuesIfAbsent(configList);
             String defaultArchiveType = configList.getDefaultArchiveType();
             String defaultArchiveAfter = configList.getDefaultArchiveAfter();
@@ -133,9 +138,9 @@ public class NotificationArchivalServiceImpl implements NotificationArchivalServ
     @Override
     public void deleteExpiredArchivedNotifications(int tenantId) throws NotificationArchivalException {
         try {
+            NotificationArchivalDestDAOFactory.beginTransaction();
             log.info("Deleting archived notifications older than " + Constants.DEFAULT_ARCHIVE_DELETE_PERIOD);
             Timestamp cutoff = NotificationHelper.resolveCutoffTimestamp(Constants.DEFAULT_ARCHIVE_DELETE_PERIOD);
-            NotificationArchivalDestDAOFactory.beginTransaction();
             archivalDAO.deleteExpiredArchivedNotifications(cutoff, tenantId);
             NotificationArchivalDestDAOFactory.commitTransaction();
         } catch (Exception e) {

@@ -23,6 +23,7 @@ import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationA
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface NotificationArchivalDAO {
@@ -106,13 +107,17 @@ public interface NotificationArchivalDAO {
             throws NotificationArchivalException;
 
     /**
-     * Archive one or more notifications for a given user from the DB.
+     * Archives notifications from source to archive tables for the given user.
+     * Separates valid notifications from invalid ones.
      *
-     * @param notificationIds A list of notification IDs to be deleted.
-     * @param username        The username associated with the notifications.
-     * @throws NotificationArchivalException If an error occurs while deleting the notifications.
+     * @param notificationIds List of notification IDs to archive.
+     * @param username        Username of the user.
+     * @return Map with keys:
+     *         "archived" - notifications successfully archived,
+     *         "invalid"  - notifications not found in source table.
+     * @throws NotificationArchivalException on DB error.
      */
-    void archiveUserNotifications(List<Integer> notificationIds, String username)
+    Map<String, List<Integer>> archiveUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationArchivalException;
 
     /**

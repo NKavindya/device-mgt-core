@@ -38,9 +38,6 @@ public class NotificationConfigurationSettings {
     @JsonProperty("archiveAfter")
     private String archiveAfter;
 
-    @JsonProperty("deviceTypes")
-    private List<String> deviceTypes;
-
     @JsonProperty("notificationTriggerPoints")
     private List<String> notificationTriggerPoints;
 
@@ -82,14 +79,6 @@ public class NotificationConfigurationSettings {
 
     public void setArchiveAfter(String archiveAfter) {
         this.archiveAfter = archiveAfter;
-    }
-
-    public List<String> getDeviceTypes() {
-        return deviceTypes;
-    }
-
-    public void setDeviceTypes(List<String> deviceTypes) {
-        this.deviceTypes = deviceTypes;
     }
 
     public List<String> getNotificationTriggerPoints() {
