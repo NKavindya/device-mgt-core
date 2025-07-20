@@ -81,9 +81,15 @@ public class DeviceFeatureOperationsImpl implements DeviceFeatureOperations {
                     log.error("Feature manager not found for device type: " + deviceTypeName, e);
                 }
             }
-            DeviceFeatureOperationsDAOFactory.beginTransaction();
-            deviceFeatureOperationDAO.updateDeviceFeatureDetails(featureList);
-            DeviceFeatureOperationsDAOFactory.commitTransaction();
+            try {
+                DeviceFeatureOperationsDAOFactory.beginTransaction();
+                deviceFeatureOperationDAO.updateDeviceFeatureDetails(featureList);
+                DeviceFeatureOperationsDAOFactory.commitTransaction();
+            } catch (TransactionManagementException e) {
+                String msg = "Error occurred while initiating transaction";
+                log.error(msg, e);
+                throw new DeviceFeatureOperationException(msg, e);
+            }
         } catch (DeviceManagementDAOException e) {
             DeviceFeatureOperationsDAOFactory.rollbackTransaction();
             String msg = "An error occurred while retrieving device types.";
@@ -91,10 +97,6 @@ public class DeviceFeatureOperationsImpl implements DeviceFeatureOperations {
             throw new DeviceFeatureOperationException(msg, e);
         } catch (DeviceManagementException e) {
             String msg = "An error occurred while retrieving device management services.";
-            log.error(msg, e);
-            throw new DeviceFeatureOperationException(msg, e);
-        } catch (TransactionManagementException e) {
-            String msg = "Error occurred while initiating transaction";
             log.error(msg, e);
             throw new DeviceFeatureOperationException(msg, e);
         } finally {

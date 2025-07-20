@@ -30,4 +30,5 @@ public class Constants {
     public static final String DEFAULT_ARCHIVE_TYPE = "DB";
     public static final String PENDING = "PENDING";
     public static final String NOTIFICATION_CONFIG_META_KEY = "notification-config" ;
+    public static final String ADMIN = "admin" ;
 }

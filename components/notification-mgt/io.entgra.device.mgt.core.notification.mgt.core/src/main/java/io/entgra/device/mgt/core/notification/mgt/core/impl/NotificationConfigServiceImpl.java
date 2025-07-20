@@ -22,6 +22,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.Metadata;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.InvalidNotificationConfigurationException;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationHelper;
 import io.entgra.device.mgt.core.notification.mgt.core.util.Constants;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
@@ -37,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 public class NotificationConfigServiceImpl implements NotificationConfigService {
     private static final Log log = LogFactory.getLog(NotificationConfigServiceImpl.class);
@@ -44,6 +46,12 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
     private final MetadataManagementService metaDataService =
             NotificationManagementDataHolder.getInstance().getMetaDataManagementService();
 
+    /**
+     * Generates the next available ID for a new notification configuration.
+     *
+     * @param existingConfigs The list of existing notification configurations.
+     * @return The next available ID (max existing ID + 1), or 1 if the list is empty.
+     */
     private int generateNextId(List<NotificationConfig> existingConfigs) {
         if (existingConfigs == null || existingConfigs.isEmpty()) {
             return 1;
@@ -52,6 +60,52 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
                 .mapToInt(NotificationConfig::getId)
                 .max()
                 .orElse(0) + 1;
+    }
+
+    /**
+     * Checks whether the given notification configuration is valid.
+     * A valid configuration must have recipients, a non-empty code, and a configuredBy field.
+     *
+     * @param config The notification configuration to validate.
+     * @return True if the configuration is valid; false otherwise.
+     */
+    private boolean configurationIsValid(NotificationConfig config) {
+        return config.getRecipients() != null &&
+                config.getCode() != null &&
+                !config.getCode().isEmpty() &&
+                config.getConfiguredBy() != null;
+    }
+
+    /**
+     * Checks whether the provided notification configuration is null.
+     *
+     * @param configuration The configuration to check.
+     * @return True if the configuration is null; false otherwise.
+     */
+    private boolean configurationIsEmpty(NotificationConfig configuration) {
+        return configuration == null;
+    }
+
+    /**
+     * Checks whether the ID of the given notification configuration is invalid.
+     * An ID is considered invalid if it is less than or equal to 0.
+     *
+     * @param config The notification configuration to check.
+     * @return True if the configuration ID is invalid; false otherwise.
+     */
+    private boolean configIDIsInvalid(NotificationConfig config) {
+        return config.getId() <= 0;
+    }
+
+    /**
+     * Checks whether the given notification configuration list is null or empty.
+     *
+     * @param configurations The notification configuration list to check.
+     * @return True if the list or its contents are null or empty; false otherwise.
+     */
+    private boolean configurationsAreEmpty(NotificationConfigurationList configurations) {
+        return configurations == null || configurations.getNotificationConfigurations() == null
+                || configurations.getNotificationConfigurations().isEmpty();
     }
 
     @Override
@@ -93,15 +147,19 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
      * If metadata already exists for notification configurations, it will be updated.
      * otherwise, new metadata will be created.
      * @param newConfigurations A list of new notification configurations to be added.
+     * @return {@link NotificationConfigurationList addNotificationConfigContext}
      * @throws NotificationConfigurationServiceException If the input is invalid or if an error occurs while
      *                                                   accessing or updating metadata.
      */
     @Override
-    public void addNotificationConfigContext(NotificationConfigurationList newConfigurations)
+    public NotificationConfigurationList addNotificationConfigContext(NotificationConfigurationList newConfigurations)
             throws NotificationConfigurationServiceException {
-        if (newConfigurations == null || newConfigurations.isEmpty()) {
-            throw new NotificationConfigurationServiceException("Cannot add empty configurations");
+        if (configurationsAreEmpty(newConfigurations)) {
+            String msg = "Received empty configurations list, Cannot add empty configurations";
+            log.error(msg);
+            throw new NotificationConfigurationServiceException(msg);
         }
+        List<String> validationErrors = new ArrayList<>();
         try {
             Metadata existingMetadata = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
             NotificationConfigurationList existingConfigurations = new NotificationConfigurationList();
@@ -114,6 +172,10 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
                 merged.addAll(existingConfigurations.getNotificationConfigurations());
             }
             for (NotificationConfig newConfig : newConfigurations.getNotificationConfigurations()) {
+                if (!configurationIsValid(newConfig)) {
+                    validationErrors.add("Config ID " + newConfig.getId() + ": missing required fields");
+                    continue;
+                }
                 if (newConfig.getId() == 0) {
                     newConfig.setId(generateNextId(merged));
                 }
@@ -122,12 +184,17 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
                 boolean isDuplicateCode =
                         merged.stream().anyMatch(c -> c.getCode().equals(newConfig.getCode()));
                 if (isDuplicateId) {
-                    throw new NotificationConfigurationServiceException("Duplicate ID " + newConfig.getId());
+                    validationErrors.add("Duplicate ID: " + newConfig.getId());
+                    continue;
                 }
                 if (isDuplicateCode) {
-                    throw new NotificationConfigurationServiceException("Duplicate Code " + newConfig.getCode());
+                    validationErrors.add("Duplicate Code: " + newConfig.getCode());
+                    continue;
                 }
                 merged.add(newConfig);
+            }
+            if (validationErrors.size() == newConfigurations.getNotificationConfigurations().size()) {
+                throw new InvalidNotificationConfigurationException(validationErrors);
             }
             NotificationConfigurationList updatedList = new NotificationConfigurationList();
             updatedList.setNotificationConfigurations(merged);
@@ -141,6 +208,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             } else {
                 metaDataService.createMetadata(newMetadata);
             }
+            return updatedList;
         } catch (MetadataManagementException e) {
             String msg = "Error creating or updating metadata: " + e.getMessage();
             log.error(msg, e);
@@ -228,8 +296,20 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
     @Override
     public void updateNotificationConfigContext(NotificationConfig updatedConfig)
             throws NotificationConfigurationServiceException {
-        if (updatedConfig == null || updatedConfig.getId() <= 0) {
-            throw new NotificationConfigurationServiceException("Invalid configuration");
+        if (configurationIsEmpty(updatedConfig)) {
+            String msg = "Configuration cannot be null";
+            log.error(msg);
+            throw new NotificationConfigurationServiceException(msg);
+        }
+        if (configIDIsInvalid(updatedConfig)) {
+            String msg = "Invalid configuration ID" + updatedConfig.getId();
+            log.error(msg);
+            throw new NotificationConfigurationServiceException(msg);
+        }
+        if (!configurationIsValid(updatedConfig)) {
+            String msg = "Invalid configuration: missing required fields" + updatedConfig.getId();
+            log.error(msg);
+            throw new NotificationConfigurationServiceException(msg);
         }
         try {
             Metadata existingMetadata =
@@ -370,5 +450,30 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             log.error(message, e);
             throw new NotificationConfigurationServiceException(message, e);
         }
+    }
+
+    @Override
+    public NotificationConfigurationList getFilteredNotificationConfigurations
+            (String name, String type, String code, int offset, int limit)
+            throws NotificationConfigurationServiceException {
+        NotificationConfigurationList allConfigurations = getNotificationConfigurations();
+        List<NotificationConfig> filteredConfigs = allConfigurations.getNotificationConfigurations().stream()
+                .filter(config -> {
+                    boolean matchesName = (name == null || config.getName().toLowerCase()
+                            .contains(name.toLowerCase()));
+                    boolean matchesType = (type == null || config.getType().equalsIgnoreCase(type));
+                    boolean matchesCode = (code == null || config.getCode().toLowerCase()
+                            .contains(code.toLowerCase()));
+                    return matchesName && matchesType && matchesCode;
+                })
+                .collect(Collectors.toList());
+        int fromIndex = Math.max(0, Math.min(offset, filteredConfigs.size()));
+        int toIndex = Math.max(0, Math.min(offset + limit, filteredConfigs.size()));
+        List<NotificationConfig> pagedConfigs = filteredConfigs.subList(fromIndex, toIndex);
+        NotificationConfigurationList result = new NotificationConfigurationList();
+        result.setNotificationConfigurations(pagedConfigs);
+        result.setDefaultArchiveAfter(allConfigurations.getDefaultArchiveAfter());
+        result.setDefaultArchiveType(allConfigurations.getDefaultArchiveType());
+        return result;
     }
 }

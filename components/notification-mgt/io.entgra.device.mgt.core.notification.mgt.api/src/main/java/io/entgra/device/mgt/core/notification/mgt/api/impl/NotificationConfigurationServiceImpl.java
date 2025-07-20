@@ -23,6 +23,7 @@ import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfi
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationList;
 
 import io.entgra.device.mgt.core.notification.mgt.api.service.NotificationConfigurationService;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.InvalidNotificationConfigurationException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationConfigurationServiceException;
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationConfigService;
 import org.apache.commons.httpclient.HttpStatus;
@@ -51,26 +52,6 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
 
     private static final Log log = LogFactory.getLog(NotificationConfigurationServiceImpl.class);
 
-    private boolean configurationsAreEmpty(NotificationConfigurationList configurations) {
-        return configurations == null || configurations.getNotificationConfigurations() == null
-                || configurations.getNotificationConfigurations().isEmpty();
-    }
-
-    private boolean configurationIsEmpty(NotificationConfig configuration) {
-        return configuration == null;
-    }
-
-    private boolean configurationIsValid(NotificationConfig config) {
-        return config.getRecipients() != null &&
-                config.getCode() != null &&
-                !config.getCode().isEmpty() &&
-                config.getConfiguredBy() != null;
-    }
-
-    private boolean configIDIsInvalid(NotificationConfig config) {
-        return config.getId() <= 0;
-    }
-
     @GET
     @Override
     public Response getNotificationConfigurations(
@@ -82,23 +63,9 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
         try {
             NotificationConfigService notificationConfigService =
                     NotificationConfigurationApiUtil.getNotificationConfigurationService();
-            NotificationConfigurationList allConfigurations =
-                    notificationConfigService.getNotificationConfigurations();
-            List<NotificationConfig> filteredConfigs = allConfigurations.getNotificationConfigurations().stream()
-                    .filter(config -> {
-                        boolean matchesName = (name == null || config.getName().toLowerCase()
-                                .contains(name.toLowerCase()));
-                        boolean matchesType = (type == null || config.getType().equalsIgnoreCase(type));
-                        boolean matchesCode = (code == null || config.getCode().toLowerCase()
-                                .contains(code.toLowerCase()));
-                        return matchesName && matchesType && matchesCode;
-                    })
-                    .collect(Collectors.toList());
-            int fromIndex = Math.max(0, Math.min(offset, filteredConfigs.size()));
-            int toIndex = Math.max(0, Math.min(offset + limit, filteredConfigs.size()));
-            List<NotificationConfig> pagedConfigs = filteredConfigs.subList(fromIndex, toIndex);
-            allConfigurations.setNotificationConfigurations(pagedConfigs);
-            return Response.status(HttpStatus.SC_OK).entity(allConfigurations).build();
+            NotificationConfigurationList filteredConfigs =
+                    notificationConfigService.getFilteredNotificationConfigurations(name, type, code, offset, limit);
+            return Response.status(HttpStatus.SC_OK).entity(filteredConfigs).build();
         } catch (NotificationConfigurationServiceException e) {
             String msg = "Unexpected error occurred while retrieving notification configurations.";
             log.error(msg, e);
@@ -110,35 +77,15 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
     @Override
     public Response createNotificationConfig(NotificationConfigurationList configurations) {
         try {
-            if (configurationsAreEmpty(configurations)) {
-                String msg = "Received empty configurations list";
-                log.error(msg);
-                return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-            }
-            NotificationConfigurationList validConfigurations = new NotificationConfigurationList();
-            List<String> invalidConfigs = new ArrayList<>();
-            for (NotificationConfig config : configurations.getNotificationConfigurations()) {
-                if (!configurationIsValid(config)) {
-                    invalidConfigs.add("Config ID " + config.getId() + ": missing required fields");
-                    continue;
-                }
-                validConfigurations.add(config);
-            }
-            if (validConfigurations.isEmpty()) {
-                String msg = "No valid configurations provided";
-                log.error(msg);
-                return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-            }
             NotificationConfigService notificationConfigService =
                     NotificationConfigurationApiUtil.getNotificationConfigurationService();
-            notificationConfigService.addNotificationConfigContext(validConfigurations);
-            Response.ResponseBuilder response = Response.status(HttpStatus.SC_CREATED)
-                    .entity(validConfigurations);
-            if (!invalidConfigs.isEmpty()) {
-                response.header("Warning", "Some configurations were invalid: " +
-                        String.join(", ", invalidConfigs));
-            }
-            return response.build();
+            NotificationConfigurationList addedConfigurations =
+                    notificationConfigService.addNotificationConfigContext(configurations);
+            return Response.status(HttpStatus.SC_CREATED).entity(addedConfigurations).build();
+        } catch (InvalidNotificationConfigurationException e) {
+            String msg = "Invalid configurations: " + String.join(", ", e.getValidationErrors());
+            log.error(msg);
+            return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
         } catch (NotificationConfigurationServiceException e) {
             String msg = "Error creating notification configurations: " + e.getMessage();
             log.error(msg, e);
@@ -152,23 +99,8 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
     public Response updateNotificationConfigById(@PathParam("configId") int configId,
                                                  NotificationConfig config) {
         try {
-            if (configurationIsEmpty(config)) {
-                String msg = "Configuration cannot be null";
-                log.error(msg);
-                return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-            }
             if (configId != config.getId()) {
                 String msg = "Path ID " + configId + " does not match configuration ID " + config.getId();
-                log.error(msg);
-                return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-            }
-            if (configIDIsInvalid(config)) {
-                String msg = "Invalid configuration ID";
-                log.error(msg);
-                return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-            }
-            if (!configurationIsValid(config)) {
-                String msg = "Invalid configuration: missing required fields";
                 log.error(msg);
                 return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
             }

@@ -22,6 +22,7 @@ package io.entgra.device.mgt.core.notification.mgt.core.impl;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigBatchNotifications;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigCriticalCriteria;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationSettings;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.PaginatedUserNotificationResponse;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
@@ -77,15 +78,17 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
-    public List<UserNotificationPayload> getUserNotificationsWithStatus(
+    public PaginatedUserNotificationResponse getUserNotificationsWithStatus(
             String username, int limit, int offset, Boolean isRead) throws NotificationManagementException {
         List<UserNotificationPayload> result = new ArrayList<>();
+        int totalCount = 0;
         try {
             NotificationManagementDAOFactory.openConnection();
             List<UserNotificationAction> userActions =
                     notificationDAO.getNotificationActionsByUser(username, limit, offset, isRead);
+            totalCount = notificationDAO.getNotificationActionsCountByUser(username, isRead);
             if (userActions.isEmpty()) {
-                return result;
+                return new PaginatedUserNotificationResponse(result, totalCount);
             }
             // extract notification IDs
             List<Integer> notificationIds = userActions.stream()
@@ -119,7 +122,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
         } finally {
             NotificationManagementDAOFactory.closeConnection();
         }
-        return result;
+        return new PaginatedUserNotificationResponse(result, totalCount);
     }
 
     @Override
@@ -285,9 +288,13 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                     NotificationManagementDAOFactory.commitTransaction();
                 } catch (NotificationManagementException e) {
                     NotificationManagementDAOFactory.rollbackTransaction();
-                    throw new NotificationManagementException("Error occurred while adding notification", e);
+                    String msg = "Error occurred while adding notification";
+                    log.error(msg, e);
+                    throw new NotificationManagementException(msg, e);
                 } catch (UserStoreException e) {
-                    throw new NotificationManagementException("Error occurred while adding user actions", e);
+                    String msg = "Error occurred while adding user actions";
+                    log.error(msg, e);
+                    throw new NotificationManagementException(msg, e);
                 } finally {
                     NotificationManagementDAOFactory.closeConnection();
                 }
@@ -354,36 +361,34 @@ public class NotificationManagementServiceImpl implements NotificationManagement
         try {
             UserStoreManager userStoreManager = NotificationManagementDataHolder.getInstance()
                     .getRealmService().getTenantUserRealm(tenantId).getUserStoreManager();
-            String[] adminUsers = userStoreManager.getUserListOfRole("admin");
+            String[] adminUsers = userStoreManager.getUserListOfRole(Constants.ADMIN);
             List<String> usernames = Arrays.asList(adminUsers);
             if (!usernames.isEmpty()) {
                 String description = String.format(message);
-                NotificationManagementDAOFactory.beginTransaction();
-               int notificationId = notificationDAO.insertNotification(
-                        tenantId, 0, "task", description);
-                notificationDAO.insertNotificationUserActions(notificationId, usernames);
-                for (String username : usernames) {
-                    int count = notificationDAO.getUnreadNotificationCountForUser(username);
-                    String payload = String.format("{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
-                    NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+                try {
+                    NotificationManagementDAOFactory.beginTransaction();
+                    int notificationId = notificationDAO.insertNotification(
+                            tenantId, 0, "task", description);
+                    notificationDAO.insertNotificationUserActions(notificationId, usernames);
+                    for (String username : usernames) {
+                        int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                        String payload = String.format("{\"message\":\"%s\",\"unreadCount\":%d}", description, count);
+                        NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+                    }
+                    NotificationManagementDAOFactory.commitTransaction();
+                } catch (Exception e) {
+                    NotificationManagementDAOFactory.rollbackTransaction();
+                    String msg = "Error occurred while handling notification transaction for task " + taskCode;
+                    log.error(msg, e);
+                    throw new NotificationManagementException(msg, e);
+                } finally {
+                    NotificationManagementDAOFactory.closeConnection();
                 }
-                NotificationManagementDAOFactory.commitTransaction();
             }
         } catch (UserStoreException e) {
             String msg = "Error retrieving users with role 'admin'";
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
-        } catch (NotificationManagementException e) {
-            String msg = "Failed to handle task notification for task " + taskCode;
-            log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
-        } catch (TransactionManagementException e) {
-            NotificationManagementDAOFactory.rollbackTransaction();
-            String msg = "Error occurred while adding notification";
-            log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
-        } finally {
-            NotificationManagementDAOFactory.closeConnection();
         }
     }
 }

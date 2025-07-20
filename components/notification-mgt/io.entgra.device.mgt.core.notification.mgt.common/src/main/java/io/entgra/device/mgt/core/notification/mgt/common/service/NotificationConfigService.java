@@ -41,10 +41,10 @@ public interface NotificationConfigService {
     /**
      * Retrieve the  notification configurations for a tenant.
      *
-     * @return {@link List < Notification >}
+     * @return {@link NotificationConfigurationList addNotificationConfigContext}
      * @throws NotificationConfigurationServiceException Throws when error occurred while retrieving notifications.
      */
-    void addNotificationConfigContext(NotificationConfigurationList configurations)
+    NotificationConfigurationList addNotificationConfigContext(NotificationConfigurationList configurations)
             throws NotificationConfigurationServiceException;
 
     /**
@@ -87,4 +87,21 @@ public interface NotificationConfigService {
      * @throws NotificationConfigurationServiceException Throws when error occurred while retrieving notifications.
      */
     NotificationConfig getNotificationConfigByID(int configID) throws NotificationConfigurationServiceException;
+
+    /**
+     * Retrieves a filtered and paginated list of notification configurations based on the provided criteria.
+     * This method applies filtering on the name, type, and code of the notification configurations,
+     * and returns a sublist based on the given offset and limit for pagination.
+     *
+     * @param name   Optional filter to match configuration names (case-insensitive with partial match).
+     * @param type   Optional filter to match configuration type (case-insensitive with exact match).
+     * @param code   Optional filter to match configuration codes (case-insensitive with partial match).
+     * @param offset The starting index of the paginated result.
+     * @param limit  The maximum number of configurations to return in the result.
+     * @return A {@link NotificationConfigurationList} containing the filtered and paginated configurations.
+     * @throws NotificationConfigurationServiceException If an error occurs during metadata retrieval or processing.
+     */
+    NotificationConfigurationList getFilteredNotificationConfigurations(String name, String type,
+                                                                        String code, int offset, int limit)
+            throws NotificationConfigurationServiceException;
 }

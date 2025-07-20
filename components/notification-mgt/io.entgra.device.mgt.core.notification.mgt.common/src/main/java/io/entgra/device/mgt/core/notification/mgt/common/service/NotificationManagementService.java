@@ -21,6 +21,7 @@ package io.entgra.device.mgt.core.notification.mgt.common.service;
 
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.PaginatedUserNotificationResponse;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
@@ -39,19 +40,15 @@ public interface NotificationManagementService {
     List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementException;
 
     /**
-     * Retrieves a list of notifications for a given user along with their read/unread status.
-     * This method performs the following steps:
-     *   Fetches the user's notification actions (e.g., READ, UNREAD) with pagination support.
-     *   Retrieves the corresponding notification details (ID, description, type) using the notification IDs.
-     *   Combines both into a list of {@link UserNotificationPayload} objects.
+     * Retrieves a paginated list of notifications for a given user along with their read/unread status.
      * @param username The username of the user whose notifications are to be retrieved.
      * @param limit    The maximum number of notifications to return.
      * @param offset   The offset from which to start retrieving notifications (for pagination).
-     * @param isRead notification read status of the given user.
-     * @return A list of {@link UserNotificationPayload} objects containing notification and action status.
+     * @param isRead   The read/unread status to filter the notifications.
+     * @return A {@link PaginatedUserNotificationResponse} containing the list of notifications and the total count.
      * @throws NotificationManagementException If an error occurs while accessing the data store.
      */
-    List<UserNotificationPayload> getUserNotificationsWithStatus(String username, int limit, int offset, Boolean isRead)
+    PaginatedUserNotificationResponse getUserNotificationsWithStatus(String username, int limit, int offset, Boolean isRead)
             throws NotificationManagementException;
 
     /**

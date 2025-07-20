@@ -77,11 +77,8 @@ public class NotificationServiceImpl implements NotificationService {
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
-            List<UserNotificationPayload> payloads =
-                    notificationService.getUserNotificationsWithStatus(username, limit, offset, isRead);
-            int totalCount = notificationService.getUserNotificationCount(username, isRead);
             PaginatedUserNotificationResponse response =
-                    new PaginatedUserNotificationResponse(payloads, totalCount);
+                    notificationService.getUserNotificationsWithStatus(username, limit, offset, isRead);
             return Response.status(HttpStatus.SC_OK).entity(response).build();
         } catch (NotificationManagementException e) {
             String msg = "Failed to retrieve user notifications with status for user: " + username;
@@ -91,7 +88,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @PUT
-    @Path("/mark-action")
+    @Path("/mark-as")
     public Response updateNotificationAction(@QueryParam("notificationId") List<Integer> notificationIds,
                                              @QueryParam("username") String username,
                                              @QueryParam("action") String actionType) {
@@ -109,7 +106,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @DELETE
-    @Path("/delete")
+    @Path("/user")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response deleteUserNotifications(
             @QueryParam("username") String username,
@@ -133,7 +130,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @POST
-    @Path("/archive")
+    @Path("/archive-notifications")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response archiveUserNotifications(

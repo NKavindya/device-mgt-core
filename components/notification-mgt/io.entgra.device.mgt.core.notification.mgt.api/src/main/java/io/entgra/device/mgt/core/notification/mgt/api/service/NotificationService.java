@@ -220,7 +220,7 @@ public interface NotificationService {
             int offset);
 
     @PUT
-    @Path("/mark-action")
+    @Path("/mark-as")
     @ApiOperation(
             produces = MediaType.APPLICATION_JSON,
             httpMethod = "PUT",
@@ -272,7 +272,7 @@ public interface NotificationService {
     );
 
     @DELETE
-    @Path("/delete")
+    @Path("/user")
     @ApiOperation(
             produces = MediaType.APPLICATION_JSON,
             httpMethod = "DELETE",
@@ -326,7 +326,7 @@ public interface NotificationService {
     );
 
     @POST
-    @Path("/archive")
+    @Path("/archive-notifications")
     @ApiOperation(
             produces = MediaType.APPLICATION_JSON,
             httpMethod = "POST",

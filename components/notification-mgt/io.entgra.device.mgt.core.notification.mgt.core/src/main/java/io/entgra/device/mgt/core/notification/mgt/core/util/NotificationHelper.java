@@ -46,7 +46,6 @@ import java.util.regex.Pattern;
 
 public class NotificationHelper {
     private static final Log log = LogFactory.getLog(NotificationHelper.class);
-    public static final String NOTIFICATION_CONFIG_META_KEY = "notification-config" ;
     private static final Gson gson = new Gson();
 
     /**
@@ -96,7 +95,7 @@ public class NotificationHelper {
                 log.error("MetaDataManagementService is null");
                 throw new NotificationManagementException("MetaDataManagementService is not available");
             }
-            Metadata existingMetadata = metaDataService.retrieveMetadata(NOTIFICATION_CONFIG_META_KEY);
+            Metadata existingMetadata = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
             if (existingMetadata == null) {
                 if (log.isDebugEnabled()) {
                     log.debug("No notification configurations found for tenant");
@@ -135,7 +134,8 @@ public class NotificationHelper {
                 log.warn(message);
                 throw new NotificationManagementException(message, e);
             } else {
-                String message = "Unexpected error occurred while retrieving notification configurations for tenant ID.";
+                String message = "Unexpected error occurred while retrieving notification configurations for " +
+                        "tenant ID.";
                 log.error(message, e);
                 throw new NotificationManagementException(message, e);
             }
@@ -193,10 +193,10 @@ public class NotificationHelper {
                 .getInstance().getMetaDataManagementService();
         try {
             if (metaDataService == null) {
-                log.error("MetaDataManagementService is null");
-                throw new NotificationManagementException("MetaDataManagementService is not available");
+                log.error("MetaDataManagementService is null. Skipping notification configuration loading.");
+                return null;
             }
-            Metadata existingMetadata = metaDataService.retrieveMetadata(NOTIFICATION_CONFIG_META_KEY);
+            Metadata existingMetadata = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
             if (existingMetadata == null) {
                 log.warn("No notification configuration metadata found.");
                 return null;
@@ -204,7 +204,7 @@ public class NotificationHelper {
             String metaValue = existingMetadata.getMetaValue();
             Type listType = new TypeToken<NotificationConfigurationList>() {}.getType();
             return new Gson().fromJson(metaValue, listType);
-        }catch (MetadataManagementException e) {
+        } catch (MetadataManagementException e) {
             String message = "Unexpected error occurred while retrieving notification configurations for tenant ID.";
             log.error(message, e);
             throw new NotificationManagementException(message, e);

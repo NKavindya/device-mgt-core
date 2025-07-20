@@ -36,7 +36,7 @@ import io.swagger.annotations.SwaggerDefinition;
 import io.swagger.annotations.Tag;
 
 import javax.ws.rs.GET;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
@@ -52,7 +52,7 @@ import javax.ws.rs.core.Response;
                 extensions = {
                         @Extension(properties = {
                                 @ExtensionProperty(name = "name", value = "DeviceFeatureManagement"),
-                                @ExtensionProperty(name = "context", value = "/api/device-mgt/v1.0/deviceOperations"),
+                                @ExtensionProperty(name = "context", value = "/api/device-mgt/v1.0/device-operations"),
                         })
                 }
         ),
@@ -71,17 +71,17 @@ import javax.ws.rs.core.Response;
                 ),
         }
 )
-@Path("/deviceOperations")
+@Path("/device-operations")
 @Api(value = "Device Management", description = "This API carries all device operation-related endpoints.")
 public interface DeviceFeatureOperationService {
     @GET
+    @Path("/{type}/{value}")
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(
             produces = MediaType.APPLICATION_JSON,
             httpMethod = "GET",
             value = "Retrieve Operation Details",
-            notes = "Retrieve operation details based on operation code, name, or device type. " +
-                    "Only one of 'code' or 'name' should be specified. If both are given, request will fail.",
+            notes = "Retrieve operation details by operation 'code' or 'name' with corresponding value.",
             tags = "Device Management",
             extensions = {
                     @Extension(properties = {
@@ -99,37 +99,32 @@ public interface DeviceFeatureOperationService {
                     ),
                     @ApiResponse(
                             code = 400,
-                            message = "Bad Request. Only one of 'code' or 'name' must be provided.",
+                            message = "Bad Request. Invalid type provided or both parameters are used.",
                             response = ErrorResponse.class
                     ),
                     @ApiResponse(
                             code = 404,
-                            message = "Not Found. \n The specified operation can not be found.",
-                            response = ErrorResponse.class),
+                            message = "Not Found. The specified operation was not found.",
+                            response = ErrorResponse.class
+                    ),
                     @ApiResponse(
                             code = 500,
-                            message = "Internal Server Error. Error while retrieving operation details.",
+                            message = "Internal Server Error. Error occurred while retrieving operation details.",
                             response = ErrorResponse.class
                     )
             }
     )
     Response getOperationDetails(
             @ApiParam(
-                    name = "code",
-                    value = "The operation code to search for (supports partial match). Cannot be used with 'name'.",
-                    required = false)
-            @QueryParam("code") String code,
-
-            @ApiParam(
-                    name = "name",
-                    value = "The operation name to search for (supports partial match). Cannot be used with 'code'.",
-                    required = false)
-            @QueryParam("name") String name,
-
-            @ApiParam(
                     name = "type",
-                    value = "The device type to filter by (e.g., android, ios).",
-                    required = false)
-            @QueryParam("type") String type
+                    value = "The type of search. Allowed values are 'code' or 'name'.",
+                    required = true,
+                    allowableValues = "code,name")
+            @PathParam("type") String type,
+            @ApiParam(
+                    name = "value",
+                    value = "The value of the code or name to search for.",
+                    required = true)
+            @PathParam("value") String value
     );
 }
