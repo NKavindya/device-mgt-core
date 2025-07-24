@@ -356,7 +356,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
-    public void handleTaskNotificationIfApplicable(String taskCode, int tenantId, String message)
+    public void handleTaskNotificationIfApplicable(int tenantId, String message)
             throws NotificationManagementException {
         try {
             UserStoreManager userStoreManager = NotificationManagementDataHolder.getInstance()
@@ -378,7 +378,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                     NotificationManagementDAOFactory.commitTransaction();
                 } catch (Exception e) {
                     NotificationManagementDAOFactory.rollbackTransaction();
-                    String msg = "Error occurred while handling notification transaction for task " + taskCode;
+                    String msg = "Error occurred while handling notification transaction for the task.";
                     log.error(msg, e);
                     throw new NotificationManagementException(msg, e);
                 } finally {

@@ -711,7 +711,6 @@ public class APIPublisherServiceImpl implements APIPublisherService {
             String message = String.format("Role Permission updation was failed for the role %s", roleName);
             try {
                 notificationManagementService.handleTaskNotificationIfApplicable(
-                        "ROLE_PERMISSION_UPDATE",
                         tenantId,
                         message
                 );

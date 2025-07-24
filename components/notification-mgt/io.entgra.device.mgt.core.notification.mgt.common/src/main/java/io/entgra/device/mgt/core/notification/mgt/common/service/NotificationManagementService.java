@@ -159,11 +159,10 @@ public interface NotificationManagementService {
      * Handles task-based notifications if a notification configuration exists for the given task code.
      * If no configuration is found, the method simply exits without performing any notification actions.
      *
-     * @param taskCode The unique identifier for the task being executed.
      * @param tenantId The tenant ID under which the task is being executed.
      * @param message The message to be sent with the notification, which can be task-specific.
      * @throws NotificationManagementException If an error occurs while handling the notification.
      */
-    void handleTaskNotificationIfApplicable(String taskCode, int tenantId, String message)
+    void handleTaskNotificationIfApplicable(int tenantId, String message)
             throws NotificationManagementException;
 }
