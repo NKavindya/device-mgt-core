@@ -28,7 +28,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.ws.rs.GET;
-import javax.ws.rs.PathParam;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
@@ -39,25 +40,16 @@ import java.util.List;
 public class DeviceFeatureOperationServiceImpl implements DeviceFeatureOperationService {
     private static final Log log = LogFactory.getLog(DeviceFeatureOperationServiceImpl.class);
     @GET
-    @Path("/{type}/{value}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getOperationDetails(
-            @PathParam("type") String type,
-            @PathParam("value") String value) {
-        if (!"code".equalsIgnoreCase(type) && !"name".equalsIgnoreCase(type)) {
-            String msg = "Invalid type parameter. Must be either 'code' or 'name'.";
-            return Response.status(Response.Status.BAD_REQUEST).entity(msg).build();
-        }
+            @QueryParam("code") String code,
+            @QueryParam("name") String name,
+            @QueryParam("type") String type,
+            @QueryParam("removeDeduplicateCode") @DefaultValue("false") boolean deduplicate) {
         try {
-            List<DeviceFeatureInfo> operationList;
-            if ("code".equalsIgnoreCase(type)) {
-                operationList = DeviceMgtAPIUtils.getDeviceFeatureOperations()
-                        .getOperationDetails(value, null, null);
-            } else {
-                operationList = DeviceMgtAPIUtils.getDeviceFeatureOperations()
-                        .getOperationDetails(null, value, null);
-            }
-            return Response.status(Response.Status.OK).entity(operationList).build();
+            List<DeviceFeatureInfo> operationList =
+                    DeviceMgtAPIUtils.getDeviceFeatureOperations().getOperationDetails(code, name, type, deduplicate);
+            return Response.ok(operationList).build();
         } catch (DeviceFeatureOperationException e) {
             String msg = "Error occurred while retrieving operation details.";
             log.error(msg, e);

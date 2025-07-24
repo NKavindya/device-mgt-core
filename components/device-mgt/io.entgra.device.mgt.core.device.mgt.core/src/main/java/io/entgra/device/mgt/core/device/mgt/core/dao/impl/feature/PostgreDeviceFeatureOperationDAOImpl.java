@@ -31,31 +31,53 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperationDAO {
     private static final Log log = LogFactory.getLog(PostgreDeviceFeatureOperationDAOImpl.class);
 
     @Override
-    public void updateDeviceFeatureDetails(List<DeviceFeatureInfo> featureList) throws DeviceManagementDAOException {
-        String insertQuery = "INSERT INTO DM_OPERATION_DETAILS " +
-                "(OPERATION_CODE, OPERATION_NAME, OPERATION_DESCRIPTION, DEVICE_TYPE) " +
-                "VALUES (?, ?, ?, ?) " +
-                "ON CONFLICT (OPERATION_CODE) " +
-                "DO UPDATE SET " +
-                "OPERATION_NAME = EXCLUDED.OPERATION_NAME, " +
-                "OPERATION_DESCRIPTION = EXCLUDED.OPERATION_DESCRIPTION";
-        try {
-            Connection connection = DeviceFeatureOperationsDAOFactory.getConnection();
-            try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
-                for (DeviceFeatureInfo featureInfo : featureList) {
-                    preparedStatement.setString(1, featureInfo.getOperationCode());
-                    preparedStatement.setString(2, featureInfo.getName());
-                    preparedStatement.setString(3, featureInfo.getDescription());
-                    preparedStatement.setString(4, featureInfo.getDeviceType());
-                    preparedStatement.addBatch();
+    public void updateDeviceFeatureDetails(List<DeviceFeatureInfo> featureList)
+            throws DeviceManagementDAOException {
+        String selectQuery =
+                "SELECT OPERATION_CODE, " +
+                        "DEVICE_TYPE " +
+                        "FROM DM_OPERATION_DETAILS";
+        String insertQuery =
+                "INSERT INTO DM_OPERATION_DETAILS " +
+                "(OPERATION_CODE, " +
+                        "OPERATION_NAME, " +
+                        "OPERATION_DESCRIPTION, " +
+                        "DEVICE_TYPE) " +
+                "VALUES (?, ?, ?, ?)";
+        try (Connection connection = DeviceFeatureOperationsDAOFactory.getConnection()) {
+            Set<String> existingKeys = new HashSet<>();
+            try (PreparedStatement selectStmt = connection.prepareStatement(selectQuery);
+                 ResultSet rs = selectStmt.executeQuery()) {
+                while (rs.next()) {
+                    existingKeys.add(rs.getString("OPERATION_CODE") + "|" + rs.getString("DEVICE_TYPE"));
                 }
-                preparedStatement.executeBatch();
+            }
+            List<DeviceFeatureInfo> toInsert = featureList.stream()
+                    .filter(f -> !existingKeys.contains(f.getOperationCode()
+                            + "|" + f.getDeviceType()))
+                    .collect(Collectors.toList());
+            if (!toInsert.isEmpty()) {
+                try (PreparedStatement insertStmt = connection.prepareStatement(insertQuery)) {
+                    for (DeviceFeatureInfo info : toInsert) {
+                        insertStmt.setString(1, info.getOperationCode());
+                        insertStmt.setString(2, info.getName());
+                        insertStmt.setString(3, info.getDescription());
+                        insertStmt.setString(4, info.getDeviceType());
+                        insertStmt.addBatch();
+                    }
+                    insertStmt.executeBatch();
+                }
             }
         } catch (SQLException e) {
             String msg = "Error occurred while updating device feature details in PostgreSQL.";
@@ -65,7 +87,8 @@ public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
     }
 
     @Override
-    public List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type)
+    public List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type,
+                                                       boolean removeDeduplicateCode)
             throws DeviceManagementDAOException {
         List<DeviceFeatureInfo> operationList = new ArrayList<>();
         StringBuilder query = new StringBuilder(
@@ -73,15 +96,16 @@ public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
                         "ID, " +
                         "OPERATION_CODE, " +
                         "OPERATION_NAME, " +
-                        "OPERATION_DESCRIPTION, " +
-                        "DEVICE_TYPE " +
-                        "FROM DM_OPERATION_DETAILS " +
-                        "WHERE 1=1");
+                        "OPERATION_DESCRIPTION");
+        if (!removeDeduplicateCode) {
+            query.append(", DEVICE_TYPE");
+        }
+        query.append(" FROM DM_OPERATION_DETAILS WHERE 1=1");
         if (code != null && !code.isBlank()) {
-            query.append(" AND OPERATION_CODE LIKE ?");
+            query.append(" AND OPERATION_CODE ILIKE ?");
         }
         if (name != null) {
-            query.append(" AND OPERATION_NAME LIKE ?");
+            query.append(" AND OPERATION_NAME ILIKE ?");
         }
         if (type != null) {
             query.append(" AND DEVICE_TYPE = ?");
@@ -93,25 +117,37 @@ public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
                 if (code != null && !code.isBlank()) stmt.setString(index++, "%" + code + "%");
                 if (name != null) stmt.setString(index++, "%" + name + "%");
                 if (type != null) stmt.setString(index++, type);
-
                 try (ResultSet rs = stmt.executeQuery()) {
+                    Map<String, DeviceFeatureInfo> dedupedMap = new LinkedHashMap<>();
                     while (rs.next()) {
+                        String operationCode = rs.getString("OPERATION_CODE");
+                        if (removeDeduplicateCode && dedupedMap.containsKey(operationCode)) {
+                            continue;
+                        }
                         DeviceFeatureInfo info = new DeviceFeatureInfo();
                         info.setId(rs.getInt("ID"));
-                        info.setOperationCode(rs.getString("OPERATION_CODE"));
+                        info.setOperationCode(operationCode);
                         info.setName(rs.getString("OPERATION_NAME"));
                         info.setDescription(rs.getString("OPERATION_DESCRIPTION"));
-                        info.setDeviceType(rs.getString("DEVICE_TYPE"));
-                        operationList.add(info);
+                        if (!removeDeduplicateCode) {
+                            info.setDeviceType(rs.getString("DEVICE_TYPE"));
+                        }
+                        if (removeDeduplicateCode) {
+                            dedupedMap.put(operationCode, info);
+                        } else {
+                            operationList.add(info);
+                        }
+                    }
+                    if (removeDeduplicateCode) {
+                        operationList.addAll(dedupedMap.values());
                     }
                 }
             }
         } catch (SQLException e) {
-            String msg = "Error retrieving filtered operation details from PostgreSQL DB.";
+            String msg = "Error retrieving filtered operation details from PostgreSQL.";
             log.error(msg, e);
             throw new DeviceManagementDAOException(msg, e);
         }
-
         return operationList;
     }
 }

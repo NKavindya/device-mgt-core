@@ -59,7 +59,6 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
                         notification.setNotificationConfigId(resultSet.getInt("NOTIFICATION_CONFIG_ID"));
                         notification.setTenantId(resultSet.getInt("TENANT_ID"));
                         notification.setDescription(resultSet.getString("DESCRIPTION"));
-                        notification.setPriority(resultSet.getInt("PRIORITY"));
                         notification.setCreatedTimestamp(resultSet.getTimestamp("CREATED_TIMESTAMP"));
                         notifications.add(notification);
                     }

@@ -41,9 +41,10 @@ public interface DeviceFeatureOperations {
      * @param code the operation code to filter by (optional).
      * @param name the operation name to filter by (optional).
      * @param type the device type to filter by (optional).
+     * @param removeDeduplicateCode whether to get duplicate operations code from device types or not (optional).
      * @return a list of {@link DeviceFeatureInfo} objects matching the given filters.
      * @throws DeviceFeatureOperationException if an error occurs while retrieving data from the underlying data store.
      */
-    List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type)
+    List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type, boolean removeDeduplicateCode)
             throws DeviceFeatureOperationException;
 }

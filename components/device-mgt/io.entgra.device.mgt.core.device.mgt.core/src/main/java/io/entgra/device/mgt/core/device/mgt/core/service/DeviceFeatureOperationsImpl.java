@@ -106,12 +106,13 @@ public class DeviceFeatureOperationsImpl implements DeviceFeatureOperations {
     }
 
     @Override
-    public List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type)
+    public List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type,
+                                                       boolean removeDeduplicateCode)
             throws DeviceFeatureOperationException {
         List<DeviceFeatureInfo> operationList;
         try {
             DeviceFeatureOperationsDAOFactory.openConnection();
-            operationList = deviceFeatureOperationDAO.getOperationDetails(code, name, type);
+            operationList = deviceFeatureOperationDAO.getOperationDetails(code, name, type, removeDeduplicateCode);
         } catch (SQLException e) {
             String msg = "Error retrieving operation details from DB table.";
             log.error(msg, e);

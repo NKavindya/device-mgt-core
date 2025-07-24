@@ -39,10 +39,11 @@ public interface DeviceFeatureOperationDAO {
      * @param code the operation code to filter by (optional).
      * @param name the operation name to filter by (optional).
      * @param type the device type to filter by (optional).
+     * @param removeDeduplicateCode whether to get duplicate operations code from device types or not (optional).
      * @return a list of {@link DeviceFeatureInfo} objects that match the provided filters.
      * @throws DeviceManagementDAOException if an error occurs while accessing the database.
      */
-    List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type)
+    List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type, boolean removeDeduplicateCode)
             throws DeviceManagementDAOException;
 
 }
