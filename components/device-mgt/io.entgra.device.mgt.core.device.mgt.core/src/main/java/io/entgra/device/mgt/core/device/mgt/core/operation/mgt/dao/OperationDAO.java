@@ -137,4 +137,7 @@ public interface OperationDAO {
      */
     OperationDTO getOperationDetailsById(int operationId, int tenantId)
             throws OperationManagementDAOException;
+
+    List<? extends Operation> getDeviceOperationsByStatusAndCode(int enrolmentId, Operation.Status status, String operationCode)
+            throws OperationManagementDAOException;
 }

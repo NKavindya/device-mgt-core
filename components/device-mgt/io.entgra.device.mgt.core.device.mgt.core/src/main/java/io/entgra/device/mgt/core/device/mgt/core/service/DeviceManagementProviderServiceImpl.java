@@ -2444,6 +2444,12 @@ public class DeviceManagementProviderServiceImpl implements DeviceManagementProv
     }
 
     @Override
+    public List<? extends Operation> getPendingOperations(Device device, String operationCode) throws OperationManagementException {
+        return pluginRepository.getOperationManager(device.getType(), this.getTenantId())
+                .getPendingOperationsByOpCode(device, operationCode);
+    }
+
+    @Override
     public Operation getNextPendingOperation(DeviceIdentifier deviceId) throws OperationManagementException {
         // // setting notNowOperationFrequency to -1 to avoid picking not now operations
         return pluginRepository.getOperationManager(deviceId.getType(), this.getTenantId())
