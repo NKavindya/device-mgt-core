@@ -18,6 +18,7 @@
 
 package io.entgra.device.mgt.core.device.mgt.core.metadata.mgt;
 
+import io.entgra.device.mgt.core.device.mgt.core.DeviceManagementConstants;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.base.MultitenantConstants;
@@ -92,7 +93,9 @@ public class MetadataManagementServiceImpl implements MetadataManagementService 
         try {
             MetadataManagementDAOFactory.openConnection();
             int tenantId;
-            if (metaKey.equals("EVALUATE_TENANTS") || metaKey.equals("PER_DEVICE_COST") || metaKey.equals("DEVICE_SUSPEND_ENABLED_TENANTS")){
+            if (DeviceManagementConstants.MetadataKeys.META_KEY_EVALUATE_TENANTS.equals(metaKey) ||
+                    DeviceManagementConstants.MetadataKeys.META_KEY_DEVICE_COST.equals(metaKey) ||
+                    DeviceManagementConstants.MetadataKeys.META_KEY_DEVICE_SUSPEND_ENABLED_TENANTS.equals(metaKey)) {
                 // for getting per device cost and evaluate tenant list to provide the billing feature and live chat feature
                  tenantId = MultitenantConstants.SUPER_TENANT_ID;
             } else {

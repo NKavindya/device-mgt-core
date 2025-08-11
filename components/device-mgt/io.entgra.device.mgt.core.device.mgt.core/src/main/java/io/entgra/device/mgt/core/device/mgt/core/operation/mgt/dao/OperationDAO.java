@@ -138,6 +138,15 @@ public interface OperationDAO {
     OperationDTO getOperationDetailsById(int operationId, int tenantId)
             throws OperationManagementDAOException;
 
-    List<? extends Operation> getDeviceOperationsByStatusAndCode(int enrolmentId, Operation.Status status, String operationCode)
+    /**
+     * This method is used to get the device operations by status and operation code.
+     * @param enrolmentId the enrolment ID of the device.
+     * @param status the status of the operation.
+     * @param operationCode the operation code of the operation.
+     * @return List of operations that match the given status and operation code.
+     * @throws OperationManagementDAOException if connection establishment or SQL execution fails.
+     */
+    List<? extends Operation> getDeviceOperationsByStatusAndCode(int enrolmentId, Operation.Status status,
+                                                                 String operationCode)
             throws OperationManagementDAOException;
 }
