@@ -24,19 +24,15 @@ import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfi
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationList;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationSettings;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationConfigurationServiceException;
-import io.entgra.device.mgt.core.notification.mgt.core.common.BaseNotificationManagementTest;
 import io.entgra.device.mgt.core.notification.mgt.core.util.Constants;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.google.gson.Gson;
 import org.mockito.InjectMocks;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -50,7 +46,7 @@ import static org.mockito.Mockito.when;
 /**
  * Test class for NotificationConfigServiceImpl
  */
-public class NotificationConfigServiceImplTest extends BaseNotificationManagementTest {
+public class NotificationConfigServiceImplTest {
 
     @InjectMocks
     private NotificationConfigServiceImpl service;
@@ -62,21 +58,6 @@ public class NotificationConfigServiceImplTest extends BaseNotificationManagemen
     private ArgumentCaptor<Metadata> metadataCaptor;
 
     private Gson gson = new Gson();
-
-    @BeforeClass
-    @Override
-    public void init() {
-        MockitoAnnotations.initMocks(this);
-        service = new NotificationConfigServiceImpl();
-
-        try {
-            Field field = NotificationConfigServiceImpl.class.getDeclaredField("metaDataService");
-            field.setAccessible(true);
-            field.set(service, metaDataService);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to inject mock metadata service", e);
-        }
-    }
 
     @Test
     public void testSetDefaultNotificationArchiveMetadata_CreateMetadata() throws Exception {

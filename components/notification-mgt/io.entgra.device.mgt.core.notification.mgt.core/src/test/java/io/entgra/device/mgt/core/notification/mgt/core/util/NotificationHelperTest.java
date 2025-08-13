@@ -81,7 +81,7 @@ public class NotificationHelperTest {
 
     @Test
     public void testGetNotificationConfigurationByCode_nullMeta() throws Exception {
-        Mockito.when(metaSvc.retrieveMetadata(NotificationHelper.NOTIFICATION_CONFIG_META_KEY)).thenReturn(null);
+        Mockito.when(metaSvc.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY)).thenReturn(null);
         NotificationConfig out = NotificationHelper.getNotificationConfigurationByCode("X");
         Assert.assertNull(out);
     }
@@ -94,7 +94,7 @@ public class NotificationHelperTest {
 
     @Test
     public void testGetNotificationConfigurationsFromMetadata_nullMeta() throws Exception {
-        Mockito.when(metaSvc.retrieveMetadata(NotificationHelper.NOTIFICATION_CONFIG_META_KEY)).thenReturn(null);
+        Mockito.when(metaSvc.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY)).thenReturn(null);
         Assert.assertNull(NotificationHelper.getNotificationConfigurationsFromMetadata());
     }
 }

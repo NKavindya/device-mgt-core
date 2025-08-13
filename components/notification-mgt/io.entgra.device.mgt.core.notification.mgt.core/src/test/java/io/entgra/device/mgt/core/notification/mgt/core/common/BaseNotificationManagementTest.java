@@ -113,22 +113,6 @@ public abstract class BaseNotificationManagementTest {
         NotificationManagementDataHolder.getInstance().setTaskService(null);
     }
 
-    private RegistryService getRegistryService() throws RegistryException {
-        RealmService realmService = new InMemoryRealmService();
-        RegistryDataHolder.getInstance().setRealmService(realmService);
-        NotificationManagementDataHolder.getInstance().setRealmService(realmService);
-        InputStream is = this.getClass().getClassLoader().getResourceAsStream("carbon-home/repository/conf/registry.xml");
-        RegistryContext context = RegistryContext.getBaseInstance(is, realmService);
-        context.setSetup(true);
-        return context.getEmbeddedRegistryService();
-    }
-
-    private ConfigurationContextService getConfigContextService() throws RegistryException, AxisFault {
-        ConfigurationContext context = ConfigurationContextFactory.createConfigurationContextFromFileSystem
-                ("src/test/resources/carbon-home/repository/conf/axis2/axis2.xml");
-        return new ConfigurationContextService(context, null);
-    }
-
     @BeforeClass
     public abstract void init() throws Exception;
 
@@ -198,32 +182,7 @@ public abstract class BaseNotificationManagementTest {
         return dataSource;
     }
 
-    protected String getDatasourceLocation() throws Exception {
-        if (datasourceLocation == null) {
-            throw new Exception("Data source location is null!!!");
-        }
-        return datasourceLocation;
-    }
-
     protected boolean isMock() {
         return mock;
-    }
-
-    // Assuming a method to get a database connection is already implemented
-    protected Connection getConnection() throws SQLException {
-        return DeviceManagementDAOFactory.getConnection();
-    }
-
-    /**
-     * Executes an SQL update query (INSERT, UPDATE, DELETE).
-     *
-     * @param sql The SQL query to execute.
-     * @throws SQLException If an error occurs while executing the query.
-     */
-    protected void executeUpdate(String sql) throws SQLException {
-        try (Connection connection = getConnection();
-             Statement statement = connection.createStatement()) {
-            statement.executeUpdate(sql);
-        }
     }
 } 

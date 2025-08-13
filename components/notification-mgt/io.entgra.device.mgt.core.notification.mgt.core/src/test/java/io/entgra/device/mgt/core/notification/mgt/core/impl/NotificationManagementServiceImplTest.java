@@ -25,7 +25,6 @@ import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPay
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
-import io.entgra.device.mgt.core.notification.mgt.core.common.BaseNotificationManagementTest;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
@@ -33,9 +32,9 @@ import io.entgra.device.mgt.core.notification.mgt.core.util.Constants;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationEventBroker;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
+
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
@@ -46,7 +45,7 @@ import java.sql.SQLException;
 /**
  * Test class for NotificationManagementServiceImpl
  */
-public class NotificationManagementServiceImplTest extends BaseNotificationManagementTest {
+public class NotificationManagementServiceImplTest {
 
     @Mock
     private NotificationManagementDAO mockDAO;
@@ -55,20 +54,6 @@ public class NotificationManagementServiceImplTest extends BaseNotificationManag
     private NotificationArchivalDAO mockArchiveDAO;
 
     private NotificationManagementServiceImpl service;
-
-    @BeforeClass
-    @Override
-    public void init() throws Exception {
-        MockitoAnnotations.initMocks(this);
-
-        // Manually inject mocks into service instance via anonymous subclass to override fields
-        service = new NotificationManagementServiceImpl() {
-            {
-                NotificationManagementDAO notificationDAO = mockDAO;
-                NotificationArchivalDAO notificationArchiveDAO = mockArchiveDAO;
-            }
-        };
-    }
 
     @Test
     public void testGetLatestNotificationsSuccess() throws Exception {
@@ -89,7 +74,7 @@ public class NotificationManagementServiceImplTest extends BaseNotificationManag
     public void testGetUserNotificationsWithStatusSuccess() throws Exception {
         UserNotificationAction action = new UserNotificationAction();
         action.setNotificationId(1);
-        action.setActionType("READ");
+        action.setRead(true);
         List<UserNotificationAction> actions = Collections.singletonList(action);
 
         Notification notification = new Notification();
@@ -98,18 +83,18 @@ public class NotificationManagementServiceImplTest extends BaseNotificationManag
         notification.setType("type");
         List<Notification> notifications = Collections.singletonList(notification);
 
-        Mockito.when(mockDAO.getNotificationActionsByUser("user1", 5, 0, "READ")).thenReturn(actions);
+        Mockito.when(mockDAO.getNotificationActionsByUser("user1", 5, 0, true)).thenReturn(actions);
         Mockito.when(mockDAO.getNotificationsByIds(Collections.singletonList(1))).thenReturn(notifications);
 
-        List<UserNotificationPayload> payloads = service.getUserNotificationsWithStatus("user1", 5, 0, "READ");
+        List<UserNotificationPayload> payloads = service.getUserNotificationsWithStatus("user1", 5, 0, true).getNotifications();
         Assert.assertEquals(payloads.size(), 1);
         Assert.assertEquals(payloads.get(0).getActionType(), "READ");
     }
 
     @Test(expectedExceptions = NotificationManagementException.class)
     public void testGetUserNotificationsWithStatusThrows() throws Exception {
-        Mockito.when(mockDAO.getNotificationActionsByUser("user1", 5, 0, "READ")).thenThrow(SQLException.class);
-        service.getUserNotificationsWithStatus("user1", 5, 0, "READ");
+        Mockito.when(mockDAO.getNotificationActionsByUser("user1", 5, 0, true)).thenThrow(SQLException.class);
+        service.getUserNotificationsWithStatus("user1", 5, 0, true);
     }
 
     @Test
@@ -132,15 +117,15 @@ public class NotificationManagementServiceImplTest extends BaseNotificationManag
 
     @Test
     public void testGetUserNotificationCountSuccess() throws Exception {
-        Mockito.when(mockDAO.getNotificationActionsCountByUser("user1", "READ")).thenReturn(5);
-        int count = service.getUserNotificationCount("user1", "READ");
+        Mockito.when(mockDAO.getNotificationActionsCountByUser("user1", true)).thenReturn(5);
+        int count = service.getUserNotificationCount("user1", true);
         Assert.assertEquals(count, 5);
     }
 
     @Test(expectedExceptions = NotificationManagementException.class)
     public void testGetUserNotificationCountThrows() throws Exception {
-        Mockito.when(mockDAO.getNotificationActionsCountByUser("user1", "READ")).thenThrow(SQLException.class);
-        service.getUserNotificationCount("user1", "READ");
+        Mockito.when(mockDAO.getNotificationActionsCountByUser("user1", true)).thenThrow(SQLException.class);
+        service.getUserNotificationCount("user1", true);
     }
 
     @Test

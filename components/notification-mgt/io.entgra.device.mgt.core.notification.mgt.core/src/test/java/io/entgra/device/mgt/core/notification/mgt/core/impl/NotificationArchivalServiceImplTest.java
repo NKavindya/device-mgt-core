@@ -23,13 +23,12 @@ import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfi
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationList;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationSettings;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
-import io.entgra.device.mgt.core.notification.mgt.core.common.BaseNotificationManagementTest;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.internal.NotificationManagementDataHolder;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationHelper;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.sql.Timestamp;
@@ -44,12 +43,10 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.mockito.InjectMocks;
-
 /**
  * Test class for NotificationArchivalServiceImpl
  */
-public class NotificationArchivalServiceImplTest extends BaseNotificationManagementTest {
+public class NotificationArchivalServiceImplTest {
 
     @Mock
     private NotificationArchivalDAO archivalDAOMock;
@@ -60,19 +57,17 @@ public class NotificationArchivalServiceImplTest extends BaseNotificationManagem
     @Mock
     private MetadataManagementService metadataServiceMock;
 
-    @InjectMocks
     private NotificationArchivalServiceImpl service;
 
-    @BeforeClass
-    public void init() throws Exception {
+    @BeforeMethod
+    public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
         NotificationManagementDataHolder.getInstance().setMetaDataManagementService(metadataServiceMock);
 
-        // Use custom subclass to inject DAO mocks without static mocking
         service = new NotificationArchivalServiceImpl() {
-            @Override
-            public void archiveOldNotifications(int tenantId) throws NotificationArchivalException {
-                // override to inject mocks
+//            @Override
+            protected NotificationConfigurationList getNotificationConfigurationList(int tenantId)
+                    throws NotificationArchivalException {
                 NotificationConfigurationList configList = new NotificationConfigurationList();
                 configList.setDefaultArchiveAfter("6 days");
                 configList.setDefaultArchiveType("default");
@@ -86,32 +81,17 @@ public class NotificationArchivalServiceImplTest extends BaseNotificationManagem
                 configList.setNotificationConfigurations(Collections.singletonList(config));
 
                 NotificationHelper.setDefaultArchivalValuesIfAbsent(configList);
-
-                Timestamp cutoff = NotificationHelper.resolveCutoffTimestamp("7 days");
-                try {
-                    when(archivalDAOMock.moveNotificationsToArchiveByConfig(cutoff, tenantId, 1))
-                            .thenReturn(Arrays.asList(100, 200));
-                    doNothing().when(archivalDAOMock).moveUserActionsToArchive(anyList());
-                    doNothing().when(archivalDAOMock).deleteOldNotificationsByConfig(cutoff, tenantId, 1);
-                    when(archivalDAOMock.moveNotificationsToArchiveExcludingConfigs(any(), eq(tenantId), anySet()))
-                            .thenReturn(Collections.singletonList(300));
-                } catch (Exception e) {
-                    throw new NotificationArchivalException("Mock error", e);
-                }
-
-                // Call real method
-                super.archiveOldNotifications(tenantId);
+                return configList;
             }
 
-            @Override
-            public void deleteExpiredArchivedNotifications(int tenantId) throws NotificationArchivalException {
-                Timestamp cutoff = NotificationHelper.resolveCutoffTimestamp("5 years");
-                try {
-                    doNothing().when(deleteDAOMock).deleteExpiredArchivedNotifications(cutoff, tenantId);
-                } catch (Exception e) {
-                    throw new NotificationArchivalException("Mock error", e);
-                }
-                super.deleteExpiredArchivedNotifications(tenantId);
+//            @Override
+            protected NotificationArchivalDAO getNotificationArchivalDAO() {
+                return archivalDAOMock;
+            }
+
+//            @Override
+            protected NotificationArchivalDAO getDeleteArchivalDAO() {
+                return deleteDAOMock;
             }
         };
     }
@@ -119,10 +99,16 @@ public class NotificationArchivalServiceImplTest extends BaseNotificationManagem
     @Test
     public void testArchiveOldNotifications_success() throws Exception {
         int tenantId = 1;
+        Timestamp expectedCutoff = NotificationHelper.resolveCutoffTimestamp("7 days");
+
+        when(archivalDAOMock.moveNotificationsToArchiveByConfig(expectedCutoff, tenantId, 1))
+                .thenReturn(Arrays.asList(100, 200));
+        doNothing().when(archivalDAOMock).moveUserActionsToArchive(anyList());
+        doNothing().when(archivalDAOMock).deleteOldNotificationsByConfig(expectedCutoff, tenantId, 1);
+        when(archivalDAOMock.moveNotificationsToArchiveExcludingConfigs(any(), eq(tenantId), anySet()))
+                .thenReturn(Collections.singletonList(300));
 
         service.archiveOldNotifications(tenantId);
-
-        Timestamp expectedCutoff = NotificationHelper.resolveCutoffTimestamp("7 days");
 
         verify(archivalDAOMock).moveNotificationsToArchiveByConfig(expectedCutoff, tenantId, 1);
         verify(archivalDAOMock).moveUserActionsToArchive(anyList());
@@ -132,7 +118,12 @@ public class NotificationArchivalServiceImplTest extends BaseNotificationManagem
     @Test
     public void testDeleteExpiredArchivedNotifications_success() throws Exception {
         int tenantId = 1;
+        Timestamp cutoff = NotificationHelper.resolveCutoffTimestamp("5 years");
+
+        doNothing().when(deleteDAOMock).deleteExpiredArchivedNotifications(any(Timestamp.class), eq(tenantId));
+
         service.deleteExpiredArchivedNotifications(tenantId);
+
         verify(deleteDAOMock).deleteExpiredArchivedNotifications(any(Timestamp.class), eq(tenantId));
     }
 
