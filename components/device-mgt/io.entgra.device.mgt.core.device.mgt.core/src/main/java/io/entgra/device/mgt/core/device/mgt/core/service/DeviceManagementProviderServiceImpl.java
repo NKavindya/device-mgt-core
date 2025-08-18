@@ -1252,8 +1252,11 @@ public class DeviceManagementProviderServiceImpl implements DeviceManagementProv
                                         // from the last closest ACTIVE status to the bill start date and add to the
                                         // SUSPENDED date difference
                                         if (suspendStatusSublist.indexOf(suspendedStatus) == 0) {
-                                            suspendedDateDiff += activeStatuses.get(activeStatuses.size() - 1).getUpdateTime().getTime()
-                                                    - startDate.getTime();
+                                            long lastActiveDateAfterSuspend =
+                                                    activeStatuses.get(activeStatuses.size() - 1).getUpdateTime().getTime();
+                                            if (lastActiveDateAfterSuspend >= startDate.getTime()) {
+                                                suspendedDateDiff += lastActiveDateAfterSuspend - startDate.getTime();
+                                            }
                                         } else {
                                             // If the SUSPENDED date is during the billing period then get the difference
                                             // from the last closest ACTIVE status to the current SUSPENDED time that is
@@ -1333,8 +1336,11 @@ public class DeviceManagementProviderServiceImpl implements DeviceManagementProv
                                     suspendedStatuses.get(0).getUpdateTime(), endDate, true,
                                     EnrolmentInfo.Status.ACTIVE);
                             if (!activeStatuses.isEmpty()) {
-                                suspendedDateDiff = activeStatuses.get(activeStatuses.size() - 1).getUpdateTime().getTime() -
-                                        startDate.getTime();
+                                long lastActiveDateAfterSuspend =
+                                        activeStatuses.get(activeStatuses.size() - 1).getUpdateTime().getTime();
+                                if (lastActiveDateAfterSuspend >= startDate.getTime()) {
+                                    suspendedDateDiff = lastActiveDateAfterSuspend - startDate.getTime();
+                                }
                             }
                         }
                     }
