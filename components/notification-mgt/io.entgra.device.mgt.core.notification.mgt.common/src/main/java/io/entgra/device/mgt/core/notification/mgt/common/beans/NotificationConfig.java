@@ -50,6 +50,10 @@ public class NotificationConfig {
             required = true)
     private String code;
 
+    @ApiModelProperty(name = "enabled", value = "Indicates whether this notification configuration is enabled.",
+            required = true)
+    private boolean enabled = true;
+
     @ApiModelProperty(name = "recipients", value = "Details of the recipients of the notification.",
             required = true)
     private NotificationConfigRecipients recipients;
@@ -132,6 +136,14 @@ public class NotificationConfig {
 
     public void setDeviceType(String deviceType) {
         this.deviceType = deviceType;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     public static class ConfiguredBy {

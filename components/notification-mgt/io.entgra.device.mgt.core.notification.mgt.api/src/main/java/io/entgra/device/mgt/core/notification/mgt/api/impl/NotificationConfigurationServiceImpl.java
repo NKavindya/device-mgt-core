@@ -20,6 +20,7 @@ package io.entgra.device.mgt.core.notification.mgt.api.impl;
 
 import io.entgra.device.mgt.core.notification.mgt.api.util.NotificationConfigurationApiUtil;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
+import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigRecipients;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationList;
 
 import io.entgra.device.mgt.core.notification.mgt.api.service.NotificationConfigurationService;
@@ -30,6 +31,8 @@ import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationCon
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.api.UserStoreManager;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -77,6 +80,13 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
     @POST
     @Override
     public Response createNotificationConfig(NotificationConfigurationList configurations) {
+        // validate recipients for each config before creating
+        for (NotificationConfig config : configurations.getNotificationConfigurations()) {
+            Response validationResponse = validateRecipients(config.getRecipients());
+            if (validationResponse != null) {
+                return validationResponse;
+            }
+        }
         try {
             NotificationConfigService notificationConfigService =
                     NotificationConfigurationApiUtil.getNotificationConfigurationService();
@@ -97,6 +107,10 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
     @PUT
     @Override
     public Response updateNotificationConfig(NotificationConfig config) {
+        Response validationResponse = validateRecipients(config.getRecipients());
+        if (validationResponse != null) {
+            return validationResponse;
+        }
         try {
             NotificationConfigService notificationConfigService =
                     NotificationConfigurationApiUtil.getNotificationConfigurationService();
@@ -204,5 +218,43 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
             log.error(msg, e);
             return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
         }
+    }
+
+    /**
+     * Validates that all users and roles in the recipients exist in the system.
+     * Checks if the recipients object is not null.
+     * Returns an appropriate Response if any user or role does not exist or if there is an error.
+     *
+     * @param recipients the NotificationConfigRecipients object containing users and roles
+     * @return a Response with error status if any user or role is invalid or does not exist, otherwise null
+     */
+    public static Response validateRecipients(NotificationConfigRecipients recipients) {
+        if (recipients == null) {
+            String msg = "Recipients must not be null.";
+            log.warn(msg);
+            return Response.status(Response.Status.BAD_REQUEST).entity(msg).build();
+        }
+        try {
+            UserStoreManager userStoreManager = NotificationConfigurationApiUtil.getUserStoreManager();
+            // validate roles
+            for (String role : recipients.getRoles()) {
+                if (!userStoreManager.isExistingRole(role)) {
+                    String msg = "No role exists with the name: " + role;
+                    return Response.status(Response.Status.NOT_FOUND).entity(msg).build();
+                }
+            }
+            // validate users
+            for (String user : recipients.getUsers()) {
+                if (!userStoreManager.isExistingUser(user)) {
+                    String msg = "User by username: " + user + " does not exist.";
+                    return Response.status(Response.Status.NOT_FOUND).entity(msg).build();
+                }
+            }
+        } catch (UserStoreException e) {
+            String msg = "Error while validating recipients.";
+            log.error(msg, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(msg).build();
+        }
+        return null;
     }
 }

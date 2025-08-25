@@ -165,18 +165,10 @@ public class SQLServerNotificationManagementDAOImpl implements NotificationManag
     }
 
     @Override
-    public void updateNotificationAction(List<Integer> notificationIds, String username, String actionType)
+    public void updateNotificationAction(List<Integer> notificationIds, String username, boolean isRead)
             throws NotificationManagementDAOException {
         if (notificationIds == null || notificationIds.isEmpty()) {
             return;
-        }
-        boolean isRead;
-        if ("READ".equalsIgnoreCase(actionType)) {
-            isRead = true;
-        } else if ("UNREAD".equalsIgnoreCase(actionType)) {
-            isRead = false;
-        } else {
-            throw new NotificationManagementDAOException("Invalid action type: " + actionType);
         }
         String placeholders = notificationIds.stream()
                 .map(id -> "?")
