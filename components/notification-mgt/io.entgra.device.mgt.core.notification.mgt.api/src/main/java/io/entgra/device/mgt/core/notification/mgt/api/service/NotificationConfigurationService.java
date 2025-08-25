@@ -239,13 +239,12 @@ public interface NotificationConfigurationService {
     );
 
     @PUT
-    @Path("/{configId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @ApiOperation(
             produces = MediaType.APPLICATION_JSON,
             httpMethod = "PUT",
             value = "Update Notification Configuration",
-            notes = "Update notification configurations based on the input received from the UI.",
+            notes = "Update a notification configuration based on the input received from the UI.",
             tags = "Notification Configuration Management",
             extensions = {
                     @Extension(properties = {
@@ -259,8 +258,8 @@ public interface NotificationConfigurationService {
             value = {
                     @ApiResponse(
                             code = 200,
-                            message = "OK. \n Successfully updated the new notification configurations.",
-                            response = NotificationConfigurationList.class,
+                            message = "OK. Successfully updated the notification configuration.",
+                            response = NotificationConfig.class,
                             responseHeaders = {
                                     @ResponseHeader(
                                             name = "Content-Type",
@@ -268,34 +267,27 @@ public interface NotificationConfigurationService {
                                     ),
                                     @ResponseHeader(
                                             name = "Last-Modified",
-                                            description = "Date and time the resource was last modified.\nUsed by caches," +
-                                                    " or in conditional requests."
+                                            description = "Date and time the resource was last modified."
                                     )
                             }
                     ),
                     @ApiResponse(
                             code = 400,
-                            message = "Bad Request. \n Invalid configuration data received.",
+                            message = "Bad Request. Invalid configuration data received.",
                             response = ErrorResponse.class
                     ),
                     @ApiResponse(
                             code = 404,
-                            message = "Not Found. \n The resource to be updated does not exist."),
+                            message = "Not Found. The resource to be updated does not exist."
+                    ),
                     @ApiResponse(
                             code = 500,
-                            message = "Internal Server Error. \n Server error occurred while creating the configuration.",
+                            message = "Internal Server Error. Server error occurred while updating the configuration.",
                             response = ErrorResponse.class
                     )
             }
     )
-    Response updateNotificationConfigById(
-            @PathParam("configId") int configId,
-            @ApiParam(
-                    name = "configurations",
-                    value = "A list of configuration objects representing the notification settings. " +
-                            "This includes the type of notification, recipients, and other related metadata.",
-                    required = true
-            )
+    Response updateNotificationConfig(
             NotificationConfig configuration
     );
 

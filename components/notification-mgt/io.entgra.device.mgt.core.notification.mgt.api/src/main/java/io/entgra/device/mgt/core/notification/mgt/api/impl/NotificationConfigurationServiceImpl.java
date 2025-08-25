@@ -84,7 +84,7 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
                     notificationConfigService.addNotificationConfigContext(configurations);
             return Response.status(HttpStatus.SC_CREATED).entity(addedConfigurations).build();
         } catch (InvalidNotificationConfigurationException e) {
-            String msg = "Invalid configurations: " + String.join(", ", e.getValidationErrors());
+            String msg = "Invalid configurations: ";
             log.error(msg);
             return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
         } catch (NotificationConfigurationServiceException e) {
@@ -95,34 +95,22 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
     }
 
     @PUT
-    @Path("/{configId}")
     @Override
-    public Response updateNotificationConfigById(@PathParam("configId") int configId,
-                                                 NotificationConfig config) { //TODO: remove the path param
+    public Response updateNotificationConfig(NotificationConfig config) {
         try {
-            if (config == null || config.getId() == 0) {
-                String msg = "Invalid request: configuration or configuration ID is missing";
-                log.error(msg);
-                return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-            }
-            if (configId != config.getId()) {
-                String msg = "Path ID " + configId + " does not match configuration ID " + config.getId();
-                log.error(msg);
-                return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-            }
             NotificationConfigService notificationConfigService =
                     NotificationConfigurationApiUtil.getNotificationConfigurationService();
-            NotificationConfig existingConfig = notificationConfigService.getNotificationConfigByID(configId);
-            if (existingConfig == null) {
-                String msg = "Configuration with ID " + configId + " not found";
-                log.error(msg);
-                return Response.status(HttpStatus.SC_NOT_FOUND).entity(msg).build();
-            }
+            notificationConfigService.getNotificationConfigByID(config.getId());
             notificationConfigService.updateNotificationConfigContext(config);
             return Response.status(HttpStatus.SC_OK).entity(config).build();
         } catch (NotificationConfigurationNotFoundException e) {
-            log.warn(e.getMessage());
-            return Response.status(HttpStatus.SC_NOT_FOUND).entity(e.getMessage()).build();
+            String msg = "Notification configuration with ID " + config.getId() + " not found.";
+            log.error(msg, e);
+            return Response.status(HttpStatus.SC_NOT_FOUND).entity(msg).build();
+        } catch (InvalidNotificationConfigurationException e) {
+            String msg = "Invalid request: configuration or configuration ID is missing or invalid.";
+            log.error(msg);
+            return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
         } catch (NotificationConfigurationServiceException e) {
             String msg = "Error updating notification configuration: " + e.getMessage();
             log.error(msg, e);
@@ -139,17 +127,17 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
         try {
             NotificationConfigService notificationConfigService =
                     NotificationConfigurationApiUtil.getNotificationConfigurationService();
-            if (configId <= 0) {
-                String msg = "Received empty or Invalid Configuration ID";
-                log.error(msg);
-                return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-            }
             notificationConfigService.deleteNotificationConfigContext(configId);
             return Response.status(HttpStatus.SC_OK)
                     .entity("Notification configuration deleted successfully.").build();
         } catch (NotificationConfigurationNotFoundException e) {
-            log.warn(e.getMessage());
-            return Response.status(HttpStatus.SC_NOT_FOUND).entity(e.getMessage()).build();
+            String msg = "Target notification configuration does not exist for the given tenant";
+            log.error(msg, e);
+            return Response.status(HttpStatus.SC_NOT_FOUND).entity(msg).build();
+        } catch (InvalidNotificationConfigurationException e) {
+            String msg = "Invalid request: configuration or configuration ID is missing or invalid.";
+            log.error(msg);
+            return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
         } catch (NotificationConfigurationServiceException e) {
             String msg = "Error occurred while deleting notification configuration with ID: " + configId;
             log.error(msg, e);
@@ -165,7 +153,7 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
             notificationConfigService.deleteNotificationConfigurations();
             return Response.status(HttpStatus.SC_NO_CONTENT).build();
         } catch (NotificationConfigurationServiceException e) {
-            String msg = "No configurations found for the tenant: " + e.getMessage();
+            String msg = "No notification configuration was found for the tenant.";
             log.error(msg);
             return Response.status(HttpStatus.SC_NOT_FOUND).entity(msg).build();
         }
@@ -176,11 +164,6 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
     @Override
     public Response getNotificationConfig(@PathParam("configId") int configId) {
         try {
-            if (configId <= 0) {
-                String msg = "Invalid configuration ID: " + configId;
-                log.error(msg);
-                return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-            }
             NotificationConfigService notificationConfigService =
                     NotificationConfigurationApiUtil.getNotificationConfigurationService();
             NotificationConfig config = notificationConfigService.getNotificationConfigByID(configId);
@@ -188,6 +171,10 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
         } catch (NotificationConfigurationNotFoundException e) {
             log.warn(e.getMessage());
             return Response.status(HttpStatus.SC_NOT_FOUND).entity(e.getMessage()).build();
+        } catch (InvalidNotificationConfigurationException e) {
+            String msg = "Invalid request: configuration or configuration ID is missing or invalid.";
+            log.error(msg);
+            return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
         } catch (NotificationConfigurationServiceException e) {
             String msg = "Unexpected error occurred while retrieving notification configuration.";
             log.error(msg, e);
@@ -203,19 +190,17 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
     public Response updateDefaultArchiveSettings(NotificationConfigurationList configList) {
         String defaultType = configList.getDefaultArchiveType();
         String defaultAfter = configList.getDefaultArchiveAfter();
-        if (defaultType == null || defaultAfter == null ||
-                defaultType.isEmpty() || defaultAfter.isEmpty()) {
-            String msg = "Default archive type and period must not be empty.";
-            log.error(msg);
-            return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
-        }
         try {
             NotificationConfigService notificationConfigService =
                     NotificationConfigurationApiUtil.getNotificationConfigurationService();
             notificationConfigService.setDefaultNotificationArchiveMetadata(defaultType, defaultAfter);
             return Response.status(HttpStatus.SC_OK).entity(configList).build();
+        } catch (InvalidNotificationConfigurationException e) {
+            String msg = "Default archive type and period cannot be empty. Please provide valid values.";
+            log.error(msg);
+            return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
         } catch (NotificationConfigurationServiceException e) {
-            String msg = "Error updating default archival settings: " + e.getMessage();
+            String msg = "Error occurred while updating the default archival settings";
             log.error(msg, e);
             return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
         }
