@@ -53,6 +53,8 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             NotificationManagementDataHolder.getInstance().getMetaDataManagementService();
     private static final Type NOTIFICATION_CONFIG_LIST_TYPE =
             new TypeToken<NotificationConfigurationList>() {}.getType();
+    private final DeviceFeatureOperations featureService =
+            NotificationManagementDataHolder.getInstance().getDeviceFeatureOperations();
 
     /**
      * Generates the next available ID for a new notification configuration.
@@ -161,7 +163,6 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             log.error(msg);
             throw new InvalidNotificationConfigurationException(msg);
         }
-        List<String> validationErrors = new ArrayList<>();
         try {
             Metadata existingMetadata = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
             NotificationConfigurationList existingConfigurations = new NotificationConfigurationList();
@@ -175,51 +176,56 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             // collect all operation codes to validate
             List<String> allCodesToValidate = new ArrayList<>();
             for (NotificationConfig config : newConfigurations.getNotificationConfigurations()) {
-                if ("operation".equalsIgnoreCase(config.getType()) && config.getCode() != null) {
+                if (Constants.OPERATION.equalsIgnoreCase(config.getType()) && config.getCode() != null) {
                     allCodesToValidate.add(config.getCode());
                 }
             }
             // validate operation codes
             if (!allCodesToValidate.isEmpty()) {
-                DeviceFeatureOperations featureService = new DeviceFeatureOperationsImpl();
-                Map<String, Boolean> codeValidationMap = featureService.validateOperationCodes(allCodesToValidate);
-                codeValidationMap.forEach((code, exists) -> {
-                    if (!exists) {
-                        validationErrors.add("Invalid operation code: " + code);
+                Map<String, Boolean> codeValidationMap =
+                        featureService.validateOperationCodes(allCodesToValidate);
+                for (Map.Entry<String, Boolean> entry : codeValidationMap.entrySet()) {
+                    if (!entry.getValue()) {
+                        String msg = "Invalid operation code: " + entry.getKey();
+                        log.error(msg);
+                        throw new InvalidNotificationConfigurationException(msg);
                     }
-                });
+                }
             }
             for (NotificationConfig newConfig : newConfigurations.getNotificationConfigurations()) {
-                if (newConfig.getId() == 0) {
-                    newConfig.setId(generateNextId(finalConfigs));
+                if (newConfig.getId() != 0) {
+                    String msg = "Config ID must not be provided. It will be auto-generated. Provided ID=" + newConfig.getId();
+                    log.error(msg);
+                    throw new InvalidNotificationConfigurationException(msg);
                 }
+                newConfig.setId(generateNextId(finalConfigs));
                 try {
                     validateConfiguration(newConfig);
                 } catch (NotificationConfigurationServiceException e) {
-                    validationErrors.add("Config ID " + (newConfig != null ? newConfig.getId() : "null")
-                            + ": " + e.getMessage());
-                    continue;
+                    String msg = "Invalid configuration: " + e.getMessage() +
+                            ". ConfigID=" + (newConfig != null ? newConfig.getId() : "null");
+                    log.error(msg);
+                    throw new InvalidNotificationConfigurationException(msg);
                 }
                 boolean duplicateFound = finalConfigs.stream().anyMatch(
                         c -> c.getId() == newConfig.getId() || c.getCode().equals(newConfig.getCode())
                 );
                 if (duplicateFound) {
-                    validationErrors.add("Duplicate ID or Code for config: ID=" + newConfig.getId() +
-                            ", Code=" + newConfig.getCode());
-                    continue;
+                    String msg = "Duplicate ID or Code for config: ID=" + newConfig.getId() +
+                            ", Code=" + newConfig.getCode();
+                    log.error(msg);
+                    throw new InvalidNotificationConfigurationException(msg);
                 }
                 finalConfigs.add(newConfig);
             }
-            if (!validationErrors.isEmpty()) {
-                throw new InvalidNotificationConfigurationException(validationErrors);
-            }
             existingConfigurations.setNotificationConfigurations(finalConfigs);
-            Metadata newMetadata = new Metadata();
-            newMetadata.setMetaKey(Constants.NOTIFICATION_CONFIG_META_KEY);
-            newMetadata.setMetaValue(gson.toJson(existingConfigurations));
             if (existingMetadata != null) {
-                metaDataService.updateMetadata(newMetadata);
+                existingMetadata.setMetaValue(gson.toJson(existingConfigurations));
+                metaDataService.updateMetadata(existingMetadata);
             } else {
+                Metadata newMetadata = new Metadata();
+                newMetadata.setMetaKey(Constants.NOTIFICATION_CONFIG_META_KEY);
+                newMetadata.setMetaValue(gson.toJson(existingConfigurations));
                 metaDataService.createMetadata(newMetadata);
             }
             return existingConfigurations;
@@ -300,7 +306,6 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
         validateConfiguration(updatedConfig);
         // validate operation code if type is "operation"
         try {
-            DeviceFeatureOperations featureService = new DeviceFeatureOperationsImpl();
             Map<String, Boolean> validationMap =
                     featureService.validateOperationCodes(Collections.singletonList(updatedConfig.getCode()));
             if (!validationMap.getOrDefault(updatedConfig.getCode(), false)) {
@@ -388,17 +393,18 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
                 throw new NotificationConfigurationServiceException(message);
             }
             Metadata existingMetadata = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
-            if (existingMetadata == null
-                    || existingMetadata.getMetaValue() == null
-                    || existingMetadata.getMetaValue().isEmpty()) {
-                String message = "No notification configurations found for tenant.";
-                log.debug(message);
-                throw new NotificationConfigurationNotFoundException(message);
+            if (existingMetadata == null || existingMetadata.getMetaValue() == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("No notification configurations found for tenant. Returning empty list.");
+                }
+                return buildEmptyConfigurationList();
             }
             NotificationConfigurationList configList =
                     gson.fromJson(existingMetadata.getMetaValue(), NOTIFICATION_CONFIG_LIST_TYPE);
             if (configList == null || configList.getNotificationConfigurations() == null) {
-                log.debug("Meta value could not be deserialized or is empty. Returning empty list.");
+                if (log.isDebugEnabled()) {
+                    log.debug("Meta value could not be deserialized or is empty. Returning empty list.");
+                }
                 return buildEmptyConfigurationList();
             }
             NotificationConfigurationList configurations = new NotificationConfigurationList();
@@ -426,7 +432,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             throws NotificationConfigurationServiceException {
         try {
             Metadata metaData = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
-            if (metaData == null || metaData.getMetaValue() == null || metaData.getMetaValue().isEmpty()) {
+            if (metaData == null || metaData.getMetaValue() == null) {
                 String msg = "No notification configurations found for tenant";
                 log.error(msg);
                 throw new NotificationConfigurationNotFoundException(msg);

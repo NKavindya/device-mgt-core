@@ -24,6 +24,7 @@ import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfi
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationSettings;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.PaginatedUserNotificationResponse;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementDAOException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalDestDAOFactory;
@@ -286,7 +287,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                         }
                     }
                     NotificationManagementDAOFactory.commitTransaction();
-                } catch (NotificationManagementException e) {
+                } catch (NotificationManagementDAOException e) {
                     NotificationManagementDAOFactory.rollbackTransaction();
                     String msg = "Error occurred while adding notification";
                     log.error(msg, e);
@@ -345,7 +346,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                 }
             }
             NotificationManagementDAOFactory.commitTransaction();
-        } catch (TransactionManagementException | UserStoreException | NotificationManagementException e) {
+        } catch (TransactionManagementException | UserStoreException | NotificationManagementDAOException e) {
             NotificationManagementDAOFactory.rollbackTransaction();
             String msg = "Error occurred while handling batch operation notification for config: " + config.getCode();
             log.error(msg, e);

@@ -17,9 +17,9 @@
  *
  */
 
-package io.entgra.device.mgt.core.notification.mgt.core.exception;
+package io.entgra.device.mgt.core.notification.mgt.common.exception;
 
-public class NotificationManagementDAOException extends Exception {
+public class NotificationManagementDAOException extends RuntimeException {
 
     public NotificationManagementDAOException(String message) {
         super(message);
@@ -29,4 +29,3 @@ public class NotificationManagementDAOException extends Exception {
         super(message, cause);
     }
 }
-
