@@ -30,6 +30,10 @@ public class NotificationConfig {
             required = true)
     private int id;
 
+    @ApiModelProperty(name = "deviceType", value = "Device type of the notification configuration.",
+            required = true)
+    private String deviceType;
+
     @ApiModelProperty(name = "configName", value = "The name of the notification configuration.",
             required = true)
     private String name;
@@ -120,6 +124,14 @@ public class NotificationConfig {
 
     public void setNotificationSettings(NotificationConfigurationSettings notificationSettings) {
         this.notificationSettings = notificationSettings;
+    }
+
+    public String getDeviceType() {
+        return deviceType;
+    }
+
+    public void setDeviceType(String deviceType) {
+        this.deviceType = deviceType;
     }
 
     public static class ConfiguredBy {

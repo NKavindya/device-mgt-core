@@ -22,7 +22,7 @@ package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.util.NotificationDAOUtil;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
-import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementDAOException;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
 import org.apache.commons.logging.Log;
@@ -42,7 +42,7 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
     private static final Log log = LogFactory.getLog(OracleNotificationManagementDAOImpl.class);
 
     @Override
-    public List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementException {
+    public List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementDAOException {
         List<Notification> notifications = new ArrayList<>();
         String query =
                 "SELECT * FROM ( " +
@@ -70,14 +70,14 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Error occurred while retrieving notifications from Oracle DB";
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
         return notifications;
     }
 
     @Override
     public List<Notification> getNotificationsByIds(List<Integer> notificationIds)
-            throws NotificationManagementException {
+            throws NotificationManagementDAOException {
         List<Notification> notifications = new ArrayList<>();
         if (notificationIds == null || notificationIds.isEmpty()) {
             return notifications;
@@ -114,14 +114,14 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Error occurred while retrieving notifications by IDs from Oracle DB";
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
         return notifications;
     }
 
     @Override
     public List<UserNotificationAction> getNotificationActionsByUser(
-            String username, int limit, int offset, Boolean isRead) throws NotificationManagementException {
+            String username, int limit, int offset, Boolean isRead) throws NotificationManagementDAOException {
         List<UserNotificationAction> userNotificationActions = new ArrayList<>();
         StringBuilder queryBuilder = new StringBuilder(
                 "SELECT " +
@@ -169,14 +169,14 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Error fetching user actions from Oracle DB for user: " + username;
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
         return userNotificationActions;
     }
 
     @Override
     public void updateNotificationAction(List<Integer> notificationIds, String username, String actionType)
-            throws NotificationManagementException {
+            throws NotificationManagementDAOException {
         if (notificationIds == null || notificationIds.isEmpty()) {
             return;
         }
@@ -186,7 +186,7 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } else if ("UNREAD".equalsIgnoreCase(actionType)) {
             isRead = false;
         } else {
-            throw new NotificationManagementException("Invalid action type: " + actionType);
+            throw new NotificationManagementDAOException("Invalid action type: " + actionType);
         }
         String placeholders = notificationIds.stream()
                 .map(id -> "?")
@@ -210,12 +210,12 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Error occurred while updating notification actions for user: " + username;
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
     }
 
     @Override
-    public List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementException {
+    public List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementDAOException {
         List<UserNotificationAction> userNotificationActions = new ArrayList<>();
         String query =
                 "SELECT " +
@@ -244,14 +244,14 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Error occurred while retrieving all notification user actions.";
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
         return userNotificationActions;
     }
 
     @Override
     public int getNotificationActionsCountByUser(String username, Boolean isRead)
-            throws NotificationManagementException {
+            throws NotificationManagementDAOException {
         StringBuilder query = new StringBuilder(
                 "SELECT COUNT(*) " +
                         "FROM DM_NOTIFICATION_USER_ACTION " +
@@ -276,13 +276,13 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Oracle DB error counting user notifications.";
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
         return 0;
     }
 
     @Override
-    public int getUnreadNotificationCountForUser(String username) throws NotificationManagementException {
+    public int getUnreadNotificationCountForUser(String username) throws NotificationManagementDAOException {
         int count = 0;
         String sql =
                 "SELECT COUNT(*) AS UNREAD_COUNT FROM DM_NOTIFICATION_USER_ACTION " +
@@ -302,14 +302,14 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
             String msg = "Error retrieving unread notification count for user: "
                     + username;
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
         return count;
     }
 
     @Override
     public int insertNotification(int tenantId, int notificationConfigId, String type, String description)
-            throws NotificationManagementException {
+            throws NotificationManagementDAOException {
         String sql =
                 "INSERT INTO DM_NOTIFICATION " +
                         "(NOTIFICATION_CONFIG_ID, " +
@@ -330,13 +330,13 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Error inserting notification";
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
     }
 
     @Override
     public void insertNotificationUserActions(int notificationId, List<String> usernames)
-            throws NotificationManagementException {
+            throws NotificationManagementDAOException {
         String sql =
                 "INSERT INTO DM_NOTIFICATION_USER_ACTION (" +
                         "NOTIFICATION_ID, " +
@@ -356,7 +356,7 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Error inserting notification user actions";
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         } finally {
             NotificationDAOUtil.cleanupResources(stmt, null);
         }
@@ -364,7 +364,7 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
 
     @Override
     public void deleteUserNotifications(List<Integer> notificationIds, String username)
-            throws NotificationManagementException {
+            throws NotificationManagementDAOException {
         if (notificationIds == null || notificationIds.isEmpty()) {
             return;
         }
@@ -389,12 +389,12 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Error occurred while deleting notifications for user: " + username + " (Oracle)";
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
     }
 
     @Override
-    public void deleteAllUserNotifications(String username) throws NotificationManagementException {
+    public void deleteAllUserNotifications(String username) throws NotificationManagementDAOException {
         String query =
                 "DELETE " +
                         "FROM DM_NOTIFICATION_USER_ACTION " +
@@ -408,7 +408,7 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
         } catch (SQLException e) {
             String msg = "Error occurred while deleting all notifications for user (Oracle): " + username;
             log.error(msg, e);
-            throw new NotificationManagementException(msg, e);
+            throw new NotificationManagementDAOException(msg, e);
         }
     }
 }
