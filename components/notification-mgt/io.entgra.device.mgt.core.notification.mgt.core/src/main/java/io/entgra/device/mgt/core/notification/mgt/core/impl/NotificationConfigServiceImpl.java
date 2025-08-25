@@ -21,10 +21,10 @@ package io.entgra.device.mgt.core.notification.mgt.core.impl;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.DeviceFeatureOperationException;
+import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataKeyNotFoundException;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.Metadata;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
 import io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperations;
-import io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperationsImpl;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.InvalidNotificationConfigurationException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationConfigurationNotFoundException;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationHelper;
@@ -43,7 +43,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.ListIterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 public class NotificationConfigServiceImpl implements NotificationConfigService {
@@ -115,9 +114,14 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
     @Override
     public void setDefaultNotificationArchiveMetadata(String defaultType, String defaultAfter)
             throws NotificationConfigurationServiceException {
+        if (defaultType == null || defaultAfter == null ||
+                defaultType.isEmpty() || defaultAfter.isEmpty()) {
+            String msg = "Default archive type and period must not be empty.";
+            log.error(msg);
+            throw new InvalidNotificationConfigurationException(msg);
+        }
         try {
-            Metadata existingMetadata =
-                    metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
+            Metadata existingMetadata = getExistingMetadata(false);
             NotificationConfigurationList configList;
             if (existingMetadata != null && existingMetadata.getMetaValue() != null) {
                 configList = gson.fromJson(existingMetadata.getMetaValue(), NotificationConfigurationList.class);
@@ -129,12 +133,13 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             }
             configList.setDefaultArchiveType(defaultType);
             configList.setDefaultArchiveAfter(defaultAfter);
-            Metadata metadata = new Metadata();
-            metadata.setMetaKey(Constants.NOTIFICATION_CONFIG_META_KEY);
-            metadata.setMetaValue(gson.toJson(configList));
             if (existingMetadata != null) {
-                metaDataService.updateMetadata(metadata);
+                existingMetadata.setMetaValue(gson.toJson(configList));
+                metaDataService.updateMetadata(existingMetadata);
             } else {
+                Metadata metadata = new Metadata();
+                metadata.setMetaKey(Constants.NOTIFICATION_CONFIG_META_KEY);
+                metadata.setMetaValue(gson.toJson(configList));
                 metaDataService.createMetadata(metadata);
             }
         } catch (MetadataManagementException e) {
@@ -164,7 +169,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             throw new InvalidNotificationConfigurationException(msg);
         }
         try {
-            Metadata existingMetadata = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
+            Metadata existingMetadata = getExistingMetadata(false);
             NotificationConfigurationList existingConfigurations = new NotificationConfigurationList();
             if (existingMetadata != null && existingMetadata.getMetaValue() != null) {
                 existingConfigurations = gson.fromJson(existingMetadata.getMetaValue(), NOTIFICATION_CONFIG_LIST_TYPE);
@@ -181,17 +186,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
                 }
             }
             // validate operation codes
-            if (!allCodesToValidate.isEmpty()) {
-                Map<String, Boolean> codeValidationMap =
-                        featureService.validateOperationCodes(allCodesToValidate);
-                for (Map.Entry<String, Boolean> entry : codeValidationMap.entrySet()) {
-                    if (!entry.getValue()) {
-                        String msg = "Invalid operation code: " + entry.getKey();
-                        log.error(msg);
-                        throw new InvalidNotificationConfigurationException(msg);
-                    }
-                }
-            }
+            validateOperationCodes(allCodesToValidate);
             for (NotificationConfig newConfig : newConfigurations.getNotificationConfigurations()) {
                 if (newConfig.getId() != 0) {
                     String msg = "Config ID must not be provided. It will be auto-generated. Provided ID=" + newConfig.getId();
@@ -233,10 +228,6 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             String msg = "Error creating or updating metadata: " + e.getMessage();
             log.error(msg, e);
             throw new NotificationConfigurationServiceException(msg, e);
-        } catch (DeviceFeatureOperationException e) {
-            String msg = "Error validating operation codes related to the notification config";
-            log.error(msg, e);
-            throw new NotificationConfigurationServiceException(msg, e);
         }
     }
 
@@ -254,8 +245,13 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
         if (log.isDebugEnabled()) {
             log.debug("Deleting notification configuration with ID: " + configId);
         }
+        if (configId <= 0) {
+            String msg = "Received empty or Invalid Configuration ID";
+            log.error(msg);
+            throw new InvalidNotificationConfigurationException(msg);
+        }
         try {
-            Metadata existingMetadata = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
+            Metadata existingMetadata = getExistingMetadata(true);
             if (existingMetadata == null || existingMetadata.getMetaValue() == null) {
                 String msg = "Notification configuration metadata not found.";
                 log.warn(msg);
@@ -276,15 +272,14 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
                 throw new NotificationConfigurationNotFoundException(msg);
             }
             String updatedData = gson.toJson(configList);
-            Metadata updatedMetadata = new Metadata();
-            updatedMetadata.setMetaKey(Constants.NOTIFICATION_CONFIG_META_KEY);
-            updatedMetadata.setMetaValue(updatedData);
-            metaDataService.updateMetadata(updatedMetadata);
+            existingMetadata.setMetaKey(Constants.NOTIFICATION_CONFIG_META_KEY);
+            existingMetadata.setMetaValue(updatedData);
+            metaDataService.updateMetadata(existingMetadata);
             if (log.isDebugEnabled()) {
                 log.debug("Successfully deleted notification configuration with ID: " + configId);
             }
         } catch (MetadataManagementException e) {
-            String msg = "Error occurred while retrieving/updating notification configuration metadata.";
+            String msg = "Error occurred while deleting notification configurations.";
             log.error(msg, e);
             throw new NotificationConfigurationServiceException(msg, e);
         }
@@ -305,25 +300,13 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             throws NotificationConfigurationServiceException {
         validateConfiguration(updatedConfig);
         // validate operation code if type is "operation"
-        try {
-            Map<String, Boolean> validationMap =
-                    featureService.validateOperationCodes(Collections.singletonList(updatedConfig.getCode()));
-            if (!validationMap.getOrDefault(updatedConfig.getCode(), false)) {
-                String msg = "Invalid operation code for configuration ID " + updatedConfig.getId() +
-                        ": " + updatedConfig.getCode();
-                log.error(msg);
-                throw new InvalidNotificationConfigurationException(msg);
-            }
-        } catch (DeviceFeatureOperationException e) {
-            String msg = "Error validating operation code for configuration ID " + updatedConfig.getId();
-            log.error(msg, e);
-            throw new NotificationConfigurationServiceException(msg, e);
+        if (Constants.OPERATION.equalsIgnoreCase(updatedConfig.getType())) {
+            validateOperationCodes(Collections.singletonList(updatedConfig.getCode()));
         }
         try {
-            Metadata existingMetadata =
-                    metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
+            Metadata existingMetadata = getExistingMetadata(true);
             if (existingMetadata == null || existingMetadata.getMetaValue() == null) {
-                String msg =  "No configurations found.";
+                String msg =  "Notification configurations do not exist. Ensure configuration is set before continuing.";
                 log.error(msg);
                 throw new NotificationConfigurationNotFoundException(msg);
             }
@@ -364,13 +347,17 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
     @Override
     public void deleteNotificationConfigurations() throws NotificationConfigurationServiceException {
         try {
-            metaDataService.deleteMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
-        } catch (NoSuchElementException e) {
-            String msg = "No Meta Data found for Tenant ID";
-            log.error(msg);
+            boolean cleared = metaDataService.clearMetadataValue(Constants.NOTIFICATION_CONFIG_META_KEY);
+            if (!cleared) {
+                String msg = "No metadata value found to clear for key: " + Constants.NOTIFICATION_CONFIG_META_KEY;
+                log.warn(msg);
+            }
+        } catch (MetadataKeyNotFoundException e) {
+            String msg = "No metadata entry found for key: " + Constants.NOTIFICATION_CONFIG_META_KEY;
+            log.error(msg, e);
             throw new NotificationConfigurationServiceException(msg, e);
         } catch (MetadataManagementException e) {
-            String message = "Unexpected error occurred while deleting notification configurations for tenant ID.";
+            String message = "Unexpected error occurred while clearing notification configurations for tenant ID.";
             log.error(message, e);
             throw new NotificationConfigurationServiceException(message, e);
         }
@@ -386,38 +373,32 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
     @Override
     public NotificationConfigurationList getNotificationConfigurations()
             throws NotificationConfigurationServiceException {
-        try {
-            if (metaDataService == null) {
-                String message = "MetaDataManagementService is not available";
-                log.error(message);
-                throw new NotificationConfigurationServiceException(message);
-            }
-            Metadata existingMetadata = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
-            if (existingMetadata == null || existingMetadata.getMetaValue() == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("No notification configurations found for tenant. Returning empty list.");
-                }
-                return buildEmptyConfigurationList();
-            }
-            NotificationConfigurationList configList =
-                    gson.fromJson(existingMetadata.getMetaValue(), NOTIFICATION_CONFIG_LIST_TYPE);
-            if (configList == null || configList.getNotificationConfigurations() == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Meta value could not be deserialized or is empty. Returning empty list.");
-                }
-                return buildEmptyConfigurationList();
-            }
-            NotificationConfigurationList configurations = new NotificationConfigurationList();
-            configurations.setNotificationConfigurations(configList.getNotificationConfigurations());
-            configurations.setDefaultArchiveAfter(configList.getDefaultArchiveAfter());
-            configurations.setDefaultArchiveType(configList.getDefaultArchiveType());
-            NotificationHelper.setDefaultArchivalValuesIfAbsent(configurations);
-            return configurations;
-        } catch (MetadataManagementException e) {
-            String message = "Unexpected error occurred while retrieving notification configurations for tenant.";
-            log.error(message, e);
-            throw new NotificationConfigurationServiceException(message, e);
+        if (metaDataService == null) {
+            String message = "MetaDataManagementService is not available";
+            log.error(message);
+            throw new NotificationConfigurationServiceException(message);
         }
+        Metadata existingMetadata = getExistingMetadata(false);
+        if (existingMetadata == null || existingMetadata.getMetaValue() == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("No notification configurations found for tenant. Returning empty list.");
+            }
+            return buildEmptyConfigurationList();
+        }
+        NotificationConfigurationList configList =
+                gson.fromJson(existingMetadata.getMetaValue(), NOTIFICATION_CONFIG_LIST_TYPE);
+        if (configList == null || configList.getNotificationConfigurations() == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Meta value could not be deserialized or is empty. Returning empty list.");
+            }
+            return buildEmptyConfigurationList();
+        }
+        NotificationConfigurationList configurations = new NotificationConfigurationList();
+        configurations.setNotificationConfigurations(configList.getNotificationConfigurations());
+        configurations.setDefaultArchiveAfter(configList.getDefaultArchiveAfter());
+        configurations.setDefaultArchiveType(configList.getDefaultArchiveType());
+        NotificationHelper.setDefaultArchivalValuesIfAbsent(configurations);
+        return configurations;
     }
 
     /**
@@ -430,30 +411,29 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
     @Override
     public NotificationConfig getNotificationConfigByID(int configID)
             throws NotificationConfigurationServiceException {
-        try {
-            Metadata metaData = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
-            if (metaData == null || metaData.getMetaValue() == null) {
-                String msg = "No notification configurations found for tenant";
-                log.error(msg);
-                throw new NotificationConfigurationNotFoundException(msg);
-            }
-            NotificationConfigurationList configurations =
-                    gson.fromJson(metaData.getMetaValue(), NOTIFICATION_CONFIG_LIST_TYPE);
-            if (configurations == null || configurations.getNotificationConfigurations() == null) {
-                String msg = "Configuration with config ID '" + configID + "' not found for tenant.";
-                log.error(msg);
-                throw new NotificationConfigurationNotFoundException(msg);
-            }
-            return configurations.getNotificationConfigurations().stream()
-                    .filter(c -> c.getId() == configID)
-                    .findFirst()
-                    .orElseThrow(() -> new NotificationConfigurationNotFoundException(
-                            "Configuration with config ID '" + configID + "' not found for tenant."));
-        } catch (MetadataManagementException e) {
-            String message = "Error retrieving notification configuration by configID.";
-            log.error(message, e);
-            throw new NotificationConfigurationServiceException(message, e);
+        if (configID <= 0) {
+            String msg = "Invalid request: configuration ID is missing or invalid";
+            log.error(msg);
+            throw new InvalidNotificationConfigurationException(msg);
         }
+        Metadata metaData = getExistingMetadata(true);
+        if (metaData == null || metaData.getMetaValue() == null) {
+            String msg = "No notification configurations found for tenant";
+            log.error(msg);
+            throw new NotificationConfigurationNotFoundException(msg);
+        }
+        NotificationConfigurationList configurations =
+                gson.fromJson(metaData.getMetaValue(), NOTIFICATION_CONFIG_LIST_TYPE);
+        if (configurations == null || configurations.getNotificationConfigurations() == null) {
+            String msg = "Configuration with config ID '" + configID + "' not found for tenant.";
+            log.error(msg);
+            throw new NotificationConfigurationNotFoundException(msg);
+        }
+        return configurations.getNotificationConfigurations().stream()
+                .filter(c -> c.getId() == configID)
+                .findFirst()
+                .orElseThrow(() -> new NotificationConfigurationNotFoundException(
+                        "Configuration with config ID '" + configID + "' not found for tenant."));
     }
 
     @Override
@@ -498,5 +478,60 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
         NotificationConfigurationList emptyList = new NotificationConfigurationList();
         NotificationHelper.setDefaultArchivalValuesIfAbsent(emptyList);
         return emptyList;
+    }
+
+    /**
+     * Validates a list of operation codes using DeviceFeatureOperations.
+     *
+     * @param codes List of operation codes to validate.
+     * @throws InvalidNotificationConfigurationException If any code is invalid.
+     * @throws NotificationConfigurationServiceException If validation fails due to internal errors.
+     */
+    private void validateOperationCodes(List<String> codes)
+            throws NotificationConfigurationServiceException {
+        if (codes == null || codes.isEmpty()) {
+            return;
+        }
+        try {
+            Map<String, Boolean> validationMap = featureService.validateOperationCodes(codes);
+            for (Map.Entry<String, Boolean> entry : validationMap.entrySet()) {
+                if (!entry.getValue()) {
+                    String msg = "Invalid operation code: " + entry.getKey();
+                    log.error(msg);
+                    throw new InvalidNotificationConfigurationException(msg);
+                }
+            }
+        } catch (DeviceFeatureOperationException e) {
+            String msg = "Error validating operation codes: " + codes;
+            log.error(msg, e);
+            throw new NotificationConfigurationServiceException(msg, e);
+        }
+    }
+
+    /**
+     * Retrieves the existing notification configuration metadata.
+     *
+     * @param throwIfMissing Whether to throw an exception if metadata or its value is missing.
+     * @return The {@link Metadata} object if found, or null if not found and throwIfMissing is false.
+     * @throws NotificationConfigurationNotFoundException if metadata is missing and throwIfMissing is true.
+     * @throws NotificationConfigurationServiceException if retrieval fails.
+     */
+    private Metadata getExistingMetadata(boolean throwIfMissing)
+            throws NotificationConfigurationServiceException {
+        try {
+            Metadata metadata = metaDataService.retrieveMetadata(Constants.NOTIFICATION_CONFIG_META_KEY);
+            if (metadata == null || metadata.getMetaValue() == null) {
+                if (throwIfMissing) {
+                    throw new NotificationConfigurationNotFoundException(
+                            "Notification configuration metadata not found.");
+                }
+                return null;
+            }
+            return metadata;
+        } catch (MetadataManagementException e) {
+            String msg = "Error retrieving metadata for notification configurations.";
+            log.error(msg, e);
+            throw new NotificationConfigurationServiceException(msg, e);
+        }
     }
 }
