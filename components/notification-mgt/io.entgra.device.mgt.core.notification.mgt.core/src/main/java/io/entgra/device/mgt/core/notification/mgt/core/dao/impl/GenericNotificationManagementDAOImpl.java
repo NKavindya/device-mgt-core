@@ -43,18 +43,21 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
     @Override
     public List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementDAOException {
         List<Notification> notifications = new ArrayList<>();
+        int tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
         String query =
                 "SELECT * FROM DM_NOTIFICATION " +
                         "ORDER BY CREATED_TIMESTAMP " +
+                        "WHERE TENANT_ID = ? " +
                         "DESC LIMIT ? OFFSET ?";
         try {
             Connection connection = NotificationManagementDAOFactory.getConnection();
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                preparedStatement.setInt(1, limit);
-                preparedStatement.setInt(2, offset);
+                preparedStatement.setInt(1, tenantId);
+                preparedStatement.setInt(2, limit);
+                preparedStatement.setInt(3, offset);
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    Notification notification = new Notification();
                     while (resultSet.next()) {
-                        Notification notification = new Notification();
                         notification.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
                         notification.setNotificationConfigId(resultSet.getInt("NOTIFICATION_CONFIG_ID"));
                         notification.setTenantId(resultSet.getInt("TENANT_ID"));
@@ -104,8 +107,8 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
                     preparedStatement.setInt(paramIndex++, id);
                 }
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    Notification notification = new Notification();
                     while (resultSet.next()) {
-                        Notification notification = new Notification();
                         notification.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
                         notification.setDescription(resultSet.getString("DESCRIPTION"));
                         notification.setType(resultSet.getString("TYPE"));
@@ -155,8 +158,8 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
                     ps.setInt(paramIndex++, offset);
                 }
                 try (ResultSet rs = ps.executeQuery()) {
+                    UserNotificationAction action = new UserNotificationAction();
                     while (rs.next()) {
-                        UserNotificationAction action = new UserNotificationAction();
                         action.setNotificationId(rs.getInt("NOTIFICATION_ID"));
                         action.setActionId(rs.getInt("ACTION_ID"));
                         action.setRead(rs.getBoolean("IS_READ"));
@@ -173,18 +176,10 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
     }
 
     @Override
-    public void updateNotificationAction(List<Integer> notificationIds, String username, String actionType)
+    public void updateNotificationAction(List<Integer> notificationIds, String username, boolean isRead)
             throws NotificationManagementDAOException {
         if (notificationIds == null || notificationIds.isEmpty()) {
             return;
-        }
-        boolean isRead;
-        if ("READ".equalsIgnoreCase(actionType)) {
-            isRead = true;
-        } else if ("UNREAD".equalsIgnoreCase(actionType)) {
-            isRead = false;
-        } else {
-            throw new NotificationManagementDAOException("Invalid action type: " + actionType);
         }
         String placeholders = notificationIds.stream()
                 .map(id -> "?")
@@ -228,8 +223,8 @@ public class GenericNotificationManagementDAOImpl implements NotificationManagem
             Connection connection = NotificationManagementDAOFactory.getConnection();
             try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    UserNotificationAction userNotificationAction = new UserNotificationAction();
                     while (resultSet.next()) {
-                        UserNotificationAction userNotificationAction = new UserNotificationAction();
                         userNotificationAction.setNotificationId(resultSet.getInt("NOTIFICATION_ID"));
                         userNotificationAction.setActionId(resultSet.getInt("ACTION_ID"));
                         userNotificationAction.setRead(resultSet.getBoolean("IS_READ"));

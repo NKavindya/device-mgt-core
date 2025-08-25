@@ -65,7 +65,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
-    public List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementException {
+    public List<Notification> getAllNotifications(int offset, int limit) throws NotificationManagementException {
         try {
             NotificationManagementDAOFactory.openConnection();
             return notificationDAO.getLatestNotifications(offset, limit);
@@ -127,11 +127,11 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
-    public void updateNotificationActionForUser(List<Integer> notificationIds, String username, String actionType)
+    public void updateNotificationActionForUser(List<Integer> notificationIds, String username, boolean isRead)
             throws NotificationManagementException {
         try {
             NotificationManagementDAOFactory.beginTransaction();
-            notificationDAO.updateNotificationAction(notificationIds, username, actionType);
+            notificationDAO.updateNotificationAction(notificationIds, username, isRead);
             NotificationManagementDAOFactory.commitTransaction();
             int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
             String payload = String.format("{\"unreadCount\":%d}", unreadCount);
@@ -243,7 +243,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             throws NotificationManagementException {
         try {
             NotificationConfig config = NotificationHelper.getNotificationConfigurationByCode(operationCode);
-            if (config == null) return;
+            if (config == null || !config.isEnabled()) return;
             NotificationConfigurationSettings settings = config.getNotificationSettings();
             if (settings == null) return;
             List<String> configDeviceTypes = settings.getDeviceTypes();
@@ -319,6 +319,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                                                              String deviceType,
                                                              int tenantId)
             throws NotificationManagementException {
+        if (!config.isEnabled()) return;
         String status = (operationStatus != null) ? operationStatus : Constants.PENDING;
         NotificationConfigBatchNotifications batchConfig = config.getNotificationSettings().getBatchNotifications();
         boolean includeDeviceList = batchConfig.isIncludeDeviceListInBatch();

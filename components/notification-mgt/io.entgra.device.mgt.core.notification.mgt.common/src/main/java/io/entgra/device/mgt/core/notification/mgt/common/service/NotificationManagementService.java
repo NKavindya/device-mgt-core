@@ -37,7 +37,7 @@ public interface NotificationManagementService {
      * @return {@link List<Notification>}
      * @throws NotificationManagementException Throws when error occurred while retrieving notifications.
      */
-    List<Notification> getLatestNotifications(int offset, int limit) throws NotificationManagementException;
+    List<Notification> getAllNotifications(int offset, int limit) throws NotificationManagementException;
 
     /**
      * Retrieves a paginated list of notifications for a given user along with their read/unread status.
@@ -57,10 +57,10 @@ public interface NotificationManagementService {
      *
      * @param notificationIds List of notification IDs to update.
      * @param username        Username for whom the action is to be updated.
-     * @param actionType      Action type to set (e.g., "READ", "UNREAD").
+     * @param isRead      Action type to set (e.g., "READ", "UNREAD").
      * @throws NotificationManagementException If an error occurs while processing the update.
      */
-    void updateNotificationActionForUser(List<Integer> notificationIds, String username, String actionType)
+    void updateNotificationActionForUser(List<Integer> notificationIds, String username, boolean isRead)
             throws NotificationManagementException;
 
     /**

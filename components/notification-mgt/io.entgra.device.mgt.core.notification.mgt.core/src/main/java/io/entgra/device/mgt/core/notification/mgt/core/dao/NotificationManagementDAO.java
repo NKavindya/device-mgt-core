@@ -68,10 +68,10 @@ public interface NotificationManagementDAO {
      *
      * @param notificationIds List of notification IDs to update.
      * @param username        Username for whom the action is to be updated.
-     * @param actionType      Action type to set (e.g., "READ", "UNREAD").
+     * @param isRead      Action type to set (e.g., "READ", "UNREAD").
      * @throws NotificationManagementDAOException If an error occurs while updating the notifications.
      */
-    void updateNotificationAction(List<Integer> notificationIds, String username, String actionType)
+    void updateNotificationAction(List<Integer> notificationIds, String username, boolean isRead)
             throws NotificationManagementDAOException;
 
     /**
