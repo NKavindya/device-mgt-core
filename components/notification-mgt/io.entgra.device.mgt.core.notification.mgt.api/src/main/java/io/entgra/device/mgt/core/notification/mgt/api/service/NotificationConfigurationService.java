@@ -499,4 +499,57 @@ public interface NotificationConfigurationService {
             )
             NotificationConfigurationList archiveDefaults
     );
+
+    @Path("/check")
+    @ApiOperation(
+            produces = MediaType.APPLICATION_JSON,
+            httpMethod = "GET",
+            value = "Check if a Notification Configuration exists",
+            notes = "Checks whether a notification configuration already exists for the given device type and code.",
+            tags = "Notification Configuration Management",
+            extensions = {
+                    @Extension(properties = {
+                            @ExtensionProperty(
+                                    name = SCOPE,
+                                    value = "dm:notificationConfig:view"),
+                            @ExtensionProperty(
+                                    name = "context",
+                                    value = "/api/notification-mgt/v1.0/notification-configuration/check")
+                    })
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(
+                            code = 200,
+                            message = "OK. No conflicting notification configuration found.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 404,
+                            message = "Not Found. No configuration found for the tenant.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 409,
+                            message = "Conflict. A notification configuration already exists for the given device type and code.",
+                            response = Response.class),
+                    @ApiResponse(
+                            code = 500,
+                            message = "Internal Server Error. Error occurred while checking configurations.",
+                            response = Response.class)
+            }
+    )
+    Response checkNotificationConfig(
+            @ApiParam(
+                    name = "deviceType",
+                    value = "Device type of the notification configuration.",
+                    required = true)
+            @QueryParam("deviceType")
+            String deviceType,
+            @ApiParam(
+                    name = "code",
+                    value = "The operation or task code associated with the notification.",
+                    required = true)
+            @QueryParam("code")
+            String code
+    );
 }

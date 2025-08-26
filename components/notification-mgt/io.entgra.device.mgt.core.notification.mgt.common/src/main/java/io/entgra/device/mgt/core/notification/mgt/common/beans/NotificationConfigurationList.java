@@ -40,6 +40,10 @@ public class NotificationConfigurationList {
     @JsonProperty("defaultArchiveType")
     private String defaultArchiveType;
 
+    @ApiModelProperty(value = "Total number of matching configurations")
+    @JsonProperty("totalCount")
+    private int totalCount;
+
     public List<NotificationConfig> getNotificationConfigurations() {
         return notificationConfigurations;
     }
@@ -95,5 +99,13 @@ public class NotificationConfigurationList {
 
     public int getCount() {
         return this.notificationConfigurations.size();
+    }
+
+    public int getTotalCount() {
+        return totalCount;
+    }
+
+    public void setTotalCount(int totalCount) {
+        this.totalCount = totalCount;
     }
 }

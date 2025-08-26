@@ -246,10 +246,10 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             if (config == null || !config.isEnabled()) return;
             NotificationConfigurationSettings settings = config.getNotificationSettings();
             if (settings == null) return;
-            List<String> configDeviceTypes = settings.getDeviceTypes();
+            String configDeviceTypes = config.getDeviceType();
             List<String> triggerPoints = settings.getNotificationTriggerPoints();
             if (configDeviceTypes == null || triggerPoints == null ||
-                    !configDeviceTypes.contains(deviceType) ||
+                    !configDeviceTypes.equalsIgnoreCase(deviceType) ||
                     !triggerPoints.contains(notificationTriggerPoint)) {
                 return;
             }
