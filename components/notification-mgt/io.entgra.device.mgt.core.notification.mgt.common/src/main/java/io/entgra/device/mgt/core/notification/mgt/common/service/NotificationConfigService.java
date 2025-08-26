@@ -104,4 +104,15 @@ public interface NotificationConfigService {
     NotificationConfigurationList getFilteredNotificationConfigurations(String name, String type,
                                                                         String code, int offset, int limit)
             throws NotificationConfigurationServiceException;
+
+    /**
+     * Checks whether a notification configuration exists for the given device type and operation code.
+     *
+     * @param deviceType the type of device (e.g., android, ios, windows).
+     * @param code the operation or task code associated with the notification.
+     * @return {@code true} if a matching notification configuration already exists,
+     *         {@code false} otherwise.
+     * @throws NotificationConfigurationServiceException if an error occurs while checking the configuration.
+     */
+    boolean configExists(String deviceType, String code) throws NotificationConfigurationServiceException;
 }

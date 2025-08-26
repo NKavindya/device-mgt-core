@@ -68,8 +68,9 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
                     notificationConfigService.getFilteredNotificationConfigurations(name, type, code, offset, limit);
             return Response.status(HttpStatus.SC_OK).entity(filteredConfigs).build();
         } catch (NotificationConfigurationNotFoundException e) {
+            String msg = "Notification Configurations does not exist.";
             log.warn(e.getMessage());
-            return Response.status(HttpStatus.SC_NOT_FOUND).entity(e.getMessage()).build();
+            return Response.status(HttpStatus.SC_NOT_FOUND).entity(msg).build();
         } catch (NotificationConfigurationServiceException e) {
             String msg = "Unexpected error occurred while retrieving notification configurations.";
             log.error(msg, e);
@@ -183,8 +184,9 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
             NotificationConfig config = notificationConfigService.getNotificationConfigByID(configId);
             return Response.status(HttpStatus.SC_OK).entity(config).build();
         } catch (NotificationConfigurationNotFoundException e) {
+            String msg = "Requested Notification Configuration does not exist.";
             log.warn(e.getMessage());
-            return Response.status(HttpStatus.SC_NOT_FOUND).entity(e.getMessage()).build();
+            return Response.status(HttpStatus.SC_NOT_FOUND).entity(msg).build();
         } catch (InvalidNotificationConfigurationException e) {
             String msg = "Invalid request: configuration or configuration ID is missing or invalid.";
             log.error(msg);
@@ -217,6 +219,39 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
             String msg = "Error occurred while updating the default archival settings";
             log.error(msg, e);
             return Response.status(HttpStatus.SC_INTERNAL_SERVER_ERROR).entity(msg).build();
+        }
+    }
+
+
+    @GET
+    @Path("/check")
+    @Override
+    public Response checkNotificationConfig(@QueryParam("deviceType") String deviceType,
+                                            @QueryParam("code") String code) {
+        try {
+            NotificationConfigService notificationConfigService =
+                    NotificationConfigurationApiUtil.getNotificationConfigurationService();
+            boolean exists = notificationConfigService.configExists(deviceType, code);
+            if (exists) {
+                String msg = "A notification configuration already exists for deviceType=" + deviceType +
+                        " and code=" + code;
+                log.warn(msg);
+                return Response.status(Response.Status.CONFLICT).entity(msg).build();
+            } else {
+                return Response.noContent().build();
+            }
+        } catch (NotificationConfigurationNotFoundException e) {
+            String msg = "Notification Configurations does not exist.";
+            log.warn(e.getMessage());
+            return Response.status(HttpStatus.SC_NOT_FOUND).entity(msg).build();
+        } catch (InvalidNotificationConfigurationException e) {
+            String msg = "Invalid request: device Type or the operation code is invalid.";
+            log.error(msg);
+            return Response.status(HttpStatus.SC_BAD_REQUEST).entity(msg).build();
+        } catch (NotificationConfigurationServiceException e) {
+            String msg = "Error occurred while checking for existing notification configuration.";
+            log.error(msg, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(msg).build();
         }
     }
 

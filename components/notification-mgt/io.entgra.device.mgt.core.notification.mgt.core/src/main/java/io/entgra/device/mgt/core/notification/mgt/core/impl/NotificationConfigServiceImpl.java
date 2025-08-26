@@ -440,7 +440,6 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
     public NotificationConfigurationList getFilteredNotificationConfigurations
             (String name, String type, String code, int offset, int limit)
             throws NotificationConfigurationServiceException {
-
         NotificationConfigurationList allConfigurations;
         try {
             allConfigurations = getNotificationConfigurations();
@@ -458,6 +457,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
                     return matchesName && matchesType && matchesCode;
                 })
                 .collect(Collectors.toList());
+        int totalCount = filteredConfigs.size();
         int fromIndex = Math.max(0, Math.min(offset, filteredConfigs.size()));
         int toIndex = Math.max(fromIndex, Math.min(offset + limit, filteredConfigs.size()));
         List<NotificationConfig> pagedConfigs = filteredConfigs.subList(fromIndex, toIndex);
@@ -465,6 +465,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
         result.setNotificationConfigurations(pagedConfigs);
         result.setDefaultArchiveAfter(allConfigurations.getDefaultArchiveAfter());
         result.setDefaultArchiveType(allConfigurations.getDefaultArchiveType());
+        result.setTotalCount(totalCount);
         return result;
     }
 
@@ -533,5 +534,21 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             log.error(msg, e);
             throw new NotificationConfigurationServiceException(msg, e);
         }
+    }
+
+    @Override
+    public boolean configExists(String deviceType, String code)
+            throws NotificationConfigurationServiceException {
+        if (deviceType == null || code == null) {
+            String msg = "Device type and code must not be null.";
+            log.error(msg);
+            throw new InvalidNotificationConfigurationException(msg);
+        }
+        NotificationConfigurationList configurations = getNotificationConfigurations();
+        return configurations.getNotificationConfigurations().stream()
+                .anyMatch(config ->
+                        deviceType.equalsIgnoreCase(config.getDeviceType()) &&
+                                code.equalsIgnoreCase(config.getCode())
+                );
     }
 }
