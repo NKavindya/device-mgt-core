@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataManagementException;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.Metadata;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
+import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationConfigurationServiceException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigRecipients;
@@ -34,7 +35,6 @@ import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
 
-import javax.ws.rs.core.Response;
 import java.lang.reflect.Type;
 import java.sql.Timestamp;
 import java.util.*;
@@ -44,6 +44,7 @@ import java.util.regex.Pattern;
 public class NotificationHelper {
     private static final Log log = LogFactory.getLog(NotificationHelper.class);
     private static final Gson gson = new Gson();
+    private static final int tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
 
     /**
      * Extracts all usernames from the given recipients object including users and roles.
@@ -222,6 +223,80 @@ public class NotificationHelper {
         if (configurations.getDefaultArchiveType() == null
                 || configurations.getDefaultArchiveType().isEmpty()) {
             configurations.setDefaultArchiveType(Constants.DEFAULT_ARCHIVE_TYPE);
+        }
+    }
+
+    /**
+     * Validates that a user exists in the system.
+     * Checks if the provided username is not null or empty and exists in the user store.
+     *
+     * @param username the username to validate
+     */
+    public static void validateUserExists(String username) throws NotificationManagementException {
+        if (username == null || username.trim().isEmpty()) {
+            String msg = "Username must not be null or empty.";
+            log.warn(msg);
+            throw new NotificationManagementException(msg);
+        }
+        try {
+            UserStoreManager userStoreManager = NotificationManagementDataHolder.getInstance()
+                    .getRealmService().getTenantUserRealm(tenantId).getUserStoreManager();
+            if (!userStoreManager.isExistingUser(username)) {
+                String msg = "User by username: " + username + " does not exist.";
+                throw new NotificationManagementException(msg);
+            }
+        } catch (UserStoreException e) {
+            String msg = "Error while retrieving the user.";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
+        }
+    }
+
+    /**
+     * Validates that all users and roles in the recipients exist in the system.
+     * Checks if the recipients object is not null.
+     * Returns an appropriate Response if any user or role does not exist or if there is an error.
+     *
+     * @param recipients the NotificationConfigRecipients object containing users and roles
+     * @return a Response with error status if any user or role is invalid or does not exist, otherwise null
+     */
+    /**
+     * Validates that all users and roles in the recipients exist in the system.
+     * Throws NotificationConfigurationServiceException if any user or role is invalid or does not exist.
+     *
+     * @param recipients the NotificationConfigRecipients object containing users and roles
+     * @throws NotificationConfigurationServiceException if recipients is null or any user/role does not exist
+     */
+    public static void validateRecipients(NotificationConfigRecipients recipients)
+            throws NotificationConfigurationServiceException {
+        if (recipients == null) {
+            String msg = "Recipients must not be null.";
+            log.warn(msg);
+            throw new NotificationConfigurationServiceException(msg);
+        }
+        try {
+            UserStoreManager userStoreManager = NotificationManagementDataHolder.getInstance()
+                    .getRealmService().getTenantUserRealm(tenantId).getUserStoreManager();
+            // validate roles
+            for (String role : recipients.getRoles()) {
+                if (!userStoreManager.isExistingRole(role)) {
+                    String msg = "No role exists with the name: " + role;
+                    log.warn(msg);
+                    throw new NotificationConfigurationServiceException(msg);
+                }
+            }
+            // validate users
+            for (String user : recipients.getUsers()) {
+                if (!userStoreManager.isExistingUser(user)) {
+                    String msg = "User by username: " + user + " does not exist.";
+                    log.warn(msg);
+                    throw new NotificationConfigurationServiceException(msg);
+                }
+            }
+        } catch (UserStoreException e) {
+            String msg = "Error while validating recipients.";
+            log.error(msg, e);
+            throw new NotificationConfigurationServiceException(msg, e);
         }
     }
 }

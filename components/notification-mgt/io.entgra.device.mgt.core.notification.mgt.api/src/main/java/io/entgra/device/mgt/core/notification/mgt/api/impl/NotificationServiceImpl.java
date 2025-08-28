@@ -29,12 +29,9 @@ import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationMan
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.user.api.UserStoreException;
-import org.wso2.carbon.user.api.UserStoreManager;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -78,10 +75,6 @@ public class NotificationServiceImpl implements NotificationService {
                                                    @QueryParam("isRead") Boolean isRead,
                                                    @QueryParam("limit") int limit,
                                                    @QueryParam("offset") int offset) {
-        Response userCheck = validateUserExists(username);
-        if (userCheck != null) {
-            return userCheck;
-        }
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
@@ -100,10 +93,6 @@ public class NotificationServiceImpl implements NotificationService {
     public Response updateNotificationAction(@QueryParam("notificationId") List<Integer> notificationIds,
                                              @QueryParam("username") String username,
                                              @QueryParam("isRead") boolean isRead) {
-        Response userCheck = validateUserExists(username);
-        if (userCheck != null) {
-            return userCheck;
-        }
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
@@ -127,8 +116,6 @@ public class NotificationServiceImpl implements NotificationService {
             @PathParam("username") String username,
             List<Integer> notificationIds
     ) {
-        Response userCheck = validateUserExists(username);
-        if (userCheck != null) return userCheck;
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
@@ -148,8 +135,6 @@ public class NotificationServiceImpl implements NotificationService {
     public Response deleteAllNotifications(
             @PathParam("username") String username
     ) {
-        Response userCheck = validateUserExists(username);
-        if (userCheck != null) return userCheck;
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
@@ -169,10 +154,6 @@ public class NotificationServiceImpl implements NotificationService {
     @Produces(MediaType.APPLICATION_JSON)
     public Response archiveSelectedNotifications(@QueryParam("username") String username,
                                                  List<Integer> notificationIds) {
-        Response userCheck = validateUserExists(username);
-        if (userCheck != null) {
-            return userCheck;
-        }
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
@@ -191,10 +172,6 @@ public class NotificationServiceImpl implements NotificationService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response archiveAllNotifications(@QueryParam("username") String username) {
-        Response userCheck = validateUserExists(username);
-        if (userCheck != null) {
-            return userCheck;
-        }
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
@@ -206,36 +183,5 @@ public class NotificationServiceImpl implements NotificationService {
             log.error(msg, e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(msg).build();
         }
-    }
-
-    /**
-     * Validates that a user exists in the system.
-     * Checks if the provided username is not null or empty and exists in the user store.
-     * Returns an appropriate Response if the user does not exist or if there is an error.
-     *
-     * @param username the username to validate
-     * @return a Response with error status if the user is invalid or does not exist, otherwise null
-     */
-    public static Response validateUserExists(String username) {
-        if (username == null || username.trim().isEmpty()) {
-            String msg = "Username must not be null or empty.";
-            log.warn(msg);
-            return Response.status(Response.Status.BAD_REQUEST).entity(msg).build();
-        }
-        try {
-            UserStoreManager userStoreManager = NotificationManagementApiUtil.getUserStoreManager();
-            if (!userStoreManager.isExistingUser(username)) {
-                if (log.isDebugEnabled()) {
-                    log.debug("User by username: " + username + " does not exist.");
-                }
-                String msg = "User by username: " + username + " does not exist.";
-                return Response.status(Response.Status.NOT_FOUND).entity(msg).build();
-            }
-        } catch (UserStoreException e) {
-            String msg = "Error while retrieving the user.";
-            log.error(msg, e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(msg).build();
-        }
-        return null;
     }
 }

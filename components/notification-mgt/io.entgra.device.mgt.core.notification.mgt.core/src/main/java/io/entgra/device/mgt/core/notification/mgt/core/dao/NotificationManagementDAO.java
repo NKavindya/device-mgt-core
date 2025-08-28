@@ -20,6 +20,7 @@
 package io.entgra.device.mgt.core.notification.mgt.core.dao;
 
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.PaginatedUserNotificationResponse;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementDAOException;
 
@@ -144,4 +145,17 @@ public interface NotificationManagementDAO {
      * @throws NotificationManagementDAOException if an error occurs during the deletion process.
      */
     void deleteAllUserNotifications(String username) throws NotificationManagementDAOException;
+
+    /**
+     * Retrieves a paginated list of user notifications along with their read/unread status.
+     *
+     * @param username the username of the user whose notifications should be retrieved
+     * @param limit    the maximum number of notifications to return (for pagination)
+     * @param offset   the number of records to skip before starting to return results (for pagination)
+     * @param isRead   filter by read/unread status; if null, both read and unread notifications are included
+     * @return a {@link PaginatedUserNotificationResponse} containing the list of notifications and the total count
+     * @throws NotificationManagementDAOException if an error occurs while accessing the database
+     */
+    PaginatedUserNotificationResponse getUserNotificationsWithStatus(
+            String username, int limit, int offset, Boolean isRead) throws NotificationManagementDAOException;
 }
