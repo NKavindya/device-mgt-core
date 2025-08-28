@@ -218,8 +218,8 @@ public interface NotificationConfigurationService {
                     ),
                     @ApiResponse(
                             code = 409,
-                            message = "Conflict. \n A configuration with the same parameters already exists.",
-                            response = ErrorResponse.class
+                            message = "Conflict. A notification configuration already exists for the given device type and code.",
+                            response = Response.class
                     ),
                     @ApiResponse(
                             code = 500,
@@ -279,6 +279,11 @@ public interface NotificationConfigurationService {
                     @ApiResponse(
                             code = 404,
                             message = "Not Found. The resource to be updated does not exist."
+                    ),
+                    @ApiResponse(
+                            code = 409,
+                            message = "Conflict. A notification configuration already exists for the given device type and code.",
+                            response = Response.class
                     ),
                     @ApiResponse(
                             code = 500,
@@ -375,7 +380,8 @@ public interface NotificationConfigurationService {
                     ),
                     @ApiResponse(
                             code = 404,
-                            message = "Not Found. \n The resource to be deleted does not exist."),
+                            message = "Not Found. \n The resource to be deleted does not exist."
+                    ),
                     @ApiResponse(
                             code = 500,
                             message = "Internal Server Error. \n Server error occurred while creating the configuration.",
@@ -431,7 +437,8 @@ public interface NotificationConfigurationService {
                     ),
                     @ApiResponse(
                             code = 404,
-                            message = "Not Found. \n The resource to be deleted does not exist."),
+                            message = "Not Found. \n The resource to be deleted does not exist."
+                    ),
                     @ApiResponse(
                             code = 500,
                             message = "Internal Server Error. \n Server error occurred while creating the configuration.",

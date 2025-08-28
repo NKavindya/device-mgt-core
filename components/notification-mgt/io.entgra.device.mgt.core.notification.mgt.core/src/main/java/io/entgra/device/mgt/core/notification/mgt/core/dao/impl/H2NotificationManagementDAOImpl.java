@@ -20,7 +20,9 @@
 package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
 
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.PaginatedUserNotificationResponse;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
+import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementDAOException;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
@@ -404,6 +406,77 @@ public class H2NotificationManagementDAOImpl implements NotificationManagementDA
             log.error(msg, e);
             throw new NotificationManagementDAOException(msg, e);
         }
+    }
+
+    @Override
+    public PaginatedUserNotificationResponse getUserNotificationsWithStatus(
+            String username, int limit, int offset, Boolean isRead) throws NotificationManagementDAOException {
+        List<UserNotificationPayload> result = new ArrayList<>();
+        int totalCount = 0;
+        try (Connection connection = NotificationManagementDAOFactory.getConnection()) {
+            StringBuilder countQuery = new StringBuilder(
+                    "SELECT COUNT(*) " +
+                            "FROM DM_NOTIFICATION_USER_ACTION ua " +
+                            "JOIN DM_NOTIFICATION n " +
+                            "ON ua.NOTIFICATION_ID = n.NOTIFICATION_ID " +
+                            "WHERE ua.USERNAME = ? " +
+                            "AND n.TENANT_ID = ? "
+            );
+            if (isRead != null) {
+                countQuery.append("AND ua.IS_READ = ? ");
+            }
+            try (PreparedStatement ps = connection.prepareStatement(countQuery.toString())) {
+                int idx = 1;
+                ps.setString(idx++, username);
+                ps.setInt(idx++, PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId());
+                if (isRead != null) ps.setBoolean(idx++, isRead);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) totalCount = rs.getInt(1);
+                }
+            }
+            StringBuilder query = new StringBuilder(
+                    "SELECT " +
+                            "ua.NOTIFICATION_ID, " +
+                            "ua.IS_READ, " +
+                            "ua.ACTION_TIMESTAMP, " +
+                            "n.DESCRIPTION, " +
+                            "n.TYPE, " +
+                            "n.CREATED_TIMESTAMP " +
+                            "FROM DM_NOTIFICATION_USER_ACTION ua " +
+                            "JOIN DM_NOTIFICATION n " +
+                            "ON ua.NOTIFICATION_ID = n.NOTIFICATION_ID " +
+                            "WHERE ua.USERNAME = ? " +
+                            "AND n.TENANT_ID = ? "
+            );
+            if (isRead != null) query.append("AND ua.IS_READ = ? ");
+            query.append("ORDER BY ua.ACTION_TIMESTAMP DESC ");
+            if (limit > 0) query.append("LIMIT ? ");
+            if (offset > 0) query.append("OFFSET ? ");
+            try (PreparedStatement ps = connection.prepareStatement(query.toString())) {
+                int idx = 1;
+                ps.setString(idx++, username);
+                ps.setInt(idx++, PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId());
+                if (isRead != null) ps.setBoolean(idx++, isRead);
+                if (limit > 0) ps.setInt(idx++, limit);
+                if (offset > 0) ps.setInt(idx++, offset);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        boolean readStatus = rs.getBoolean("IS_READ");
+                        result.add(new UserNotificationPayload(
+                                rs.getInt("NOTIFICATION_ID"),
+                                rs.getString("DESCRIPTION"),
+                                rs.getString("TYPE"),
+                                readStatus ? "READ" : "UNREAD",
+                                username,
+                                rs.getTimestamp("CREATED_TIMESTAMP")
+                        ));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new NotificationManagementDAOException("Error in H2 getUserNotificationsWithStatus", e);
+        }
+        return new PaginatedUserNotificationResponse(result, totalCount);
     }
 }
 

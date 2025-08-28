@@ -20,15 +20,9 @@
 package io.entgra.device.mgt.core.notification.mgt.api.util;
 
 import io.entgra.device.mgt.core.notification.mgt.common.service.NotificationManagementService;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.user.api.UserStoreException;
-import org.wso2.carbon.user.api.UserStoreManager;
-import org.wso2.carbon.user.core.service.RealmService;
 
 public class NotificationManagementApiUtil {
-    private static final Log log = LogFactory.getLog(NotificationManagementApiUtil.class);
     private static volatile NotificationManagementService notificationManagementService;
 
     public static NotificationManagementService getNotificationManagementService() {
@@ -45,20 +39,5 @@ public class NotificationManagementApiUtil {
             }
         }
         return notificationManagementService;
-    }
-
-    public static UserStoreManager getUserStoreManager() throws UserStoreException {
-        RealmService realmService;
-        UserStoreManager userStoreManager;
-        PrivilegedCarbonContext ctx = PrivilegedCarbonContext.getThreadLocalCarbonContext();
-        realmService = (RealmService) ctx.getOSGiService(RealmService.class, null);
-        if (realmService == null) {
-            String msg = "Realm service has not initialized.";
-            log.error(msg);
-            throw new IllegalStateException(msg);
-        }
-        int tenantId = ctx.getTenantId();
-        userStoreManager = realmService.getTenantUserRealm(tenantId).getUserStoreManager();
-        return userStoreManager;
     }
 }

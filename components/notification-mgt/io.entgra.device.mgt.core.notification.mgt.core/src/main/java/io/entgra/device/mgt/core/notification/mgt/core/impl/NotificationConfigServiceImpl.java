@@ -37,6 +37,8 @@ import io.entgra.device.mgt.core.notification.mgt.core.internal.NotificationMana
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataManagementException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import javax.ws.rs.core.Response;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -163,6 +165,9 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
     @Override
     public NotificationConfigurationList addNotificationConfigContext(NotificationConfigurationList newConfigurations)
             throws NotificationConfigurationServiceException {
+        for (NotificationConfig config : newConfigurations.getNotificationConfigurations()) {
+            NotificationHelper.validateRecipients(config.getRecipients());
+        }
         if (configurationsAreEmpty(newConfigurations)) {
             String msg = "Received empty configurations list, Cannot add empty configurations";
             log.error(msg);
@@ -193,21 +198,23 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
                     log.error(msg);
                     throw new InvalidNotificationConfigurationException(msg);
                 }
+                // check for duplicates by deviceType and code
+                boolean duplicate = finalConfigs.stream().anyMatch(config ->
+                        newConfig.getDeviceType().equalsIgnoreCase(config.getDeviceType()) &&
+                                newConfig.getCode().equalsIgnoreCase(config.getCode())
+                );
+                if (duplicate) {
+                    String msg = "Duplicate notification configuration exists for deviceType="
+                            + newConfig.getDeviceType() + " and code=" + newConfig.getCode();
+                    log.error(msg);
+                    throw new InvalidNotificationConfigurationException(msg);
+                }
                 newConfig.setId(generateNextId(finalConfigs));
                 try {
                     validateConfiguration(newConfig);
                 } catch (NotificationConfigurationServiceException e) {
                     String msg = "Invalid configuration: " + e.getMessage() +
                             ". ConfigID=" + (newConfig != null ? newConfig.getId() : "null");
-                    log.error(msg);
-                    throw new InvalidNotificationConfigurationException(msg);
-                }
-                boolean duplicateFound = finalConfigs.stream().anyMatch(
-                        c -> c.getId() == newConfig.getId() || c.getCode().equals(newConfig.getCode())
-                );
-                if (duplicateFound) {
-                    String msg = "Duplicate ID or Code for config: ID=" + newConfig.getId() +
-                            ", Code=" + newConfig.getCode();
                     log.error(msg);
                     throw new InvalidNotificationConfigurationException(msg);
                 }
@@ -298,6 +305,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
     @Override
     public void updateNotificationConfigContext(NotificationConfig updatedConfig)
             throws NotificationConfigurationServiceException {
+        NotificationHelper.validateRecipients(updatedConfig.getRecipients());
         validateConfiguration(updatedConfig);
         // validate operation code if type is "operation"
         if (Constants.OPERATION.equalsIgnoreCase(updatedConfig.getType())) {
@@ -315,6 +323,17 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             List<NotificationConfig> configList = existingList.getNotificationConfigurations();
             if (configList == null) {
                 throw new NotificationConfigurationServiceException("Invalid configuration list in metadata.");
+            }
+            boolean duplicate = configList.stream().anyMatch(config ->
+                    config.getId() != updatedConfig.getId() &&
+                            updatedConfig.getDeviceType().equalsIgnoreCase(config.getDeviceType()) &&
+                            updatedConfig.getCode().equalsIgnoreCase(config.getCode())
+            );
+            if (duplicate) {
+                String msg = "Duplicate notification configuration exists for deviceType="
+                        + updatedConfig.getDeviceType() + " and code=" + updatedConfig.getCode();
+                log.error(msg);
+                throw new InvalidNotificationConfigurationException(msg);
             }
             boolean found = false;
             ListIterator<NotificationConfig> iterator = configList.listIterator();
