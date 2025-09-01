@@ -27,7 +27,7 @@ import io.entgra.device.mgt.core.device.mgt.common.exceptions.DeviceManagementEx
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.DeviceTypeNotFoundException;
 import io.entgra.device.mgt.core.device.mgt.common.exceptions.TransactionManagementException;
 import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationsDAOFactory;
-import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceManagementDAOException;
+import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationsDAOException;
 import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationDAO;
 import io.entgra.device.mgt.core.device.mgt.core.dto.DeviceType;
 import io.entgra.device.mgt.core.device.mgt.core.internal.DeviceManagementDataHolder;
@@ -91,7 +91,7 @@ public class DeviceFeatureOperationsImpl implements DeviceFeatureOperations {
                 log.error(msg, e);
                 throw new DeviceFeatureOperationException(msg, e);
             }
-        } catch (DeviceManagementDAOException e) {
+        } catch (DeviceFeatureOperationsDAOException e) {
             DeviceFeatureOperationsDAOFactory.rollbackTransaction();
             String msg = "An error occurred while retrieving device types.";
             log.error(msg, e);
@@ -118,7 +118,7 @@ public class DeviceFeatureOperationsImpl implements DeviceFeatureOperations {
             String msg = "Error retrieving operation details from DB table.";
             log.error(msg, e);
             throw new DeviceFeatureOperationException(msg, e);
-        } catch (DeviceManagementDAOException e) {
+        } catch (DeviceFeatureOperationsDAOException e) {
             String msg = "Error retrieving operation details.";
             log.error(msg, e);
             throw new DeviceFeatureOperationException(msg, e);
@@ -134,7 +134,7 @@ public class DeviceFeatureOperationsImpl implements DeviceFeatureOperations {
         try {
             DeviceFeatureOperationsDAOFactory.openConnection();
             return deviceFeatureOperationDAO.operationCodesExist(codes);
-        } catch (DeviceManagementDAOException e) {
+        } catch (DeviceFeatureOperationsDAOException e) {
             String msg = "Error validating operation codes: " + codes;
             log.error(msg, e);
             throw new DeviceFeatureOperationException(msg, e);

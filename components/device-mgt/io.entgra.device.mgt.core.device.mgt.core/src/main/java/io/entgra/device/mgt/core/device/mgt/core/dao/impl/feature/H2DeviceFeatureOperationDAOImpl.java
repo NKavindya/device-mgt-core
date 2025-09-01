@@ -22,7 +22,7 @@ package io.entgra.device.mgt.core.device.mgt.core.dao.impl.feature;
 import io.entgra.device.mgt.core.device.mgt.common.dto.DeviceFeatureInfo;
 import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationDAO;
 import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationsDAOFactory;
-import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceManagementDAOException;
+import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationsDAOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -45,7 +45,7 @@ public class H2DeviceFeatureOperationDAOImpl implements DeviceFeatureOperationDA
 
     @Override
     public void updateDeviceFeatureDetails(List<DeviceFeatureInfo> featureList)
-            throws DeviceManagementDAOException {
+            throws DeviceFeatureOperationsDAOException {
         String selectQuery =
                 "SELECT OPERATION_CODE, " +
                         "DEVICE_TYPE " +
@@ -84,14 +84,14 @@ public class H2DeviceFeatureOperationDAOImpl implements DeviceFeatureOperationDA
         } catch (SQLException e) {
             String msg = "Error occurred while updating device feature details in H2.";
             log.error(msg, e);
-            throw new DeviceManagementDAOException(msg, e);
+            throw new DeviceFeatureOperationsDAOException(msg, e);
         }
     }
 
     @Override
     public List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type,
                                                        boolean removeDeduplicateCode)
-            throws DeviceManagementDAOException {
+            throws DeviceFeatureOperationsDAOException {
         List<DeviceFeatureInfo> operationList = new ArrayList<>();
         StringBuilder query = new StringBuilder(
                 "SELECT " +
@@ -148,13 +148,13 @@ public class H2DeviceFeatureOperationDAOImpl implements DeviceFeatureOperationDA
         } catch (SQLException e) {
             String msg = "Error retrieving filtered operation details from DB.";
             log.error(msg, e);
-            throw new DeviceManagementDAOException(msg, e);
+            throw new DeviceFeatureOperationsDAOException(msg, e);
         }
         return operationList;
     }
 
     @Override
-    public Map<String, Boolean> operationCodesExist(List<String> codes) throws DeviceManagementDAOException {
+    public Map<String, Boolean> operationCodesExist(List<String> codes) throws DeviceFeatureOperationsDAOException {
         Map<String, Boolean> result = new HashMap<>();
         if (codes == null || codes.isEmpty()) return result;
         String placeholders = String.join(",", Collections.nCopies(codes.size(), "?"));
@@ -175,7 +175,7 @@ public class H2DeviceFeatureOperationDAOImpl implements DeviceFeatureOperationDA
                 }
             }
         } catch (SQLException e) {
-            throw new DeviceManagementDAOException("Error checking operation codes in H2.", e);
+            throw new DeviceFeatureOperationsDAOException("Error checking operation codes in H2.", e);
         }
         return result;
     }
