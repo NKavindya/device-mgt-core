@@ -22,7 +22,7 @@ package io.entgra.device.mgt.core.device.mgt.core.dao.impl.feature;
 import io.entgra.device.mgt.core.device.mgt.common.dto.DeviceFeatureInfo;
 import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationDAO;
 import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationsDAOFactory;
-import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceManagementDAOException;
+import io.entgra.device.mgt.core.device.mgt.core.dao.DeviceFeatureOperationsDAOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -45,7 +45,7 @@ public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
 
     @Override
     public void updateDeviceFeatureDetails(List<DeviceFeatureInfo> featureList)
-            throws DeviceManagementDAOException {
+            throws DeviceFeatureOperationsDAOException {
         String selectQuery =
                 "SELECT OPERATION_CODE, " +
                         "DEVICE_TYPE " +
@@ -84,14 +84,14 @@ public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
         } catch (SQLException e) {
             String msg = "Error occurred while updating device feature details in PostgreSQL.";
             log.error(msg, e);
-            throw new DeviceManagementDAOException(msg, e);
+            throw new DeviceFeatureOperationsDAOException(msg, e);
         }
     }
 
     @Override
     public List<DeviceFeatureInfo> getOperationDetails(String code, String name, String type,
                                                        boolean removeDeduplicateCode)
-            throws DeviceManagementDAOException {
+            throws DeviceFeatureOperationsDAOException {
         List<DeviceFeatureInfo> operationList = new ArrayList<>();
         StringBuilder query = new StringBuilder(
                 "SELECT " +
@@ -148,13 +148,13 @@ public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
         } catch (SQLException e) {
             String msg = "Error retrieving filtered operation details from PostgreSQL.";
             log.error(msg, e);
-            throw new DeviceManagementDAOException(msg, e);
+            throw new DeviceFeatureOperationsDAOException(msg, e);
         }
         return operationList;
     }
 
     @Override
-    public Map<String, Boolean> operationCodesExist(List<String> codes) throws DeviceManagementDAOException {
+    public Map<String, Boolean> operationCodesExist(List<String> codes) throws DeviceFeatureOperationsDAOException {
         Map<String, Boolean> result = new HashMap<>();
         if (codes == null || codes.isEmpty()) return result;
         String placeholders = String.join(",", Collections.nCopies(codes.size(), "?"));
@@ -176,7 +176,7 @@ public class PostgreDeviceFeatureOperationDAOImpl implements DeviceFeatureOperat
                 }
             }
         } catch (SQLException e) {
-            throw new DeviceManagementDAOException("Error checking operation codes in PostgreSQL.", e);
+            throw new DeviceFeatureOperationsDAOException("Error checking operation codes in PostgreSQL.", e);
         }
         return result;
     }

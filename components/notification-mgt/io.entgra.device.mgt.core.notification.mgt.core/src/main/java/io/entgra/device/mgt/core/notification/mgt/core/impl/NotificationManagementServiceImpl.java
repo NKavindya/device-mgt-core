@@ -19,7 +19,6 @@
 
 package io.entgra.device.mgt.core.notification.mgt.core.impl;
 
-import io.entgra.device.mgt.core.device.mgt.core.internal.DeviceManagementDataHolder;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigBatchNotifications;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigCriticalCriteria;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfigurationSettings;
@@ -65,6 +64,10 @@ public class NotificationManagementServiceImpl implements NotificationManagement
         try {
             NotificationManagementDAOFactory.openConnection();
             return notificationDAO.getLatestNotifications(offset, limit);
+        } catch (NotificationManagementDAOException e) {
+            String msg = "Error occurred while retrieving all notifications";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         } catch (SQLException e) {
             String msg = "Error occurred while initiating transaction";
             log.error(msg, e);
@@ -129,6 +132,10 @@ public class NotificationManagementServiceImpl implements NotificationManagement
         try {
             NotificationManagementDAOFactory.openConnection();
             return notificationDAO.getUserNotificationsWithStatus(username, limit, offset, isRead);
+        } catch (NotificationManagementDAOException e) {
+            String msg = "Error occurred while retrieving user notifications";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         } catch (SQLException e) {
             String msg = "Error occurred while retrieving user notifications with status";
             log.error(msg, e);
@@ -149,6 +156,10 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
             String payload = String.format("{\"unreadCount\":%d}", unreadCount);
             NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+        } catch (NotificationManagementDAOException e) {
+            String msg = "Error occurred while updating notification actions";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         } catch (TransactionManagementException e) {
             NotificationManagementDAOFactory.rollbackTransaction();
             String msg = "Error occurred while updating notification actions for user: " + username;
@@ -168,6 +179,10 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             String msg = "Error occurred while counting user notifications for user: " + username;
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
+        } catch (NotificationManagementDAOException e) {
+            String msg = "Error occurred while retrieving user notifications for user: " + username;
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         } finally {
             NotificationManagementDAOFactory.closeConnection();
         }
@@ -184,6 +199,10 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
             String payload = String.format("{\"unreadCount\":%d}", unreadCount);
             NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+        } catch (NotificationManagementDAOException e) {
+            String msg = "Error occurred while deleting notifications for the given user";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         } catch (TransactionManagementException e) {
             NotificationManagementDAOFactory.rollbackTransaction();
             String msg = "Error occurred while deleting notifications for user: " + username;
@@ -229,6 +248,10 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
             String payload = String.format("{\"unreadCount\":%d}", unreadCount);
             NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+        } catch (NotificationManagementDAOException e) {
+            String msg = "Error occurred while deleting all notifications.";
+            log.error(msg, e);
+            throw new NotificationManagementException(msg, e);
         } catch (TransactionManagementException e) {
             NotificationManagementDAOFactory.rollbackTransaction();
             String msg = "Error occurred while deleting all notifications for user: " + username;

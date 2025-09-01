@@ -222,34 +222,34 @@ public class NotificationManagementServiceComponent {
         }
     }
 
-    /**
-     * Sets DeviceFeatureOperations service.
-     *
-     * @param deviceFeatureOperations An instance of DeviceFeatureOperations
-     */
-    @Reference(
-            name = "device.feature.operations.service",
-            service = io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperations.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetDeviceFeatureOperations")
-    protected void setDeviceFeatureOperations(DeviceFeatureOperations deviceFeatureOperations) {
-        NotificationManagementDataHolder.getInstance().setDeviceFeatureOperations(deviceFeatureOperations);
-        if (log.isDebugEnabled()) {
-            log.debug("DeviceFeatureOperations service is set successfully");
-        }
-    }
-
-    /**
-     * Unsets DeviceFeatureOperations service.
-     *
-     * @param deviceFeatureOperations An instance of DeviceFeatureOperations
-     */
-    protected void unsetDeviceFeatureOperations(DeviceFeatureOperations deviceFeatureOperations) {
-        NotificationManagementDataHolder.getInstance().setDeviceFeatureOperations(null);
-        if (log.isDebugEnabled()) {
-            log.debug("DeviceFeatureOperations service is unset successfully");
-        }
-    }
+//    /**
+//     * Sets DeviceFeatureOperations service.
+//     *
+//     * @param deviceFeatureOperations An instance of DeviceFeatureOperations
+//     */
+//    @Reference(
+//            name = "device.feature.operations.service",
+//            service = io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperations.class,
+//            cardinality = ReferenceCardinality.MANDATORY,
+//            policy = ReferencePolicy.DYNAMIC,
+//            unbind = "unsetDeviceFeatureOperations")
+//    protected void setDeviceFeatureOperations(DeviceFeatureOperations deviceFeatureOperations) {
+//        NotificationManagementDataHolder.getInstance().setDeviceFeatureOperations(deviceFeatureOperations);
+//        if (log.isDebugEnabled()) {
+//            log.debug("DeviceFeatureOperations service is set successfully");
+//        }
+//    }
+//
+//    /**
+//     * Unsets DeviceFeatureOperations service.
+//     *
+//     * @param deviceFeatureOperations An instance of DeviceFeatureOperations
+//     */
+//    protected void unsetDeviceFeatureOperations(DeviceFeatureOperations deviceFeatureOperations) {
+//        NotificationManagementDataHolder.getInstance().setDeviceFeatureOperations(null);
+//        if (log.isDebugEnabled()) {
+//            log.debug("DeviceFeatureOperations service is unset successfully");
+//        }
+//    }
 
 }

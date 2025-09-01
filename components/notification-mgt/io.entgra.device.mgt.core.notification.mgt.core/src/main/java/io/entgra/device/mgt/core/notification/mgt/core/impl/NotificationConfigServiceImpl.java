@@ -25,6 +25,7 @@ import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataKeyNotFoun
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.Metadata;
 import io.entgra.device.mgt.core.device.mgt.common.metadata.mgt.MetadataManagementService;
 import io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperations;
+import io.entgra.device.mgt.core.device.mgt.core.service.DeviceFeatureOperationsImpl;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.InvalidNotificationConfigurationException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationConfigurationNotFoundException;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationHelper;
@@ -38,7 +39,6 @@ import io.entgra.device.mgt.core.device.mgt.common.exceptions.MetadataManagement
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import javax.ws.rs.core.Response;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,8 +54,9 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             NotificationManagementDataHolder.getInstance().getMetaDataManagementService();
     private static final Type NOTIFICATION_CONFIG_LIST_TYPE =
             new TypeToken<NotificationConfigurationList>() {}.getType();
-    private final DeviceFeatureOperations featureService =
-            NotificationManagementDataHolder.getInstance().getDeviceFeatureOperations();
+//    private final DeviceFeatureOperations featureService =
+//            NotificationManagementDataHolder.getInstance().getDeviceFeatureOperations();
+    private final DeviceFeatureOperations featureService = new DeviceFeatureOperationsImpl();
 
     /**
      * Generates the next available ID for a new notification configuration.
