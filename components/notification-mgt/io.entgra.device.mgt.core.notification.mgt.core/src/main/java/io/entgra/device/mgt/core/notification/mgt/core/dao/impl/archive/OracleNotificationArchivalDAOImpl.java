@@ -21,10 +21,9 @@ package io.entgra.device.mgt.core.notification.mgt.core.dao.impl.archive;
 
 import io.entgra.device.mgt.core.device.mgt.core.config.DeviceConfigurationManager;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
-import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationArchivalDAO;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.AbstractNotificationArchivalDAOImpl;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalSourceDAOFactory;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.archive.NotificationArchivalDestDAOFactory;
-import io.entgra.device.mgt.core.notification.mgt.core.dao.util.NotificationDAOUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -33,12 +32,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
-public class OracleNotificationArchivalDAOImpl implements NotificationArchivalDAO {
+public class OracleNotificationArchivalDAOImpl extends AbstractNotificationArchivalDAOImpl {
     private static final Log log = LogFactory.getLog(OracleNotificationArchivalDAOImpl.class);
 
     private static final String SOURCE_DB =
@@ -48,102 +45,6 @@ public class OracleNotificationArchivalDAOImpl implements NotificationArchivalDA
     private static final String DESTINATION_DB =
             DeviceConfigurationManager.getInstance().getDeviceManagementConfig().getArchivalConfiguration()
                     .getArchivalTaskConfiguration().getDbConfig().getDestinationDB();
-
-    @Override
-    public List<Integer> moveNotificationsToArchive(Timestamp cutoff, int tenantId)
-            throws NotificationArchivalException {
-        List<Integer> ids = new ArrayList<>();
-        String selectSQL =
-                "SELECT " +
-                        "NOTIFICATION_ID, " +
-                        "NOTIFICATION_CONFIG_ID, " +
-                        "TENANT_ID, " +
-                        "DESCRIPTION, " +
-                        "TYPE, " +
-                        "CREATED_TIMESTAMP "
-                + "FROM " + SOURCE_DB + ".DM_NOTIFICATION "
-                + "WHERE CREATED_TIMESTAMP < ? " +
-                        "AND TENANT_ID = ?";
-        String insertSQL =
-                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_ARCH "
-                + "(NOTIFICATION_ID, " +
-                        "NOTIFICATION_CONFIG_ID, " +
-                        "TENANT_ID, " +
-                        "DESCRIPTION, " +
-                        "TYPE, " +
-                        "CREATED_TIMESTAMP) "
-                + "VALUES (?, ?, ?, ?, ?, ?)";
-        Connection src = NotificationArchivalSourceDAOFactory.getConnection();
-        Connection dst = NotificationArchivalDestDAOFactory.getConnection();
-        try (PreparedStatement sel = src.prepareStatement(selectSQL);
-             PreparedStatement ins = dst.prepareStatement(insertSQL)) {
-            sel.setTimestamp(1, cutoff);
-            sel.setInt(2, tenantId);
-            try (ResultSet rs = sel.executeQuery()) {
-                while (rs.next()) {
-                    int nId = rs.getInt("NOTIFICATION_ID");
-                    ins.setInt(1, nId);
-                    ins.setInt(2, rs.getInt("NOTIFICATION_CONFIG_ID"));
-                    ins.setInt(3, rs.getInt("TENANT_ID"));
-                    ins.setString(4, rs.getString("DESCRIPTION"));
-                    ins.setString(5, rs.getString("TYPE"));
-                    ins.setTimestamp(6, rs.getTimestamp("CREATED_TIMESTAMP"));
-                    ins.addBatch();
-                    ids.add(nId);
-                }
-            }
-            ins.executeBatch();
-        } catch (SQLException e) {
-            String msg = "Error occurred while archiving notifications from source DB to destination DB.";
-            log.error(msg, e);
-            throw new NotificationArchivalException(msg, e);
-        }
-        return ids;
-    }
-
-    @Override
-    public void moveUserActionsToArchive(List<Integer> notificationIds)
-            throws NotificationArchivalException {
-        if (notificationIds == null || notificationIds.isEmpty()) return;
-        String inClause = notificationIds.stream()
-                .map(i -> "?")
-                .collect(Collectors.joining(","));
-        String insertSQL =
-                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH "
-                + "(ACTION_ID, " +
-                        "NOTIFICATION_ID, " +
-                        "USERNAME, " +
-                        "IS_READ, " +
-                        "ACTION_TIMESTAMP) "
-                + "SELECT " +
-                        "ACTION_ID, " +
-                        "NOTIFICATION_ID, " +
-                        "USERNAME, " +
-                        "IS_READ, " +
-                        "ACTION_TIMESTAMP "
-                + "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION "
-                + "WHERE NOTIFICATION_ID " +
-                        "IN (" + inClause + ")";
-        String deleteSQL =
-                "DELETE FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION "
-                + "WHERE NOTIFICATION_ID " +
-                        "IN (" + inClause + ")";
-        Connection src = NotificationArchivalSourceDAOFactory.getConnection();
-        Connection dst = NotificationArchivalDestDAOFactory.getConnection();
-        try (PreparedStatement ins = dst.prepareStatement(insertSQL);
-             PreparedStatement del = src.prepareStatement(deleteSQL)) {
-            for (int i = 0; i < notificationIds.size(); i++) {
-                ins.setInt(i + 1, notificationIds.get(i));
-                del.setInt(i + 1, notificationIds.get(i));
-            }
-            ins.executeUpdate();
-            del.executeUpdate();
-        } catch (SQLException e) {
-            String msg = "Error occurred while archiving user actions";
-            log.error(msg, e);
-            throw new NotificationArchivalException(msg, e);
-        }
-    }
 
     @Override
     public int deleteOldNotifications(Timestamp cutoff, int tenantId)
@@ -159,179 +60,6 @@ public class OracleNotificationArchivalDAOImpl implements NotificationArchivalDA
             return stmt.executeUpdate();
         } catch (SQLException e) {
             String msg = "Failed to delete old notifications for tenant " + tenantId;
-            log.error(msg, e);
-            throw new NotificationArchivalException(msg, e);
-        }
-    }
-
-    @Override
-    public List<Integer> moveNotificationsToArchiveByConfig(
-            Timestamp cutoff, int tenantId, int configId) throws NotificationArchivalException {
-        List<Integer> ids = new ArrayList<>();
-        String insertSQL =
-                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_ARCH "
-                + "(NOTIFICATION_ID, " +
-                        "NOTIFICATION_CONFIG_ID, " +
-                        "TENANT_ID, " +
-                        "DESCRIPTION, " +
-                        "TYPE, " +
-                        "CREATED_TIMESTAMP) "
-                + "SELECT " +
-                        "NOTIFICATION_ID, " +
-                        "NOTIFICATION_CONFIG_ID, " +
-                        "TENANT_ID, " +
-                        "DESCRIPTION, " +
-                        "TYPE, " +
-                        "CREATED_TIMESTAMP "
-                + "FROM " + SOURCE_DB + ".DM_NOTIFICATION "
-                + "WHERE TENANT_ID = ? " +
-                        "AND NOTIFICATION_CONFIG_ID = ? " +
-                        "AND CREATED_TIMESTAMP < ?";
-        String selectSQL =
-                "SELECT NOTIFICATION_ID " +
-                        "FROM " + SOURCE_DB + ".DM_NOTIFICATION "
-                + "WHERE TENANT_ID = ? " +
-                        "AND NOTIFICATION_CONFIG_ID = ? " +
-                        "AND CREATED_TIMESTAMP < ?";
-        Connection src = NotificationArchivalSourceDAOFactory.getConnection();
-        Connection dst = NotificationArchivalDestDAOFactory.getConnection();
-        try (PreparedStatement ins = dst.prepareStatement(insertSQL);
-             PreparedStatement sel = src.prepareStatement(selectSQL)) {
-            ins.setInt(1, tenantId);
-            ins.setInt(2, configId);
-            ins.setTimestamp(3, cutoff);
-            ins.executeUpdate();
-            sel.setInt(1, tenantId);
-            sel.setInt(2, configId);
-            sel.setTimestamp(3, cutoff);
-            try (ResultSet rs = sel.executeQuery()) {
-                while (rs.next()) {
-                    ids.add(rs.getInt("NOTIFICATION_ID"));
-                }
-            }
-        } catch (SQLException e) {
-            String msg = "Error moving notifications to archive for configId: " + configId;
-            log.error(msg, e);
-            throw new NotificationArchivalException(msg, e);
-        }
-        return ids;
-    }
-
-    @Override
-    public List<Integer> moveNotificationsToArchiveExcludingConfigs(
-            Timestamp cutoff, int tenantId, Set<Integer> excludedConfigIds)
-            throws NotificationArchivalException {
-        if (excludedConfigIds == null || excludedConfigIds.isEmpty()) {
-            return moveNotificationsToArchiveByConfig(cutoff, tenantId, -1);
-        }
-        List<Integer> ids = new ArrayList<>();
-        String placeholders = excludedConfigIds.stream()
-                .map(i -> "?")
-                .collect(Collectors.joining(","));
-        String insertSQL =
-                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_ARCH "
-                + "(NOTIFICATION_ID, " +
-                        "NOTIFICATION_CONFIG_ID, " +
-                        "TENANT_ID, " +
-                        "DESCRIPTION, " +
-                        "TYPE, " +
-                        "CREATED_TIMESTAMP) "
-                + "SELECT " +
-                        "NOTIFICATION_ID, " +
-                        "NOTIFICATION_CONFIG_ID, " +
-                        "TENANT_ID, " +
-                        "DESCRIPTION, " +
-                        "TYPE, " +
-                        "CREATED_TIMESTAMP "
-                + "FROM " + SOURCE_DB + ".DM_NOTIFICATION "
-                + "WHERE TENANT_ID = ? " +
-                        "AND CREATED_TIMESTAMP < ? "
-                + "AND NOTIFICATION_CONFIG_ID " +
-                        "NOT IN (" + placeholders + ")";
-        String selectSQL =
-                "SELECT NOTIFICATION_ID " +
-                        "FROM " + SOURCE_DB + ".DM_NOTIFICATION "
-                + "WHERE TENANT_ID = ? " +
-                        "AND CREATED_TIMESTAMP < ? "
-                + "AND NOTIFICATION_CONFIG_ID " +
-                        "NOT IN (" + placeholders + ")";
-        Connection src = NotificationArchivalSourceDAOFactory.getConnection();
-        Connection dst = NotificationArchivalDestDAOFactory.getConnection();
-        try (PreparedStatement ins = dst.prepareStatement(insertSQL);
-             PreparedStatement sel = src.prepareStatement(selectSQL)) {
-            ins.setInt(1, tenantId);
-            ins.setTimestamp(2, cutoff);
-            sel.setInt(1, tenantId);
-            sel.setTimestamp(2, cutoff);
-            int idx = 3;
-            for (Integer cfg : excludedConfigIds) {
-                ins.setInt(idx, cfg);
-                sel.setInt(idx, cfg);
-                idx++;
-            }
-            ins.executeUpdate();
-            try (ResultSet rs = sel.executeQuery()) {
-                while (rs.next()) {
-                    ids.add(rs.getInt("NOTIFICATION_ID"));
-                }
-            }
-        } catch (SQLException e) {
-            String msg = "Error moving notifications excluding configIds";
-            log.error(msg, e);
-            throw new NotificationArchivalException(msg, e);
-        }
-        return ids;
-    }
-
-    @Override
-    public int deleteOldNotificationsByConfig(
-            Timestamp cutoff, int tenantId, int configId) throws NotificationArchivalException {
-        String sql =
-                "DELETE FROM " + SOURCE_DB + ".DM_NOTIFICATION "
-                + "WHERE TENANT_ID = ? " +
-                        "AND NOTIFICATION_CONFIG_ID = ? " +
-                        "AND CREATED_TIMESTAMP < ?";
-        Connection src = NotificationArchivalSourceDAOFactory.getConnection();
-        try (PreparedStatement stmt = src.prepareStatement(sql)) {
-            stmt.setInt(1, tenantId);
-            stmt.setInt(2, configId);
-            stmt.setTimestamp(3, cutoff);
-            return stmt.executeUpdate();
-        } catch (SQLException e) {
-            String msg = "Error deleting notifications by config ID";
-            log.error(msg, e);
-            throw new NotificationArchivalException(msg, e);
-        }
-    }
-
-    @Override
-    public int deleteOldNotificationsExcludingConfigs(
-            Timestamp cutoff, int tenantId, Set<Integer> excludedConfigIds)
-            throws NotificationArchivalException {
-        boolean hasExclusions = excludedConfigIds != null && !excludedConfigIds.isEmpty();
-        String sql = hasExclusions
-                ? "DELETE FROM " + SOURCE_DB + ".DM_NOTIFICATION "
-                + "WHERE TENANT_ID = ? " +
-                "AND CREATED_TIMESTAMP < ? "
-                + "AND NOTIFICATION_CONFIG_ID " +
-                "NOT IN (" +
-                excludedConfigIds.stream().map(i -> "?").collect(Collectors.joining(",")) + ")"
-                : "DELETE FROM " + SOURCE_DB + ".DM_NOTIFICATION "
-                + "WHERE TENANT_ID = ? " +
-                "AND CREATED_TIMESTAMP < ?";
-        Connection src = NotificationArchivalSourceDAOFactory.getConnection();
-        try (PreparedStatement stmt = src.prepareStatement(sql)) {
-            stmt.setInt(1, tenantId);
-            stmt.setTimestamp(2, cutoff);
-            if (hasExclusions) {
-                int idx = 3;
-                for (Integer cfg : excludedConfigIds) {
-                    stmt.setInt(idx++, cfg);
-                }
-            }
-            return stmt.executeUpdate();
-        } catch (SQLException e) {
-            String msg = "Error deleting notifications excluding config IDs";
             log.error(msg, e);
             throw new NotificationArchivalException(msg, e);
         }
