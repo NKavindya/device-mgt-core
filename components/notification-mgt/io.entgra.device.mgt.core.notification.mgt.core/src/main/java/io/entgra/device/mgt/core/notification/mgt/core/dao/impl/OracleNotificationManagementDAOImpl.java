@@ -21,11 +21,11 @@ package io.entgra.device.mgt.core.notification.mgt.core.dao.impl;
 
 import io.entgra.device.mgt.core.notification.mgt.common.dto.PaginatedUserNotificationResponse;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
+import io.entgra.device.mgt.core.notification.mgt.core.dao.AbstractNotificationManagementDAOImpl;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.util.NotificationDAOUtil;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAction;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementDAOException;
-import io.entgra.device.mgt.core.notification.mgt.core.dao.NotificationManagementDAO;
 import io.entgra.device.mgt.core.notification.mgt.core.dao.factory.NotificationManagementDAOFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,9 +38,8 @@ import java.sql.SQLException;
 import java.sql.CallableStatement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-public class OracleNotificationManagementDAOImpl implements NotificationManagementDAO {
+public class OracleNotificationManagementDAOImpl extends AbstractNotificationManagementDAOImpl {
     private static final Log log = LogFactory.getLog(OracleNotificationManagementDAOImpl.class);
 
     @Override
@@ -177,38 +176,6 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
     }
 
     @Override
-    public void updateNotificationAction(List<Integer> notificationIds, String username, boolean isRead)
-            throws NotificationManagementDAOException {
-        if (notificationIds == null || notificationIds.isEmpty()) {
-            return;
-        }
-        String placeholders = notificationIds.stream()
-                .map(id -> "?")
-                .collect(Collectors.joining(", "));
-        String query =
-                "UPDATE DM_NOTIFICATION_USER_ACTION " +
-                        "SET IS_READ = ? " +
-                        "WHERE USERNAME = ? " +
-                        "AND NOTIFICATION_ID " +
-                        "IN (" + placeholders + ")";
-        try {
-            Connection connection = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement ps = connection.prepareStatement(query)) {
-                ps.setInt(1, isRead ? 1 : 0);
-                ps.setString(2, username);
-                for (int i = 0; i < notificationIds.size(); i++) {
-                    ps.setInt(i + 3, notificationIds.get(i));
-                }
-                ps.executeUpdate();
-            }
-        } catch (SQLException e) {
-            String msg = "Error occurred while updating notification actions for user: " + username;
-            log.error(msg, e);
-            throw new NotificationManagementDAOException(msg, e);
-        }
-    }
-
-    @Override
     public List<UserNotificationAction> getAllNotificationUserActions() throws NotificationManagementDAOException {
         List<UserNotificationAction> userNotificationActions = new ArrayList<>();
         String query =
@@ -276,32 +243,6 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
     }
 
     @Override
-    public int getUnreadNotificationCountForUser(String username) throws NotificationManagementDAOException {
-        int count = 0;
-        String sql =
-                "SELECT COUNT(*) AS UNREAD_COUNT FROM DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE USERNAME = ? AND IS_READ = 0";
-        Connection connection = null;
-        try {
-            connection = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                ps.setString(1, username);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        count = rs.getInt("UNREAD_COUNT");
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            String msg = "Error retrieving unread notification count for user: "
-                    + username;
-            log.error(msg, e);
-            throw new NotificationManagementDAOException(msg, e);
-        }
-        return count;
-    }
-
-    @Override
     public int insertNotification(int tenantId, int notificationConfigId, String type, String description)
             throws NotificationManagementDAOException {
         String sql =
@@ -353,56 +294,6 @@ public class OracleNotificationManagementDAOImpl implements NotificationManageme
             throw new NotificationManagementDAOException(msg, e);
         } finally {
             NotificationDAOUtil.cleanupResources(stmt, null);
-        }
-    }
-
-    @Override
-    public void deleteUserNotifications(List<Integer> notificationIds, String username)
-            throws NotificationManagementDAOException {
-        if (notificationIds == null || notificationIds.isEmpty()) {
-            return;
-        }
-        String placeholders = notificationIds.stream()
-                .map(id -> "?")
-                .collect(Collectors.joining(", "));
-        String query =
-                "DELETE " +
-                        "FROM DM_NOTIFICATION_USER_ACTION " +
-                "WHERE USERNAME = ? " +
-                        "AND NOTIFICATION_ID " +
-                        "IN (" + placeholders + ")";
-        try {
-            Connection connection = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement stmt = connection.prepareStatement(query)) {
-                stmt.setString(1, username);
-                for (int i = 0; i < notificationIds.size(); i++) {
-                    stmt.setInt(i + 2, notificationIds.get(i));
-                }
-                stmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            String msg = "Error occurred while deleting notifications for user: " + username + " (Oracle)";
-            log.error(msg, e);
-            throw new NotificationManagementDAOException(msg, e);
-        }
-    }
-
-    @Override
-    public void deleteAllUserNotifications(String username) throws NotificationManagementDAOException {
-        String query =
-                "DELETE " +
-                        "FROM DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE USERNAME = ?";
-        try {
-            Connection connection = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement stmt = connection.prepareStatement(query)) {
-                stmt.setString(1, username);
-                stmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            String msg = "Error occurred while deleting all notifications for user (Oracle): " + username;
-            log.error(msg, e);
-            throw new NotificationManagementDAOException(msg, e);
         }
     }
 
