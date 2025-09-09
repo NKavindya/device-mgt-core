@@ -25,6 +25,7 @@ import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationAct
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementDAOException;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * DAO class for Notification management
@@ -129,13 +130,16 @@ public interface NotificationManagementDAO {
     int getUnreadNotificationCountForUser(String username) throws NotificationManagementDAOException;
 
     /**
-     * Deletes one or more notifications for a given user from the DB.
+     * Deletes the notifications for a given user in the database.
      *
-     * @param notificationIds A list of notification IDs to be deleted.
-     * @param username        The username associated with the notifications.
-     * @throws NotificationManagementDAOException If an error occurs while deleting the notifications.
+     * @param notificationIds List of notification IDs to delete.
+     * @param username        The username of the user whose notifications are to be deleted.
+     * @return A map containing two entries:
+     *         "deleted" - list of notification IDs that were successfully deleted,
+     *         "invalid" - list of notification IDs that did not exist for the user.
+     * @throws NotificationManagementDAOException if a database error occurs during deletion.
      */
-    void deleteUserNotifications(List<Integer> notificationIds, String username)
+    Map<String, List<Integer>> deleteUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationManagementDAOException;
 
     /**

@@ -175,7 +175,12 @@ public interface NotificationConfigurationService {
                     name = "type",
                     value = "Filter notification configurations by type.",
                     required = false)
-            @QueryParam("type") String type);
+            @QueryParam("type") String type,
+            @ApiParam(
+                    name = "deviceType",
+                    value = "Filter notification configurations by deviceType.",
+                    required = false)
+            @QueryParam("deviceType") String deviceType);
 
 
     @POST

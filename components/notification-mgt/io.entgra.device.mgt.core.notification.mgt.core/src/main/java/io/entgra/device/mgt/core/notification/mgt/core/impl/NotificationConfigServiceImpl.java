@@ -54,9 +54,8 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
             NotificationManagementDataHolder.getInstance().getMetaDataManagementService();
     private static final Type NOTIFICATION_CONFIG_LIST_TYPE =
             new TypeToken<NotificationConfigurationList>() {}.getType();
-//    private final DeviceFeatureOperations featureService =
-//            NotificationManagementDataHolder.getInstance().getDeviceFeatureOperations();
-    private final DeviceFeatureOperations featureService = new DeviceFeatureOperationsImpl();
+    private final DeviceFeatureOperations featureService =
+            NotificationManagementDataHolder.getInstance().getDeviceFeatureOperations();
 
     /**
      * Generates the next available ID for a new notification configuration.
@@ -458,7 +457,7 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
 
     @Override
     public NotificationConfigurationList getFilteredNotificationConfigurations
-            (String name, String type, String code, int offset, int limit)
+            (String name, String type, String code, String deviceType, int offset, int limit)
             throws NotificationConfigurationServiceException {
         NotificationConfigurationList allConfigurations;
         try {
@@ -474,7 +473,9 @@ public class NotificationConfigServiceImpl implements NotificationConfigService 
                             config.getType().equalsIgnoreCase(type));
                     boolean matchesCode = (code == null || config.getCode() != null &&
                             config.getCode().toLowerCase().contains(code.toLowerCase()));
-                    return matchesName && matchesType && matchesCode;
+                    boolean matchesDeviceType = (deviceType == null || config.getDeviceType() != null &&
+                            config.getDeviceType().toLowerCase().contains(deviceType.toLowerCase()));
+                    return matchesName && matchesType && matchesCode && matchesDeviceType;
                 })
                 .collect(Collectors.toList());
         int totalCount = filteredConfigs.size();

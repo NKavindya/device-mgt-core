@@ -22,13 +22,13 @@ package io.entgra.device.mgt.core.notification.mgt.common.service;
 import io.entgra.device.mgt.core.notification.mgt.common.beans.NotificationConfig;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.Notification;
 import io.entgra.device.mgt.core.notification.mgt.common.dto.PaginatedUserNotificationResponse;
-import io.entgra.device.mgt.core.notification.mgt.common.dto.UserNotificationPayload;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationArchivalException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.NotificationManagementException;
 import io.entgra.device.mgt.core.notification.mgt.common.exception.TransactionManagementException;
 import org.wso2.carbon.user.api.UserStoreException;
 
 import java.util.List;
+import java.util.Map;
 
 public interface NotificationManagementService {
     /**
@@ -76,23 +76,29 @@ public interface NotificationManagementService {
     int getUserNotificationCount(String username, Boolean isRead) throws NotificationManagementException;
 
     /**
-     * Deletes one or more notifications for a given user.
+     * Deletes the notifications for a given user.
      *
-     * @param notificationIds A list of notification IDs to be deleted.
-     * @param username        The username associated with the notifications.
-     * @throws NotificationManagementException If an error occurs while deleting the notifications.
+     * @param notificationIds List of notification IDs to delete.
+     * @param username        The username of the user whose notifications are to be deleted.
+     * @return A map containing two entries:
+     *         "deleted" - list of notification IDs that were successfully deleted,
+     *         "invalid" - list of notification IDs that did not exist for the user.
+     * @throws NotificationManagementException if an error occurs while deleting notifications at the service level.
      */
-    void deleteUserNotifications(List<Integer> notificationIds, String username)
+    Map<String, List<Integer>> deleteUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationManagementException;
 
     /**
-     * Archive one or more notifications for a given user.
+     * Archives the given notifications for the user.
      *
-     * @param notificationIds A list of notification IDs to be deleted.
-     * @param username        The username associated with the notifications.
-     * @throws NotificationArchivalException If an error occurs while deleting the notifications.
+     * @param notificationIds List of notification IDs to archive.
+     * @param username        Username of the user.
+     * @return A map with two entries:
+     *         "archived" - list of notifications successfully archived,
+     *         "invalid"  - list of notification IDs that were not found.
+     * @throws NotificationArchivalException if an error occurs while archiving notifications.
      */
-    void archiveUserNotifications(List<Integer> notificationIds, String username)
+    Map<String, List<Integer>> archiveUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationArchivalException;
 
     /**

@@ -43,6 +43,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Path("/notifications")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -119,9 +120,8 @@ public class NotificationServiceImpl implements NotificationService {
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
-            notificationService.deleteUserNotifications(notificationIds, username);
-            String msg = "Selected notifications deleted successfully";
-            return Response.status(HttpStatus.SC_OK).entity(msg).build();
+            Map<String, List<Integer>> result = notificationService.deleteUserNotifications(notificationIds, username);
+            return Response.status(HttpStatus.SC_OK).entity(result).build();
         } catch (NotificationManagementException e) {
             String msg = "Failed to delete selected notifications for user: " + username;
             log.error(msg, e);
@@ -157,9 +157,8 @@ public class NotificationServiceImpl implements NotificationService {
         NotificationManagementService notificationService =
                 NotificationManagementApiUtil.getNotificationManagementService();
         try {
-            notificationService.archiveUserNotifications(notificationIds, username);
-            String msg = "Selected notifications archived successfully";
-            return Response.status(HttpStatus.SC_OK).entity(msg).build();
+            Map<String, List<Integer>> result = notificationService.archiveUserNotifications(notificationIds, username);
+            return Response.status(HttpStatus.SC_OK).entity(result).build();
         } catch (NotificationArchivalException e) {
             String msg = "Error archiving selected notifications for user: " + username;
             log.error(msg, e);

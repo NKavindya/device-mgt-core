@@ -35,6 +35,10 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 public class AbstractNotificationArchivalDAOImpl implements NotificationArchivalDAO {
@@ -374,48 +378,59 @@ public class AbstractNotificationArchivalDAOImpl implements NotificationArchival
     }
 
     @Override
-    public void archiveUserNotifications(List<Integer> notificationIds, String username)
+    public Map<String, List<Integer>> archiveUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationArchivalException {
+        List<Integer> archived = new ArrayList<>();
+        List<Integer> invalid = new ArrayList<>();
         if (notificationIds == null || notificationIds.isEmpty()) {
-            return;
+            return Map.of("archived", Collections.emptyList(), "invalid", Collections.emptyList());
         }
-        String placeholders = notificationIds.stream()
-                .map(id -> "?")
-                .collect(Collectors.joining(", "));
+        String placeholders = notificationIds.stream().map(id -> "?").collect(Collectors.joining(", "));
         String selectQuery =
-                "SELECT NOTIFICATION_ID, " +
+                "SELECT " +
+                        "NOTIFICATION_ID, " +
                         "USERNAME, " +
                         "IS_READ, " +
                         "ACTION_TIMESTAMP " +
-                        "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE USERNAME = ? " +
+                "FROM " +
+                        SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
+                "WHERE USERNAME = ? " +
                         "AND NOTIFICATION_ID " +
                         "IN (" + placeholders + ")";
         String insertQuery =
-                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH " +
-                        "(NOTIFICATION_ID, " +
+                "INSERT INTO " +
+                        DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH " +
+                "(NOTIFICATION_ID, " +
                         "USERNAME, " +
                         "IS_READ, " +
                         "ACTION_TIMESTAMP) " +
                         "VALUES (?, ?, ?, ?)";
         String deleteQuery =
-                "DELETE FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE USERNAME = ? " +
+                "DELETE " +
+                        "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
+                "WHERE USERNAME = ? " +
                         "AND NOTIFICATION_ID " +
                         "IN (" + placeholders + ")";
         try {
             Connection sourceConn = NotificationArchivalSourceDAOFactory.getConnection();
             Connection destConn = NotificationArchivalDestDAOFactory.getConnection();
-            try (PreparedStatement selectStmt = sourceConn.prepareStatement(selectQuery);
-                 PreparedStatement insertStmt = destConn.prepareStatement(insertQuery);
-                 PreparedStatement deleteStmt = sourceConn.prepareStatement(deleteQuery)) {
+            try (
+                    PreparedStatement selectStmt = sourceConn.prepareStatement(selectQuery);
+                    PreparedStatement insertStmt = destConn.prepareStatement(insertQuery);
+                    PreparedStatement deleteStmt = sourceConn.prepareStatement(deleteQuery)
+            ) {
+                // set username and IDs for select
                 selectStmt.setString(1, username);
                 for (int i = 0; i < notificationIds.size(); i++) {
                     selectStmt.setInt(i + 2, notificationIds.get(i));
                 }
+                // fetch valid notifications and batch insert
+                Set<Integer> validIds = new HashSet<>();
                 try (ResultSet rs = selectStmt.executeQuery()) {
                     while (rs.next()) {
-                        insertStmt.setInt(1, rs.getInt("NOTIFICATION_ID"));
+                        int id = rs.getInt("NOTIFICATION_ID");
+                        validIds.add(id);
+                        insertStmt.setInt(1, id);
                         insertStmt.setString(2, rs.getString("USERNAME"));
                         insertStmt.setBoolean(3, rs.getBoolean("IS_READ"));
                         insertStmt.setTimestamp(4, rs.getTimestamp("ACTION_TIMESTAMP"));
@@ -423,17 +438,32 @@ public class AbstractNotificationArchivalDAOImpl implements NotificationArchival
                     }
                     insertStmt.executeBatch();
                 }
-                deleteStmt.setString(1, username);
-                for (int i = 0; i < notificationIds.size(); i++) {
-                    deleteStmt.setInt(i + 2, notificationIds.get(i));
+                // determine invalid IDs
+                for (Integer id : notificationIds) {
+                    if (!validIds.contains(id)) {
+                        invalid.add(id);
+                    } else {
+                        archived.add(id);
+                    }
                 }
-                deleteStmt.executeUpdate();
+                // delete valid notifications
+                if (!archived.isEmpty()) {
+                    deleteStmt.setString(1, username);
+                    for (int i = 0; i < archived.size(); i++) {
+                        deleteStmt.setInt(i + 2, archived.get(i));
+                    }
+                    deleteStmt.executeUpdate();
+                }
             }
         } catch (SQLException e) {
             String msg = "Error occurred while archiving notifications for user: " + username;
             log.error(msg, e);
             throw new NotificationArchivalException(msg, e);
         }
+        Map<String, List<Integer>> result = new HashMap<>();
+        result.put("archived", archived);
+        result.put("invalid", invalid);
+        return result;
     }
 
     @Override
