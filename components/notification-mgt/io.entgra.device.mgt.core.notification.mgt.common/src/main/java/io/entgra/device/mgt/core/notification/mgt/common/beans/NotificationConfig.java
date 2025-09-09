@@ -21,8 +21,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
-import java.time.LocalDateTime;
-
 @ApiModel(value = "NotificationConfig", description = "Notification Configurations")
 public class NotificationConfig {
 
@@ -151,7 +149,7 @@ public class NotificationConfig {
         private String user;
 
         @JsonProperty("lastModifiedAt")
-        private LocalDateTime lastModifiedAt;
+        private String lastModifiedAt;
 
         public String getUser() {
             return user;
@@ -161,11 +159,11 @@ public class NotificationConfig {
             this.user = user;
         }
 
-        public LocalDateTime getLastModifiedAt() {
+        public String getLastModifiedAt() {
             return lastModifiedAt;
         }
 
-        public void setLastModifiedAt(LocalDateTime lastModifiedAt) {
+        public void setLastModifiedAt(String lastModifiedAt) {
             this.lastModifiedAt = lastModifiedAt;
         }
     }

@@ -48,6 +48,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class NotificationManagementServiceImpl implements NotificationManagementService {
     private static final Log log = LogFactory.getLog(NotificationManagementServiceImpl.class);
@@ -76,54 +77,6 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             NotificationManagementDAOFactory.closeConnection();
         }
     }
-
-//    @Override
-//    public PaginatedUserNotificationResponse getUserNotificationsWithStatus(
-//            String username, int limit, int offset, Boolean isRead) throws NotificationManagementException {
-//        List<UserNotificationPayload> result = new ArrayList<>();
-//        int totalCount = 0;
-//        try {
-//            NotificationManagementDAOFactory.openConnection();
-//            List<UserNotificationAction> userActions =
-//                    notificationDAO.getNotificationActionsByUser(username, limit, offset, isRead);
-//            totalCount = notificationDAO.getNotificationActionsCountByUser(username, isRead);
-//            if (userActions.isEmpty()) {
-//                return new PaginatedUserNotificationResponse(result, totalCount);
-//            }
-//            // extract notification IDs
-//            List<Integer> notificationIds = userActions.stream()
-//                    .map(UserNotificationAction::getNotificationId)
-//                    .collect(Collectors.toList());
-//            List<Notification> notifications =
-//                    notificationDAO.getNotificationsByIds(notificationIds);
-//            // map actions to notifications
-//            Map<Integer, Boolean> isReadMap = userActions.stream()
-//                    .collect(Collectors.toMap(
-//                            UserNotificationAction::getNotificationId,
-//                            UserNotificationAction::isRead,
-//                            (existing, replacement) -> existing
-//                    ));
-//            for (Notification notification : notifications) {
-//                Boolean readStatus = isReadMap.get(notification.getNotificationId());
-//                String actionType = (readStatus != null && readStatus) ? "READ" : "UNREAD";
-//                result.add(new UserNotificationPayload(
-//                        notification.getNotificationId(),
-//                        notification.getDescription(),
-//                        notification.getType(),
-//                        actionType,
-//                        username,
-//                        notification.getCreatedTimestamp()
-//                ));
-//            }
-//        } catch (SQLException e) {
-//            String msg = "Error occurred while retrieving user notifications with status";
-//            log.error(msg, e);
-//            throw new NotificationManagementException(msg, e);
-//        } finally {
-//            NotificationManagementDAOFactory.closeConnection();
-//        }
-//        return new PaginatedUserNotificationResponse(result, totalCount);
-//    }
 
     @Override
     public PaginatedUserNotificationResponse getUserNotificationsWithStatus(
@@ -189,18 +142,20 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
-    public void deleteUserNotifications(List<Integer> notificationIds, String username)
+    public Map<String, List<Integer>> deleteUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationManagementException {
         NotificationHelper.validateUserExists(username);
         try {
             NotificationManagementDAOFactory.beginTransaction();
-            notificationDAO.deleteUserNotifications(notificationIds, username);
+            Map<String, List<Integer>> result = notificationDAO.deleteUserNotifications(notificationIds, username);
             NotificationManagementDAOFactory.commitTransaction();
             int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
             String payload = String.format("{\"unreadCount\":%d}", unreadCount);
             NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+            return result;
         } catch (NotificationManagementDAOException e) {
-            String msg = "Error occurred while deleting notifications for the given user";
+            NotificationManagementDAOFactory.rollbackTransaction();
+            String msg = "Error occurred while deleting notifications for user: " + username;
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
         } catch (TransactionManagementException e) {
@@ -214,21 +169,30 @@ public class NotificationManagementServiceImpl implements NotificationManagement
     }
 
     @Override
-    public void archiveUserNotifications(List<Integer> notificationIds, String username)
+    public Map<String, List<Integer>> archiveUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationArchivalException {
+        if (notificationIds == null || notificationIds.isEmpty()) {
+            return Map.of("archived", Collections.emptyList(), "invalid", Collections.emptyList());
+        }
         try {
             NotificationHelper.validateUserExists(username);
             NotificationArchivalDestDAOFactory.beginTransaction();
             NotificationArchivalSourceDAOFactory.beginTransaction();
-            notificationArchiveDAO.archiveUserNotifications(notificationIds, username);
+            Map<String, List<Integer>> result =
+                    notificationArchiveDAO.archiveUserNotifications(notificationIds, username);
             NotificationArchivalDestDAOFactory.commitTransaction();
             NotificationArchivalSourceDAOFactory.commitTransaction();
+            return result;
         } catch (NotificationManagementException e) {
+            NotificationArchivalDestDAOFactory.rollbackTransaction();
+            NotificationArchivalSourceDAOFactory.rollbackTransaction();
             String msg = "Error occurred while archiving user notifications for user: " + username +
                     "user doesn't exist";
             log.error(msg, e);
             throw new NotificationArchivalException(msg, e);
         } catch (TransactionManagementException e) {
+            NotificationArchivalDestDAOFactory.rollbackTransaction();
+            NotificationArchivalSourceDAOFactory.rollbackTransaction();
             String msg = "Error occurred while archiving notifications for user: " + username;
             log.error(msg, e);
             throw new NotificationArchivalException(msg, e);

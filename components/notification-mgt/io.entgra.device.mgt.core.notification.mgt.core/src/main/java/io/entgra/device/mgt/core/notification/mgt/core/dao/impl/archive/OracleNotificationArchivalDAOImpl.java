@@ -33,6 +33,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 public class OracleNotificationArchivalDAOImpl extends AbstractNotificationArchivalDAOImpl {
@@ -66,63 +72,92 @@ public class OracleNotificationArchivalDAOImpl extends AbstractNotificationArchi
     }
 
     @Override
-    public void archiveUserNotifications(List<Integer> notificationIds, String username)
+    public Map<String, List<Integer>> archiveUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationArchivalException {
-        if (notificationIds == null || notificationIds.isEmpty()) return;
-        String placeholders = notificationIds.stream()
-                .map(i -> "?")
-                .collect(Collectors.joining(","));
-        String selectSQL =
+        List<Integer> archived = new ArrayList<>();
+        List<Integer> invalid = new ArrayList<>();
+        if (notificationIds == null || notificationIds.isEmpty()) {
+            return Map.of("archived", Collections.emptyList(), "invalid", Collections.emptyList());
+        }
+        String placeholders =
+                notificationIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+        String selectQuery =
                 "SELECT " +
                         "NOTIFICATION_ID, " +
                         "USERNAME, " +
                         "IS_READ, " +
-                        "ACTION_TIMESTAMP "
-                + "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION "
-                + "WHERE USERNAME = ? " +
+                        "ACTION_TIMESTAMP " +
+                        "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ? " +
                         "AND NOTIFICATION_ID " +
                         "IN (" + placeholders + ")";
-        String insertSQL =
-                "INSERT INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH "
-                + "(NOTIFICATION_ID, " +
+        String insertQuery =
+                "INSERT " +
+                        "INTO " + DESTINATION_DB + ".DM_NOTIFICATION_USER_ACTION_ARCH " +
+                        "(NOTIFICATION_ID, " +
                         "USERNAME, " +
                         "IS_READ, " +
-                        "ACTION_TIMESTAMP) "
-                + "VALUES (?, ?, ?, ?)";
-        String deleteSQL =
-                "DELETE FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION "
-                + "WHERE USERNAME = ? " +
+                        "ACTION_TIMESTAMP) " +
+                        "VALUES (?, ?, ?, ?)";
+        String deleteQuery =
+                "DELETE " +
+                        "FROM " + SOURCE_DB + ".DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ? " +
                         "AND NOTIFICATION_ID " +
                         "IN (" + placeholders + ")";
-        Connection src = NotificationArchivalSourceDAOFactory.getConnection();
-        Connection dst = NotificationArchivalDestDAOFactory.getConnection();
-        try (PreparedStatement sel = src.prepareStatement(selectSQL);
-             PreparedStatement ins = dst.prepareStatement(insertSQL);
-             PreparedStatement del = src.prepareStatement(deleteSQL)) {
-            sel.setString(1, username);
-            for (int i = 0; i < notificationIds.size(); i++) {
-                sel.setInt(i + 2, notificationIds.get(i));
-            }
-            try (ResultSet rs = sel.executeQuery()) {
-                while (rs.next()) {
-                    ins.setInt(1, rs.getInt("NOTIFICATION_ID"));
-                    ins.setString(2, rs.getString("USERNAME"));
-                    ins.setBoolean(3, rs.getBoolean("IS_READ"));
-                    ins.setTimestamp(4, rs.getTimestamp("ACTION_TIMESTAMP"));
-                    ins.addBatch();
+        try {
+            Connection sourceConn = NotificationArchivalSourceDAOFactory.getConnection();
+            Connection destConn = NotificationArchivalDestDAOFactory.getConnection();
+            try (
+                    PreparedStatement selectStmt = sourceConn.prepareStatement(selectQuery);
+                    PreparedStatement insertStmt = destConn.prepareStatement(insertQuery);
+                    PreparedStatement deleteStmt = sourceConn.prepareStatement(deleteQuery)
+            ) {
+                // set username and IDs for select
+                selectStmt.setString(1, username);
+                for (int i = 0; i < notificationIds.size(); i++) {
+                    selectStmt.setInt(i + 2, notificationIds.get(i));
+                }
+                // fetch valid notifications and batch insert
+                Set<Integer> validIds = new HashSet<>();
+                try (ResultSet rs = selectStmt.executeQuery()) {
+                    while (rs.next()) {
+                        int id = rs.getInt("NOTIFICATION_ID");
+                        validIds.add(id);
+                        insertStmt.setInt(1, id);
+                        insertStmt.setString(2, rs.getString("USERNAME"));
+                        insertStmt.setBoolean(3, rs.getBoolean("IS_READ"));
+                        insertStmt.setTimestamp(4, rs.getTimestamp("ACTION_TIMESTAMP"));
+                        insertStmt.addBatch();
+                    }
+                    insertStmt.executeBatch();
+                }
+                // determine invalid IDs
+                for (Integer id : notificationIds) {
+                    if (!validIds.contains(id)) {
+                        invalid.add(id);
+                    } else {
+                        archived.add(id);
+                    }
+                }
+                // delete valid notifications
+                if (!archived.isEmpty()) {
+                    deleteStmt.setString(1, username);
+                    for (int i = 0; i < archived.size(); i++) {
+                        deleteStmt.setInt(i + 2, archived.get(i));
+                    }
+                    deleteStmt.executeUpdate();
                 }
             }
-            ins.executeBatch();
-            del.setString(1, username);
-            for (int i = 0; i < notificationIds.size(); i++) {
-                del.setInt(i + 2, notificationIds.get(i));
-            }
-            del.executeUpdate();
         } catch (SQLException e) {
             String msg = "Error occurred while archiving notifications for user: " + username;
             log.error(msg, e);
             throw new NotificationArchivalException(msg, e);
         }
+        Map<String, List<Integer>> result = new HashMap<>();
+        result.put("archived", archived);
+        result.put("invalid", invalid);
+        return result;
     }
 
     @Override

@@ -57,12 +57,14 @@ public class NotificationConfigurationServiceImpl implements NotificationConfigu
             @QueryParam("limit") int limit,
             @QueryParam("name") String name,
             @QueryParam("type") String type,
+            @QueryParam("deviceType") String deviceType,
             @QueryParam("code") String code) {
         try {
             NotificationConfigService notificationConfigService =
                     NotificationConfigurationApiUtil.getNotificationConfigurationService();
             NotificationConfigurationList filteredConfigs =
-                    notificationConfigService.getFilteredNotificationConfigurations(name, type, code, offset, limit);
+                    notificationConfigService
+                            .getFilteredNotificationConfigurations(name, type, code, deviceType, offset, limit);
             return Response.status(HttpStatus.SC_OK).entity(filteredConfigs).build();
         } catch (NotificationConfigurationNotFoundException e) {
             String msg = "Notification Configurations does not exist.";

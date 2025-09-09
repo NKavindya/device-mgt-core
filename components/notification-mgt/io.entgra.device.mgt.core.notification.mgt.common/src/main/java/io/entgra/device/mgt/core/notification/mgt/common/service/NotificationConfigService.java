@@ -96,13 +96,14 @@ public interface NotificationConfigService {
      * @param name   Optional filter to match configuration names (case-insensitive with partial match).
      * @param type   Optional filter to match configuration type (case-insensitive with exact match).
      * @param code   Optional filter to match configuration codes (case-insensitive with partial match).
+     * @param deviceType   Optional filter to match device type (case-insensitive with partial match).
      * @param offset The starting index of the paginated result.
      * @param limit  The maximum number of configurations to return in the result.
      * @return A {@link NotificationConfigurationList} containing the filtered and paginated configurations.
      * @throws NotificationConfigurationServiceException If an error occurs during metadata retrieval or processing.
      */
-    NotificationConfigurationList getFilteredNotificationConfigurations(String name, String type,
-                                                                        String code, int offset, int limit)
+    NotificationConfigurationList getFilteredNotificationConfigurations(String name, String type, String code,
+                                                                        String deviceType, int offset, int limit)
             throws NotificationConfigurationServiceException;
 
     /**

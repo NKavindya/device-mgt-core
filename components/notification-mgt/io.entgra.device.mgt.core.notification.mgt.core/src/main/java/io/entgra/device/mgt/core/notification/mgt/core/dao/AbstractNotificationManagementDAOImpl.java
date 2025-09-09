@@ -36,6 +36,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Map;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 public class AbstractNotificationManagementDAOImpl implements NotificationManagementDAO {
@@ -361,34 +366,73 @@ public class AbstractNotificationManagementDAOImpl implements NotificationManage
     }
 
     @Override
-    public void deleteUserNotifications(List<Integer> notificationIds, String username)
+    public Map<String, List<Integer>> deleteUserNotifications(List<Integer> notificationIds, String username)
             throws NotificationManagementDAOException {
         if (notificationIds == null || notificationIds.isEmpty()) {
-            return;
+            Map<String, List<Integer>> result = new HashMap<>();
+            result.put("deleted", Collections.emptyList());
+            result.put("invalid", Collections.emptyList());
+            return result;
         }
+        Map<String, List<Integer>> result = new HashMap<>();
+        List<Integer> deleted = new ArrayList<>();
+        List<Integer> invalid = new ArrayList<>();
         String placeholders = notificationIds.stream()
                 .map(id -> "?")
                 .collect(Collectors.joining(", "));
-        String query =
-                "DELETE " +
-                        "FROM DM_NOTIFICATION_USER_ACTION " +
-                        "WHERE USERNAME = ? " +
+        String selectQuery =
+                "SELECT NOTIFICATION_ID " +
+                "FROM DM_NOTIFICATION_USER_ACTION " +
+                "WHERE USERNAME = ? " +
                         "AND NOTIFICATION_ID " +
                         "IN (" + placeholders + ")";
         try {
             Connection connection = NotificationManagementDAOFactory.getConnection();
-            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            try (PreparedStatement stmt = connection.prepareStatement(selectQuery)) {
                 stmt.setString(1, username);
                 for (int i = 0; i < notificationIds.size(); i++) {
                     stmt.setInt(i + 2, notificationIds.get(i));
                 }
-                stmt.executeUpdate();
+                try (ResultSet rs = stmt.executeQuery()) {
+                    Set<Integer> validIds = new HashSet<>();
+                    while (rs.next()) {
+                        validIds.add(rs.getInt("NOTIFICATION_ID"));
+                    }
+                    for (Integer id : notificationIds) {
+                        if (validIds.contains(id)) {
+                            deleted.add(id);
+                        } else {
+                            invalid.add(id);
+                        }
+                    }
+                }
+            }
+            if (!deleted.isEmpty()) {
+                String validPlaceholders = deleted.stream()
+                        .map(id -> "?")
+                        .collect(Collectors.joining(", "));
+                String finalDeleteQuery =
+                        "DELETE " +
+                                "FROM DM_NOTIFICATION_USER_ACTION " +
+                        "WHERE USERNAME = ? " +
+                                "AND NOTIFICATION_ID " +
+                                "IN (" + validPlaceholders + ")";
+                try (PreparedStatement stmt = connection.prepareStatement(finalDeleteQuery)) {
+                    stmt.setString(1, username);
+                    for (int i = 0; i < deleted.size(); i++) {
+                        stmt.setInt(i + 2, deleted.get(i));
+                    }
+                    stmt.executeUpdate();
+                }
             }
         } catch (SQLException e) {
             String msg = "Error occurred while deleting notifications for user: " + username;
             log.error(msg, e);
             throw new NotificationManagementDAOException(msg, e);
         }
+        result.put("deleted", deleted);
+        result.put("invalid", invalid);
+        return result;
     }
 
     @Override
