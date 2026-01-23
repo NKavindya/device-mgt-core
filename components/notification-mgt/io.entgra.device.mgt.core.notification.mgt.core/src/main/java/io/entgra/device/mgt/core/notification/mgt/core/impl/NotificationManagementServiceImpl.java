@@ -183,6 +183,18 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                     notificationArchiveDAO.archiveUserNotifications(notificationIds, username);
             NotificationArchivalDestDAOFactory.commitTransaction();
             NotificationArchivalSourceDAOFactory.commitTransaction();
+            try {
+                NotificationManagementDAOFactory.openConnection();
+                int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
+                String payload = String.format("{\"unreadCount\":%d}", unreadCount);
+                NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+            } catch (SQLException | NotificationManagementDAOException e) {
+                String msg = "Error occurred while retrieving unread notification count for user: " + username;
+                log.error(msg, e);
+                throw new NotificationArchivalException(msg, e);
+            } finally {
+                NotificationManagementDAOFactory.closeConnection();
+            }
             return result;
         } catch (NotificationManagementException e) {
             NotificationArchivalDestDAOFactory.rollbackTransaction();
@@ -236,6 +248,18 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             notificationArchiveDAO.archiveAllUserNotifications(username);
             NotificationArchivalDestDAOFactory.commitTransaction();
             NotificationArchivalSourceDAOFactory.commitTransaction();
+            try {
+                NotificationManagementDAOFactory.openConnection();
+                int unreadCount = notificationDAO.getUnreadNotificationCountForUser(username);
+                String payload = String.format("{\"unreadCount\":%d}", unreadCount);
+                NotificationEventBroker.pushMessage(payload, Collections.singletonList(username));
+            } catch (SQLException | NotificationManagementDAOException e) {
+                String msg = "Error occurred while retrieving unread notification count for user: " + username;
+                log.error(msg, e);
+                throw new NotificationArchivalException(msg, e);
+            } finally {
+                NotificationManagementDAOFactory.closeConnection();
+            }
         } catch (NotificationManagementException e) {
             String msg = "Error occurred while archiving user notifications for user: " + username +
                     "user doesn't exist";
