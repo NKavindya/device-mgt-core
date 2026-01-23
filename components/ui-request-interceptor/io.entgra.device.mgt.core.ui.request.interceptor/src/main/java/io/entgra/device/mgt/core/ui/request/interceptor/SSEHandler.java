@@ -33,6 +33,7 @@ import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
@@ -43,7 +44,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -113,11 +113,29 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
+        // authData can be stored under different keys depending on the login flow (normal/tenant-context/default).
         AuthData authData = (AuthData) session.getAttribute(HandlerConstants.SESSION_AUTH_DATA_KEY);
-        if (authData == null || authData.getUsername() == null || authData.getUsername().trim().isEmpty()) {
+        if (authData == null) {
+            authData = (AuthData) session.getAttribute(HandlerConstants.SESSION_TENANT_CONTEXT_AUTH_DATA_KEY);
+        }
+        if (authData == null) {
+            authData = (AuthData) session.getAttribute(HandlerConstants.SESSION_DEFAULT_AUTH_DATA_KEY);
+        }
+        String username = null;
+        if (authData != null && authData.getUsername() != null && !authData.getUsername().trim().isEmpty()) {
+            username = authData.getUsername().trim();
+        } else {
+            Object userWithDomain = session.getAttribute(HandlerConstants.USERNAME_WITH_DOMAIN);
+            if (userWithDomain instanceof String && !((String) userWithDomain).trim().isEmpty()) {
+                username = ((String) userWithDomain).trim();
+            }
+        }
+        if (authData == null || username == null) {
             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
+        final String sessionUsername = username;
+        final String notificationUsername = normalizeUsernameForNotifications(sessionUsername);
         res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
         res.setHeader("Pragma", "no-cache");
         res.setHeader("X-Content-Type-Options", "nosniff");
@@ -126,20 +144,24 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
         res.setCharacterEncoding("UTF-8");
         final AsyncContext ac = req.startAsync();
         ac.setTimeout(0);
-        final String username = authData.getUsername().trim();
-        userStreams.computeIfAbsent(username, k -> new CopyOnWriteArrayList<>()).add(ac);
+        // Register under the username format used by the notification module/broker.
+        userStreams.computeIfAbsent(notificationUsername, k -> new CopyOnWriteArrayList<>()).add(ac);
+        // Also register under the session username as an alias (e.g., "admin@carbon.super") to be safe.
+        if (!notificationUsername.equals(sessionUsername)) {
+            userStreams.computeIfAbsent(sessionUsername, k -> new CopyOnWriteArrayList<>()).add(ac);
+        }
         ac.addListener(new AsyncListener() {
             @Override
             public void onComplete(AsyncEvent event) {
-                removeContext(username, ac);
+                removeContext(ac);
             }
             @Override
             public void onTimeout(AsyncEvent event) {
-                removeContext(username, ac);
+                removeContext(ac);
             }
             @Override
             public void onError(AsyncEvent event) {
-                removeContext(username, ac);
+                removeContext(ac);
             }
             @Override
             public void onStartAsync(AsyncEvent event) {
@@ -149,23 +171,23 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
             PrintWriter out = ac.getResponse().getWriter();
             try {
                 NotificationManagementDAOFactory.openConnection();
-                int count = notificationDAO.getUnreadNotificationCountForUser(username);
+                int count = notificationDAO.getUnreadNotificationCountForUser(notificationUsername);
                 String initialPayload = String.format(
                         "{\"message\":\"Connected to notification service.\",\"unreadCount\":%d}", count);
                 writeSseData(out, initialPayload);
             } catch (NotificationManagementDAOException e) {
-                String msg = "Error fetching unread notification count for user: " + username;
+                String msg = "Error fetching unread notification count for user: " + notificationUsername;
                 log.error(msg, e);
-                closeStream(username, ac);
+                closeStream(notificationUsername, ac);
             } catch (SQLException e) {
-                String msg = "Error retrieving unread notification count for user: " + username;
+                String msg = "Error retrieving unread notification count for user: " + notificationUsername;
                 log.error(msg, e);
-                closeStream(username, ac);
+                closeStream(notificationUsername, ac);
             } finally {
                 NotificationManagementDAOFactory.closeConnection();
             }
         } catch (IOException e) {
-            closeStream(username, ac);
+            closeStream(notificationUsername, ac);
             log.debug("Error writing initial SSE payload. Removing stream.", e);
         }
     }
@@ -190,6 +212,25 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
     }
 
     /**
+     * Removes the given {@link AsyncContext} from all user stream lists.
+     * This is required because a single SSE connection can be registered under multiple username keys
+     * (e.g., "admin" and "admin@carbon.super") to match different publisher formats.
+     *
+     * @param ac async context to remove
+     */
+    private void removeContext(AsyncContext ac) {
+        for (Map.Entry<String, List<AsyncContext>> entry : userStreams.entrySet()) {
+            List<AsyncContext> list = entry.getValue();
+            if (list != null) {
+                list.remove(ac);
+                if (list.isEmpty()) {
+                    userStreams.remove(entry.getKey(), list);
+                }
+            }
+        }
+    }
+
+    /**
      * closes an SSE connection safely and removes it from tracking.
      * prevents resource leaks (open sockets/threads) when the client disconnects or an error occurs.
      * @param username the authenticated username associated with this stream
@@ -197,6 +238,7 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
      */
     private void closeStream(String username, AsyncContext ac) {
         removeContext(username, ac);
+        removeContext(ac);
         try {
             ac.complete();
         } catch (IllegalStateException ignore) {
@@ -273,5 +315,20 @@ public class SSEHandler extends HttpServlet implements NotificationListener {
         }
         String first = value.split(",", 2)[0].trim();
         return first.isEmpty() ? defaultValue : first;
+    }
+
+    /**
+     * normalizes a session username into the username format used by the notification module/DAO.
+     * @param sessionUsername username resolved from the UI session
+     * @return username to use when querying/storing/streaming notifications
+     */
+    private static String normalizeUsernameForNotifications(String sessionUsername) {
+        if (sessionUsername == null) {
+            return null;
+        }
+        if (sessionUsername.endsWith("@carbon.super")) {
+            return sessionUsername.substring(0, sessionUsername.length() - "@carbon.super".length());
+        }
+        return sessionUsername;
     }
 }
