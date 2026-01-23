@@ -347,14 +347,17 @@ public class NotificationHelper {
         if (Constants.SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
             return u.replace("@" + Constants.SUPER_TENANT_DOMAIN, "");
         }
-        // For sub-tenants, always ensure the username is tenant-aware by appending "@{tenantDomain}".
-        // This supports email-style usernames (e.g., "user01@example.com") by producing
-        // "user01@example.com@tenantDomain" (two '@' characters) so usernames remain unique across tenants.
-        String suffix = "@" + tenantDomain;
-        if (u.endsWith(suffix)) {
-            return u;
+        if (u.contains("@")) {
+            String[] parts = u.split("@", 2);
+            String userPart = parts[0];
+            String domainPart = parts[1];
+            if (tenantDomain.equals(domainPart)) {
+                return u;
+            } else {
+                return userPart + "@" + tenantDomain;
+            }
         }
-        return u + suffix;
+        return u + "@" + tenantDomain;
     }
 
     /**
