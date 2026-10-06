@@ -22,6 +22,12 @@ correct behaviour looks like in the core services and Device Management API.
 | --- | --- |
 | Device name and description persistence | [device-name-description.md](device-name-description.md) |
 
+### Device types
+
+| Feature | Spec |
+| --- | --- |
+| Device type OS version labels | [device-type-os-version-labels.md](device-type-os-version-labels.md) |
+
 ## Planned feature areas (add specs when touched)
 
 - Device enrollment
