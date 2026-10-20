@@ -41,6 +41,11 @@ import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationEventBro
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationHelper;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationMessageRenderer;
 import io.entgra.device.mgt.core.notification.mgt.core.util.NotificationEventPayloadBuilder;
+import io.entgra.device.mgt.core.device.mgt.common.Device;
+import io.entgra.device.mgt.core.device.mgt.common.PaginationRequest;
+import io.entgra.device.mgt.core.device.mgt.common.exceptions.DeviceManagementException;
+import io.entgra.device.mgt.core.device.mgt.core.service.DeviceManagementProviderService;
+import io.entgra.device.mgt.core.device.mgt.core.util.DeviceManagerUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -487,8 +492,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                         tenantId, config.getId(), Constants.TASK,
                         NotificationMessageRenderer.toJson(context));
                 notificationDAO.insertNotificationUserActions(notificationId, usernames);
-                String description = NotificationMessageRenderer.render(
-                        context, Collections.emptyList(), Constants.TASK);
+                String description = NotificationMessageRenderer.render(context, Constants.TASK);
                 for (String username : usernames) {
                     int count = notificationDAO.getUnreadNotificationCountForUser(username);
                     NotificationEventBroker.pushMessage(
@@ -525,6 +529,9 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             throw new NotificationManagementException("Notification context must not be null");
         }
         List<Integer> resolvedDeviceIds = deviceIds != null ? deviceIds : Collections.emptyList();
+        if (context.getDeviceLabels() == null || context.getDeviceLabels().isEmpty()) {
+            context.setDeviceLabels(resolveDeviceLabels(resolvedDeviceIds));
+        }
         String contextJson = NotificationMessageRenderer.toJson(context);
         try {
             int notificationId = notificationDAO.insertNotification(
@@ -536,7 +543,7 @@ public class NotificationManagementServiceImpl implements NotificationManagement
                 return;
             }
             notificationDAO.insertNotificationUserActions(notificationId, usernames);
-            String description = NotificationMessageRenderer.render(context, resolvedDeviceIds, config.getType());
+            String description = NotificationMessageRenderer.render(context, config.getType());
             for (String username : usernames) {
                 int count = notificationDAO.getUnreadNotificationCountForUser(username);
                 NotificationEventBroker.pushMessage(
@@ -547,6 +554,43 @@ public class NotificationManagementServiceImpl implements NotificationManagement
             String msg = "Error occurred while publishing notification for config: " + config.getCode();
             log.error(msg, e);
             throw new NotificationManagementException(msg, e);
+        }
+    }
+
+    /**
+     * Builds user-facing device labels ({@code 'Name' (identifier)}) for operation
+     * notification messages from internal {@code DM_DEVICE.ID} values.
+     * <p>
+     * Returns an empty list when ids are missing, the device service is unavailable,
+     * lookup fails, or no devices are found — callers then omit the device list.
+     *
+     * @param deviceIds internal device primary keys; may be {@code null} or empty
+     * @return label strings for each resolved device; never {@code null}
+     */
+    private List<String> resolveDeviceLabels(List<Integer> deviceIds) {
+        if (deviceIds == null || deviceIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        DeviceManagementProviderService deviceService =
+                NotificationManagementDataHolder.getInstance().getDeviceManagementProviderService();
+        if (deviceService == null) {
+            return Collections.emptyList();
+        }
+        try {
+            PaginationRequest request = new PaginationRequest(0, deviceIds.size());
+            List<Device> devices = deviceService.getDevicesByDeviceIds(request, deviceIds);
+            if (devices == null || devices.isEmpty()) {
+                return Collections.emptyList();
+            }
+            List<String> labels = new ArrayList<>();
+            for (Device device : devices) {
+                labels.add(DeviceManagerUtil.formatDeviceNotificationLabel(
+                        device.getName(), device.getDeviceIdentifier()));
+            }
+            return labels;
+        } catch (DeviceManagementException e) {
+            log.warn("Unable to resolve device names/identifiers for notification message.", e);
+            return Collections.emptyList();
         }
     }
 
