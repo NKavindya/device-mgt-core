@@ -45,7 +45,7 @@ correct behaviour looks like in the core services and Device Management API.
 - Device enrollment
 - Device list / search / filters
 - Device details / properties
-- Operations and notifications (partial: status update, delete/disenroll task notifications, and task notification configs covered above)
+- Operations and notifications (partial: status update, delete/disenroll task notifications, and task notification configs covered above; user notification REST lives under notification-mgt, not device-mgt.api)
 - Device access authorization
 
 ## Writing rules

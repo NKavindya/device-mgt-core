@@ -13,6 +13,10 @@ persisted, published, read/archived, and pushed live to the console via SSE.
 | core | `io.entgra.device.mgt.core.notification.mgt.core` | OSGi component, service impls, DAOs, broker, archival task |
 | api | `io.entgra.device.mgt.core.notification.mgt.api` | JAX-RS WAR `api#notification-mgt#v1.0` |
 
+Console and clients use **only** this module’s REST API
+(`/api/notification-mgt/v1.0`). The former Device Management notifications
+resource (`/api/device-mgt/v1.0/notifications`) is not registered.
+
 **Registered OSGi services** (on core activate):
 
 - `NotificationManagementService` → `NotificationManagementServiceImpl`
