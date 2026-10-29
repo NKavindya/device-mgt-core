@@ -31,9 +31,10 @@ There is **no** `DM_REALTIME_NOTIFICATION_CONFIG` table; configs are metadata-on
 
 Scripts: `device-mgt.basics.feature/.../dbscripts/cdm/<db>.sql`
 
-Legacy inbox (unchanged table name, coexists with realtime):
+### `DM_NOTIFICATION`
 
-### `DM_NOTIFICATION` (legacy)
+Original notification table (device-mgt `NotificationManagementService`). Realtime
+tables below are prefixed `DM_REALTIME_*`.
 
 | Column | Notes |
 | --- | --- |
@@ -44,9 +45,6 @@ Legacy inbox (unchanged table name, coexists with realtime):
 | `STATUS` | e.g. `NEW` |
 | `DESCRIPTION` | Free-text |
 | `LAST_UPDATED_TIMESTAMP` | |
-
-Served by device-mgt `NotificationManagementService` / legacy Device Management
-notification API. Realtime tables below are prefixed `DM_REALTIME_*`.
 
 ### `DM_REALTIME_NOTIFICATION`
 
