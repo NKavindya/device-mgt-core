@@ -123,8 +123,7 @@ Device-mgt DAOs must **not** touch `DM_REALTIME_*` tables.
 #### Tenant delete — `deleteNotificationsByTenantId`
 
 Deletes all `DM_REALTIME_NOTIFICATION` rows for a tenant (mappings /
-user actions CASCADE). Called from tenant-mgt / device-mgt tenant cleanup
-alongside `TenantDAO.deleteNotificationByTenantId` (`DM_NOTIFICATION` only).
+user actions CASCADE). Called from tenant-mgt / device-mgt tenant cleanup.
 
 ---
 
@@ -205,17 +204,6 @@ Helpers:
 - `RealtimeNotificationMessageRenderer` — context JSON ↔ rendered description
 
 ---
-
-## Device / tenant delete cleanup
-
-| Store | Cleanup |
-| --- | --- |
-| `DM_REALTIME_*` | `RealtimeNotificationManagementService.purgeNotificationsForDevices` / `deleteNotificationsByTenantId` |
-| `DM_NOTIFICATION` | device-mgt DAOs (`purgeDeviceNotifications`) / `TenantDAO.deleteNotificationByTenantId` |
-
-UEM product flows publish through realtime handlers only (`OperationManager`,
-`DeviceManagerUtil.publishDeviceNotification`, proprietary Android
-`REQUEST_CHAT`, etc.).
 
 ## Acceptance criteria
 

@@ -31,21 +31,6 @@ There is **no** `DM_REALTIME_NOTIFICATION_CONFIG` table; configs are metadata-on
 
 Scripts: `device-mgt.basics.feature/.../dbscripts/cdm/<db>.sql`
 
-### `DM_NOTIFICATION`
-
-Original notification table (device-mgt `NotificationManagementService`). Realtime
-tables below are prefixed `DM_REALTIME_*`.
-
-| Column | Notes |
-| --- | --- |
-| `NOTIFICATION_ID` | PK |
-| `DEVICE_ID` | FK → `DM_DEVICE(ID)` |
-| `OPERATION_ID` | Optional |
-| `TENANT_ID` | Tenant |
-| `STATUS` | e.g. `NEW` |
-| `DESCRIPTION` | Free-text |
-| `LAST_UPDATED_TIMESTAMP` | |
-
 ### `DM_REALTIME_NOTIFICATION`
 
 | Column | Notes |
